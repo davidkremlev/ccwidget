@@ -12,6 +12,23 @@ spent, how full the context window is, and when the weekly quota runs out.
 
 Everything else on this page assumes `claude` runs in your terminal.
 
+| | |
+|---|---|
+| ![Medium widget, dark](Docs/screenshots/medium-dark.png) | ![Small widget, dark](Docs/screenshots/small-dark.png) |
+
+<details>
+<summary>Large size with the forecast, and everything in light mode</summary>
+
+| | |
+|---|---|
+| ![Large widget, light](Docs/screenshots/large-light.png) | ![Large widget, dark](Docs/screenshots/large-dark.png) |
+| ![Medium widget, light](Docs/screenshots/medium-light.png) | ![Small widget, light](Docs/screenshots/small-light.png) |
+
+</details>
+
+Screenshots are real data from a working session, not mock-ups. Re-shoot them
+with `./.build/ccgauge-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"`.
+
 ---
 
 ## What it shows
@@ -117,13 +134,19 @@ The exporter runs on every status line redraw, writes atomically, and always
 exits 0 — a broken exporter must never break your prompt. It prints nothing:
 your status line stays empty and the widget is the only consumer.
 
+**Everything happens on your machine.** There is no network code in this
+project: nothing is uploaded, no telemetry is collected, and no account is
+needed beyond the one Claude Code already uses. The widget never talks to
+Claude at all — it reads a file that Claude Code itself hands to a status
+line command you configured, and it holds no credentials of any kind. For a
+tool whose whole job is watching how much of your quota is left, that is
+worth knowing before you install it.
+
 Data is exchanged through the widget extension's own sandbox container rather
 than an App Group. App Groups do not work for widget extensions under ad-hoc
 signing, and requiring a paid Apple Developer membership from everyone who
 builds from source was not acceptable. The trade-offs are written up in
 [SPEC.md](SPEC.md), section 2.2.
-
-Nothing leaves your machine. There is no network code in this project.
 
 ## Development
 
@@ -131,6 +154,7 @@ Nothing leaves your machine. There is no network code in this project.
 ./Scripts/reinstall.sh        # build, install, restart the widget daemon
 ./.build/ccgauge-dump         # print the parsed snapshot
 ./.build/ccgauge-selftest     # installer and settings-editor checks
+./.build/ccgauge-screenshots  # re-shoot the README screenshots
 ```
 
 `killall chronod` at the end of the install script is not optional: the widget
@@ -149,10 +173,6 @@ Claude and Claude Code are trademarks of Anthropic, PBC. They are used here
 descriptively and only to state what this widget is compatible with. No
 claim to those marks is made or implied, and no association with Anthropic
 should be inferred from the name.
-
-The project reads a file that Claude Code hands to a user-configured status
-line command. It does not access Claude models, handle credentials, or
-automate anything on your behalf.
 
 ## Licence
 
