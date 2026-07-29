@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+import json, sys, os, time
+
+GROUP_DIR = "__GROUP_DIR__"
+
+MIN_INTERVAL = 600  # см. раздел 7: дедупликация истории
+
+
+def last_history_entry(path):
+    """Последняя непустая строка истории. Читаем хвост, а не весь файл."""
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - 4096))
+            lines = f.read().splitlines()
+        for raw in reversed(lines):
+            if raw.strip():
+                return json.loads(raw)
+    except Exception:
+        pass
+    return None
+
+
+def should_append(prev, entry):
+    if prev is None:
+        return True
+    if prev.get("resetsAt") != entry["resetsAt"]:
+        return True
+    if prev.get("sevenDay") != entry["sevenDay"]:
+        return True
+    return entry["t"] - (prev.get("t") or 0) > MIN_INTERVAL
+
+
+def main():
+    try:
+        d = json.loads(sys.stdin.read())
+    except Exception:
+        return
+
+    # Контейнер расширения заводит система при первом запуске виджета.
+    # Создавать его снаружи нельзя: containermanagerd может счесть каталог
+    # чужим и увести его в сторону. Родителя не видно — значит виджет ещё
+    # не запускался; молча выходим, установщик объяснит это пользователю.
+    if not os.path.isdir(os.path.dirname(GROUP_DIR)):
+        return
+
+    os.makedirs(GROUP_DIR, exist_ok=True)
+
+    rl = d.get("rate_limits") or {}
+    cw = d.get("context_window") or {}
+    cu = cw.get("current_usage") or {}
+    ws = d.get("workspace") or {}
+    repo = ws.get("repo") or {}
+    md = d.get("model") or {}
+
+    read = cu.get("cache_read_input_tokens") or 0
+    write = cu.get("cache_creation_input_tokens") or 0
+    total = read + write
+    ratio = round(read / total, 4) if total else None
+
+    def pct(v):
+        """Проценты приходят то целыми, то дробными: 28.000000000000004."""
+        try:
+            return int(round(float(v)))
+        except (TypeError, ValueError):
+            return None
+
+    def window(key):
+        w = rl.get(key)
+        if not w or pct(w.get("used_percentage")) is None:
+            return None
+        return {
+            "usedPercentage": pct(w.get("used_percentage")),
+            "resetsAt": w.get("resets_at"),
+        }
+
+    snap = {
+        "schemaVersion": 1,
+        "capturedAt": int(time.time()),
+        "sessionId": d.get("session_id"),
+        "claudeCodeVersion": d.get("version"),
+        "model": {
+            "id": md.get("id"),
+            "displayName": md.get("display_name"),
+            "effort": (d.get("effort") or {}).get("level"),
+        },
+        "project": {
+            "name": repo.get("name")
+            or os.path.basename(ws.get("current_dir") or ""),
+            "path": ws.get("current_dir"),
+        },
+        "limits": {
+            "fiveHour": window("five_hour"),
+            "sevenDay": window("seven_day"),
+        },
+        "context": {
+            "usedPercentage": pct(cw.get("used_percentage")),
+            "totalInputTokens": cw.get("total_input_tokens"),
+            "windowSize": cw.get("context_window_size"),
+            "cacheHitRatio": ratio,
+        },
+        "cost": {"sessionUsd": (d.get("cost") or {}).get("total_cost_usd")},
+    }
+
+    tmp = os.path.join(GROUP_DIR, "snapshot.json.tmp")
+    with open(tmp, "w") as f:
+        json.dump(snap, f, ensure_ascii=False)
+    os.replace(tmp, os.path.join(GROUP_DIR, "snapshot.json"))
+
+    sd = snap["limits"]["sevenDay"]
+    if sd:
+        hist = os.path.join(GROUP_DIR, "history.jsonl")
+        entry = {
+            "t": snap["capturedAt"],
+            "sevenDay": sd["usedPercentage"],
+            "resetsAt": sd.get("resetsAt"),
+        }
+        if should_append(last_history_entry(hist), entry):
+            with open(hist, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+
+
+try:
+    main()
+except Exception:
+    pass
