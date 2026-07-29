@@ -76,7 +76,7 @@ final class SnapshotWatcher: ObservableObject {
         directoryDescriptor = open(store.containerURL.path, O_EVTONLY)
         guard directoryDescriptor >= 0 else {
             ccgaugeStoreLog.error(
-                "watcher: cannot open directory \(self.store.containerURL.path, privacy: .public)"
+                "watcher: cannot open directory \(self.store.containerURL.path, privacy: .private)"
             )
             return
         }

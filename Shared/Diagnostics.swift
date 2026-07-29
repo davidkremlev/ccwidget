@@ -40,7 +40,7 @@ public final class DiagnosticsCollector: @unchecked Sendable {
         ccgaugeParseLog.error(
             """
             soft parse dropped field \(field, privacy: .public); \
-            raw=\(issue.rawValue ?? "<unreadable>", privacy: .public); \
+            raw=\(issue.rawValue ?? "<unreadable>", privacy: .private); \
             reason=\(issue.reason, privacy: .public)
             """
         )

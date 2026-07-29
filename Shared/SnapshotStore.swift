@@ -96,7 +96,7 @@ public struct SnapshotStore: Sendable {
     public static func `default`() -> SnapshotStore {
         let url = exchangeURL
         ccgaugeStoreLog.debug(
-            "exchange dir \(url.path, privacy: .public); sandboxed=\(isSandboxed, privacy: .public)"
+            "exchange dir \(url.path, privacy: .private); sandboxed=\(isSandboxed, privacy: .public)"
         )
         return SnapshotStore(containerURL: url)
     }
@@ -113,7 +113,7 @@ public struct SnapshotStore: Sendable {
         let fm = FileManager.default
         var parts: [String] = [
             "sandboxed=\(Self.isSandboxed)",
-            "home=\(NSHomeDirectory())",
+            "home=<private>",
             "dirExists=\(fm.fileExists(atPath: containerURL.path))",
             "fileExists=\(fm.fileExists(atPath: snapshotURL.path))",
             "readable=\(fm.isReadableFile(atPath: snapshotURL.path))",

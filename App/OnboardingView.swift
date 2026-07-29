@@ -102,6 +102,7 @@ struct OnboardingView: View {
             Button("Check again") { failure = nil }
         } else {
             existingStatusLineWarning
+            preflightNotes
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Setup writes the exporter to ~/.claude/ and adds one key to settings.json. Only that key changes — your formatting and key order are kept.")
@@ -115,9 +116,44 @@ struct OnboardingView: View {
             HStack {
                 Button("Set up automatically") { runInstall() }
                     .keyboardShortcut(.defaultAction)
+                    .disabled(installer.preflight().interpreter == nil)
                 Button("Show manual instructions") { showsManual = true }
             }
         }
+    }
+
+    /// Раздел 11: предупреждать до записи, а не отчитываться после.
+    @ViewBuilder
+    private var preflightNotes: some View {
+        let check = installer.preflight()
+        VStack(alignment: .leading, spacing: 6) {
+            if let target = check.settingsLinkTarget {
+                if check.canPreserveLink {
+                    Label("settings.json is a symlink. Setup writes through it, so the link stays intact.", systemImage: "link")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Label("settings.json is a symlink whose target cannot be written. Setup would replace the link with a regular file.", systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
+                Text(verbatim: target.path(percentEncoded: false))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.tertiary)
+                    .textSelection(.enabled)
+            }
+            if check.interpreter == nil {
+                Label("No working python3 was found. Install the Xcode Command Line Tools with: xcode-select --install", systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+            } else if let interpreter = check.interpreter {
+                Text("Exporter will run under \(interpreter.path(percentEncoded: false))")
+                    .foregroundStyle(.tertiary)
+            }
+            if !check.settingsWritable {
+                Label("settings.json is not writable.", systemImage: "lock.fill")
+                    .foregroundStyle(.orange)
+            }
+        }
+        .font(.caption)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Существующий ключ нельзя молча затирать — раздел 11.

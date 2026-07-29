@@ -1,9 +1,59 @@
 #!/usr/bin/env python3
-import json, sys, os, time
+import json, os, stat, sys, time
 
+# Обе подстановки делает установщик:
+#   __GROUP_DIR__  — вместе с кавычками, корректным литералом Python
+#   первая строка  — абсолютным путём к интерпретатору
 GROUP_DIR = "__GROUP_DIR__"
 
+# Больше — не наши данные. Статуслайн присылает килобайты; мегабайт с запасом
+# в триста раз, а без предела гигабайтный вход попадал в снимок целиком
+# и валил расширение виджета при чтении.
+MAX_INPUT = 1 << 20
+
 MIN_INTERVAL = 600  # см. раздел 7: дедупликация истории
+
+
+def is_regular_or_absent(path):
+    """Правда, если по пути обычный файл или ничего.
+
+    Символическая ссылка обычным файлом не считается: запись сквозь неё
+    уничтожает файл на другом конце, а экспортёр работает десятки раз
+    в минуту с правами пользователя.
+    """
+    try:
+        st = os.lstat(path)
+    except FileNotFoundError:
+        return True
+    except OSError:
+        return False
+    return stat.S_ISREG(st.st_mode)
+
+
+def open_new(path):
+    """Открывает файл на запись, отказываясь идти по ссылке."""
+    try:
+        # unlink снимает саму ссылку, а не то, на что она указывает.
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        return None
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    except OSError:
+        return None
+    return os.fdopen(fd, "w")
+
+
+def open_append(path):
+    if not is_regular_or_absent(path):
+        return None
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)
+    except OSError:
+        return None
+    return os.fdopen(fd, "a")
 
 
 def last_history_entry(path):
@@ -33,15 +83,19 @@ def should_append(prev, entry):
 
 
 def main():
+    raw = sys.stdin.buffer.read(MAX_INPUT + 1)
+    if len(raw) > MAX_INPUT:
+        return
     try:
-        d = json.loads(sys.stdin.read())
+        d = json.loads(raw)
     except Exception:
+        return
+    if not isinstance(d, dict):
         return
 
     # Контейнер расширения заводит система при первом запуске виджета.
     # Создавать его снаружи нельзя: containermanagerd может счесть каталог
-    # чужим и увести его в сторону. Родителя не видно — значит виджет ещё
-    # не запускался; молча выходим, установщик объяснит это пользователю.
+    # чужим и увести его в сторону. Родителя нет — виджет не запускался.
     if not os.path.isdir(os.path.dirname(GROUP_DIR)):
         return
 
@@ -75,10 +129,15 @@ def main():
             "resetsAt": w.get("resets_at"),
         }
 
+    # Раздел 4: пишем только то, что показывается. Полного пути к проекту
+    # здесь нет — виджет его не отображает, а выдать он может заказчика.
+    session = d.get("session_id")
+    session = session[:8] if isinstance(session, str) else None
+
     snap = {
         "schemaVersion": 1,
         "capturedAt": int(time.time()),
-        "sessionId": d.get("session_id"),
+        "sessionId": session,
         "claudeCodeVersion": d.get("version"),
         "model": {
             "id": md.get("id"),
@@ -88,7 +147,6 @@ def main():
         "project": {
             "name": repo.get("name")
             or os.path.basename(ws.get("current_dir") or ""),
-            "path": ws.get("current_dir"),
         },
         "limits": {
             "fiveHour": window("five_hour"),
@@ -104,9 +162,14 @@ def main():
     }
 
     tmp = os.path.join(GROUP_DIR, "snapshot.json.tmp")
-    with open(tmp, "w") as f:
+    handle = open_new(tmp)
+    if handle is None:
+        return
+    with handle as f:
         json.dump(snap, f, ensure_ascii=False)
-    os.replace(tmp, os.path.join(GROUP_DIR, "snapshot.json"))
+    target = os.path.join(GROUP_DIR, "snapshot.json")
+    # os.replace переименовывает саму ссылку, а не идёт по ней.
+    os.replace(tmp, target)
 
     sd = snap["limits"]["sevenDay"]
     if sd:
@@ -117,7 +180,10 @@ def main():
             "resetsAt": sd.get("resetsAt"),
         }
         if should_append(last_history_entry(hist), entry):
-            with open(hist, "a") as f:
+            handle = open_append(hist)
+            if handle is None:
+                return
+            with handle as f:
                 f.write(json.dumps(entry) + "\n")
 
 

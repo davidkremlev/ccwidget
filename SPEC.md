@@ -173,11 +173,61 @@ WidgetKit жёстко ограничивает частоту перерисо�
 
 ```python
 #!/usr/bin/env python3
-import json, sys, os, time
+import json, os, stat, sys, time
 
+# Обе подстановки делает установщик:
+#   __GROUP_DIR__  — вместе с кавычками, корректным литералом Python
+#   первая строка  — абсолютным путём к интерпретатору
 GROUP_DIR = "__GROUP_DIR__"
 
+# Больше — не наши данные. Статуслайн присылает килобайты; мегабайт с запасом
+# в триста раз, а без предела гигабайтный вход попадал в снимок целиком
+# и валил расширение виджета при чтении.
+MAX_INPUT = 1 << 20
+
 MIN_INTERVAL = 600  # см. раздел 7: дедупликация истории
+
+
+def is_regular_or_absent(path):
+    """Правда, если по пути обычный файл или ничего.
+
+    Символическая ссылка обычным файлом не считается: запись сквозь неё
+    уничтожает файл на другом конце, а экспортёр работает десятки раз
+    в минуту с правами пользователя.
+    """
+    try:
+        st = os.lstat(path)
+    except FileNotFoundError:
+        return True
+    except OSError:
+        return False
+    return stat.S_ISREG(st.st_mode)
+
+
+def open_new(path):
+    """Открывает файл на запись, отказываясь идти по ссылке."""
+    try:
+        # unlink снимает саму ссылку, а не то, на что она указывает.
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        return None
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    except OSError:
+        return None
+    return os.fdopen(fd, "w")
+
+
+def open_append(path):
+    if not is_regular_or_absent(path):
+        return None
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)
+    except OSError:
+        return None
+    return os.fdopen(fd, "a")
 
 
 def last_history_entry(path):
@@ -207,9 +257,20 @@ def should_append(prev, entry):
 
 
 def main():
+    raw = sys.stdin.buffer.read(MAX_INPUT + 1)
+    if len(raw) > MAX_INPUT:
+        return
     try:
-        d = json.loads(sys.stdin.read())
+        d = json.loads(raw)
     except Exception:
+        return
+    if not isinstance(d, dict):
+        return
+
+    # Контейнер расширения заводит система при первом запуске виджета.
+    # Создавать его снаружи нельзя: containermanagerd может счесть каталог
+    # чужим и увести его в сторону. Родителя нет — виджет не запускался.
+    if not os.path.isdir(os.path.dirname(GROUP_DIR)):
         return
 
     os.makedirs(GROUP_DIR, exist_ok=True)
@@ -226,19 +287,31 @@ def main():
     total = read + write
     ratio = round(read / total, 4) if total else None
 
+    def pct(v):
+        """Проценты приходят то целыми, то дробными: 28.000000000000004."""
+        try:
+            return int(round(float(v)))
+        except (TypeError, ValueError):
+            return None
+
     def window(key):
         w = rl.get(key)
-        if not w or w.get("used_percentage") is None:
+        if not w or pct(w.get("used_percentage")) is None:
             return None
         return {
-            "usedPercentage": w.get("used_percentage"),
+            "usedPercentage": pct(w.get("used_percentage")),
             "resetsAt": w.get("resets_at"),
         }
+
+    # Раздел 4: пишем только то, что показывается. Полного пути к проекту
+    # здесь нет — виджет его не отображает, а выдать он может заказчика.
+    session = d.get("session_id")
+    session = session[:8] if isinstance(session, str) else None
 
     snap = {
         "schemaVersion": 1,
         "capturedAt": int(time.time()),
-        "sessionId": d.get("session_id"),
+        "sessionId": session,
         "claudeCodeVersion": d.get("version"),
         "model": {
             "id": md.get("id"),
@@ -248,14 +321,13 @@ def main():
         "project": {
             "name": repo.get("name")
             or os.path.basename(ws.get("current_dir") or ""),
-            "path": ws.get("current_dir"),
         },
         "limits": {
             "fiveHour": window("five_hour"),
             "sevenDay": window("seven_day"),
         },
         "context": {
-            "usedPercentage": cw.get("used_percentage"),
+            "usedPercentage": pct(cw.get("used_percentage")),
             "totalInputTokens": cw.get("total_input_tokens"),
             "windowSize": cw.get("context_window_size"),
             "cacheHitRatio": ratio,
@@ -264,9 +336,14 @@ def main():
     }
 
     tmp = os.path.join(GROUP_DIR, "snapshot.json.tmp")
-    with open(tmp, "w") as f:
+    handle = open_new(tmp)
+    if handle is None:
+        return
+    with handle as f:
         json.dump(snap, f, ensure_ascii=False)
-    os.replace(tmp, os.path.join(GROUP_DIR, "snapshot.json"))
+    target = os.path.join(GROUP_DIR, "snapshot.json")
+    # os.replace переименовывает саму ссылку, а не идёт по ней.
+    os.replace(tmp, target)
 
     sd = snap["limits"]["sevenDay"]
     if sd:
@@ -277,8 +354,12 @@ def main():
             "resetsAt": sd.get("resetsAt"),
         }
         if should_append(last_history_entry(hist), entry):
-            with open(hist, "a") as f:
+            handle = open_append(hist)
+            if handle is None:
+                return
+            with handle as f:
                 f.write(json.dumps(entry) + "\n")
+
 
 try:
     main()
@@ -287,6 +368,10 @@ except Exception:
 ```
 
 Требования к скрипту:
+
+- **Никогда не пишет сквозь символическую ссылку.** Временный файл открывается с `O_NOFOLLOW` и `O_EXCL` после `unlink`, история — с `O_NOFOLLOW` и проверкой `lstat`. Экспортёр исполняется десятки раз в минуту с правами пользователя: без этого подложенная ссылка превращает его в средство уничтожения произвольных файлов. Проверено на стенде — файл-жертва остаётся нетронутым, снимок при этом пишется нормально.
+- **Читает не более мегабайта со stdin.** Статуслайн присылает килобайты; без предела гигабайтный вход попадал в снимок целиком и валил расширение виджета при чтении. Больше предела — выход без записи.
+- **Интерпретатор прибит абсолютным путём.** Первую строку подставляет установщик, `env` не используется: `/opt/homebrew/bin` доступен на запись пользователю, а `#!/usr/bin/env python3` брал бы оттуда.
 
 - **Всегда завершается кодом 0.** Падение экспортёра не должно ломать интерфейс Claude Code.
 - **Ничего не печатает в stdout.** Статуслайн остаётся пустым; виджет — единственный потребитель.
@@ -338,6 +423,12 @@ except Exception:
   "cost": { "sessionUsd": 0.311 }
 }
 ```
+
+**В снимок пишется только то, что показывается.** Полного пути к проекту здесь нет намеренно: ни один размер виджета его не отображает, а раскрыть он способен многое — путь вида `~/Clients/<имя клиента>/...` выдаёт заказчика любому, кто увидит экран или файл. Пишется только `project.name`, и только потому, что он стоит у строки контекста.
+
+По той же причине `sessionId` усечён до восьми знаков. Полный идентификатор связывает снимок с конкретным файлом транскрипта в `~/.claude`; восьми знаков хватает, чтобы отличить одну сессию от другой при отладке, и не хватает, чтобы служить ссылкой.
+
+Правило общее: **сомнительное поле не защищают, его не пишут.** Защита требует, чтобы все её слои работали одновременно, отсутствующее поле не требует ничего.
 
 Поле `schemaVersion` обязательно. Когда Anthropic поменяет схему статуслайна — а она поменяется — приложение должно уметь отличить старый снимок от нового и не рисовать чушь.
 
@@ -646,6 +737,10 @@ enum Level { case healthy, warning, critical, depleted }
 Три шага:
 
 1. **Проверка.** Приложение ищет `~/.claude/settings.json`. Найден — показывает, что Claude Code обнаружен. Не найден — объясняет, что нужен Claude Code, со ссылкой.
+**Установщик пишет по цели символической ссылки.** Если `~/.claude/settings.json` — ссылка в репозиторий dotfiles (stow, chezmoi, yadm — обычное дело у терминальной аудитории), атомарная запись подменила бы саму ссылку обычным файлом: связь молча рвётся, настоящий конфиг остаётся без `statusLine`, и причина неочевидна. Поэтому ссылка разыменовывается перед записью, а резервная копия делается копированием содержимого, а не файла: копия-ссылка указывала бы на файл, который мы вот-вот перезапишем.
+
+Если сохранить ссылку нельзя — цель недоступна на запись, — экран говорит об этом **до** нажатия кнопки, а не после.
+
 2. **Установка.** Кнопка «Настроить автоматически»: приложение делает резервную копию `settings.json`, подставляет путь контейнера вместо `__GROUP_DIR__` в шаблоне экспортёра, кладёт результат в `~/.claude/ccgauge-export.py`, выставляет права на исполнение и дописывает ключ `statusLine`. Рядом кнопка «Показать инструкцию вручную» с командой в буфер обмена — для тех, кто не хочет пускать приложение в свои конфиги. Путь контейнера показывается на экране, чтобы подстановку можно было сделать руками.
 3. **Ожидание.** Экран с крутящимся индикатором и текстом «Запустите Claude Code и отправьте любое сообщение». Приложение следит за появлением `snapshot.json` и при успехе показывает первые живые цифры с кнопкой «Добавить виджет».
 

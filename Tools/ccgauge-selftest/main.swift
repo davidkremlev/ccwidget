@@ -54,6 +54,13 @@ func installer(home: URL, template: URL) -> Installer {
 }
 
 @MainActor
+func isSymlink(_ url: URL) -> Bool {
+    let type = try? FileManager.default.attributesOfItem(
+        atPath: url.path(percentEncoded: false))[.type] as? FileAttributeType
+    return type == .typeSymbolicLink
+}
+
+@MainActor
 func settings(_ home: URL) -> String {
     (try? String(contentsOf: home.appending(path: ".claude/settings.json"), encoding: .utf8)) ?? ""
 }
@@ -272,6 +279,80 @@ do {
                           templateURL: nil).install()
     } catch { thrown = error }
     check("без шаблона установка отказывает", thrown != nil)
+}
+
+// MARK: - Символические ссылки и внедрение
+
+print("\nБезопасность")
+
+do {
+    // B: ~/.claude/settings.json — ссылка в репозиторий dotfiles.
+    let home = sandbox()
+    let template = makeTemplate(in: home)
+    makeContainer(in: home)
+    let real = home.appending(path: "dotfiles/settings.json")
+    try! FileManager.default.createDirectory(
+        at: real.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try! "{\n  \"theme\": \"dark\"\n}\n".write(to: real, atomically: true, encoding: .utf8)
+    try! FileManager.default.createDirectory(
+        at: home.appending(path: ".claude"), withIntermediateDirectories: true)
+    try! FileManager.default.createSymbolicLink(
+        at: home.appending(path: ".claude/settings.json"), withDestinationURL: real)
+
+    let inst = installer(home: home, template: template)
+    check("ссылка распознана до записи", inst.preflight().settingsLinkTarget != nil)
+    let report = try! inst.install()
+
+    check("ссылка сохранена", isSymlink(inst.settingsURL))
+    let target = try! String(contentsOf: real, encoding: .utf8)
+    check("запись ушла по цели ссылки", target.contains("statusLine"))
+    check("прежний ключ цели цел", target.contains("\"theme\": \"dark\""))
+    check("копия — обычный файл, не ссылка", report.backup.map { !isSymlink($0) } ?? false)
+    let backup = try! String(contentsOf: report.backup!, encoding: .utf8)
+    check("копия содержит исходник цели",
+          backup.contains("\"theme\"") && !backup.contains("statusLine"))
+}
+
+do {
+    // C: подложенная ссылка на месте временного файла усечения истории.
+    let home = sandbox()
+    makeContainer(in: home)
+    let exchange = SnapshotStore.exchangeURL(home: home)
+    try! FileManager.default.createDirectory(at: exchange, withIntermediateDirectories: true)
+    let victim = home.appending(path: "victim.txt")
+    try! "ВАЖНЫЕ ДАННЫЕ".write(to: victim, atomically: true, encoding: .utf8)
+
+    let store = HistoryStore(url: exchange.appending(path: "history.jsonl"))
+    let lines = (0..<2500).map { #"{"t":\#($0),"sevenDay":1,"resetsAt":9}"# }
+    try! lines.joined(separator: "\n").write(to: store.url, atomically: true, encoding: .utf8)
+    try! FileManager.default.createSymbolicLink(
+        at: exchange.appending(path: "history.jsonl.tmp"), withDestinationURL: victim)
+
+    _ = store.truncateIfNeeded()
+    check("усечение не пишет сквозь ссылку",
+          (try! String(contentsOf: victim, encoding: .utf8)) == "ВАЖНЫЕ ДАННЫЕ")
+}
+
+do {
+    // D: путь с кавычкой и переводом строки обязан дать корректный литерал.
+    let hostile = "/tmp/x\"\nimport os; os.system(\"touch /tmp/PWNED\")\nJUNK = \""
+    let literal = Installer.pythonStringLiteral(hostile)
+
+    // Настоящее свойство: литерал разбирается обратно в исходную строку.
+    let decoded = (try? JSONSerialization.jsonObject(
+        with: Data("[\(literal)]".utf8))) as? [String]
+    check("литерал декодируется обратно в исходный путь", decoded?.first == hostile,
+          "получено: \(decoded?.first ?? "nil")")
+    check("литерал однострочный", !literal.contains("\n"))
+
+    let rendered = Installer.replacingShebang(
+        in: "#!/usr/bin/env python3\nGROUP_DIR = \"__GROUP_DIR__\"\n",
+        with: URL(filePath: "/usr/bin/python3")
+    ).replacingOccurrences(of: "\"__GROUP_DIR__\"", with: literal)
+    check("шебанг заменён абсолютным путём", rendered.hasPrefix("#!/usr/bin/python3\n"))
+    check("внедрение не создало новых строк",
+          rendered.components(separatedBy: "\n").count == 3,
+          "строк: \(rendered.components(separatedBy: "\n").count)")
 }
 
 print("\n\(failures == 0 ? "всё сошлось" : "провалов: \(failures)")")

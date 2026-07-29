@@ -44,7 +44,7 @@ public struct HistoryStore: Sendable {
             guard let raw = try? JSONDecoder().decode(RawEntry.self, from: data) else {
                 skipped += 1
                 ccgaugeParseLog.error(
-                    "history line dropped; raw=\(line.prefix(120), privacy: .public)"
+                    "history line dropped; raw=\(line.prefix(120), privacy: .private)"
                 )
                 continue
             }
@@ -74,17 +74,37 @@ public struct HistoryStore: Sendable {
         let kept = lines.suffix(Self.keepLines).joined(separator: "\n") + "\n"
 
         // Через временный файл: усечение не должно застать экспортёр врасплох.
+        // Открываем с O_NOFOLLOW и O_EXCL — иначе подложенная ссылка
+        // превращает усечение в затирание чужого файла.
         let tmp = url.deletingLastPathComponent().appending(path: "history.jsonl.tmp")
         do {
-            try kept.write(to: tmp, atomically: false, encoding: .utf8)
+            guard try writeExclusively(kept, to: tmp) else { return 0 }
             _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
             ccgaugeStoreLog.notice("history truncated, dropped \(removed, privacy: .public) line(s)")
             return removed
         } catch {
-            ccgaugeStoreLog.error("history truncation failed: \(error.localizedDescription, privacy: .public)")
+            ccgaugeStoreLog.error("history truncation failed: \(error.localizedDescription, privacy: .private)")
             try? FileManager.default.removeItem(at: tmp)
             return 0
         }
+    }
+
+    /// Создаёт файл, отказываясь идти по символической ссылке.
+    private func writeExclusively(_ text: String, to url: URL) throws -> Bool {
+        let path = url.path(percentEncoded: false)
+        // unlink снимает саму ссылку, а не то, на что она указывает.
+        try? FileManager.default.removeItem(at: url)
+        let descriptor = path.withCString { pointer in
+            Darwin.open(pointer, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+        }
+        guard descriptor >= 0 else {
+            ccgaugeStoreLog.error("history truncation: refusing to write through a link")
+            return false
+        }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        try handle.write(contentsOf: Data(text.utf8))
+        try handle.close()
+        return true
     }
 
     private struct RawEntry: Decodable {

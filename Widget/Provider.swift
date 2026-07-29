@@ -69,9 +69,9 @@ struct CCGaugeProvider: TimelineProvider {
             ccgaugeWidgetLog.info(
                 """
                 timeline built from snapshot aged \(Int(snapshot.age(at: date)), privacy: .public)s; \
-                week=\(snapshot.limits.sevenDay?.remainingPercentage.description ?? "nil", privacy: .public)% left; \
-                session=\(snapshot.limits.fiveHour?.remainingPercentage.description ?? "nil", privacy: .public)% left; \
-                context=\(snapshot.context?.usedPercentage?.description ?? "nil", privacy: .public)%; \
+                week=\(snapshot.limits.sevenDay?.remainingPercentage.description ?? "nil", privacy: .private)% left; \
+                session=\(snapshot.limits.fiveHour?.remainingPercentage.description ?? "nil", privacy: .private)% left; \
+                context=\(snapshot.context?.usedPercentage?.description ?? "nil", privacy: .private)%; \
                 issues=\(snapshot.diagnostics.count, privacy: .public)
                 """
             )
@@ -87,11 +87,11 @@ struct CCGaugeProvider: TimelineProvider {
         } catch let error as SnapshotStoreError {
             let access = SnapshotStore.default().describeAccess()
             ccgaugeWidgetLog.error(
-                "snapshot unavailable: \(error.description, privacy: .public) | \(access, privacy: .public)"
+                "snapshot unavailable: \(error.description, privacy: .private) | \(access, privacy: .private)"
             )
             return CCGaugeEntry(date: date, snapshot: nil, failure: error.description, forecast: nil)
         } catch {
-            ccgaugeWidgetLog.error("snapshot unavailable: \(error.localizedDescription, privacy: .public)")
+            ccgaugeWidgetLog.error("snapshot unavailable: \(error.localizedDescription, privacy: .private)")
             return CCGaugeEntry(date: date, snapshot: nil, failure: "\(error)", forecast: nil)
         }
     }
