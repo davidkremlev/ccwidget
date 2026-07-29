@@ -1,0 +1,159 @@
+import SwiftUI
+
+/// График накопленного расхода недели с пунктирной линией прогноза.
+/// Раздел 7: жёлтая линия — хватит до сброса, красная — не хватит.
+struct ForecastChart: View {
+    let forecast: Forecast
+    let window: LimitWindow
+
+    var body: some View {
+        GeometryReader { geo in
+            let size = geo.size
+            ZStack {
+                // Потолок в 100%: без него не видно, куда линия стремится.
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: 0))
+                    p.addLine(to: CGPoint(x: size.width, y: 0))
+                }
+                .stroke(style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+                .foregroundStyle(.tertiary)
+
+                if let history = historyPath(in: size) {
+                    history.stroke(tint, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                }
+
+                if let projection = projectionPath(in: size) {
+                    projection.stroke(
+                        tint,
+                        style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [3, 3])
+                    )
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    // MARK: Геометрия
+
+    /// Ось времени тянется до сброса — так сразу видно, укладывается расход
+    /// в окно или упирается в потолок раньше.
+    private var axis: (start: Date, end: Date)? {
+        guard let first = forecast.points.first else { return nil }
+        let end = window.resetsAt
+        guard end > first.time else { return nil }
+        return (first.time, end)
+    }
+
+    private func x(_ date: Date, _ size: CGSize) -> CGFloat {
+        guard let axis else { return 0 }
+        let span = axis.end.timeIntervalSince(axis.start)
+        let offset = date.timeIntervalSince(axis.start)
+        return size.width * CGFloat(min(max(offset / span, 0), 1))
+    }
+
+    private func y(_ percent: Double, _ size: CGSize) -> CGFloat {
+        size.height * CGFloat(1 - min(max(percent / 100, 0), 1))
+    }
+
+    private func historyPath(in size: CGSize) -> Path? {
+        guard axis != nil, forecast.points.count >= 2 else { return nil }
+        var path = Path()
+        for (index, point) in forecast.points.enumerated() {
+            let p = CGPoint(x: x(point.time, size), y: y(Double(point.sevenDayUsed), size))
+            index == 0 ? path.move(to: p) : path.addLine(to: p)
+        }
+        return path
+    }
+
+    private func projectionPath(in size: CGSize) -> Path? {
+        guard let axis,
+              let last = forecast.points.last,
+              let slope = forecast.slope,
+              slope > 0
+        else { return nil }
+
+        // Пунктир идёт либо до потолка, либо до правого края — смотря
+        // что случится раньше.
+        let end = min(forecast.exhaustionAt ?? axis.end, axis.end)
+        guard end > last.time else { return nil }
+
+        let endPercent = Double(last.sevenDayUsed) + slope * end.timeIntervalSince(last.time)
+
+        var path = Path()
+        path.move(to: CGPoint(x: x(last.time, size), y: y(Double(last.sevenDayUsed), size)))
+        path.addLine(to: CGPoint(x: x(end, size), y: y(endPercent, size)))
+        return path
+    }
+
+    private var tint: Color {
+        switch forecast.outcome {
+        case .runsOut: return .red
+        case .lastsUntilReset: return .yellow
+        case .flat, .notEnoughData: return .secondary
+        }
+    }
+}
+
+// MARK: - Блок прогноза целиком
+
+struct ForecastBlock: View {
+    let forecast: Forecast
+    let window: LimitWindow
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Forecast")
+                    .font(.caption.weight(.medium))
+                Spacer(minLength: 4)
+                if let rate = forecast.percentPerHour, rate > 0 {
+                    Text(rateCaption(rate))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+
+            if hasChart {
+                ForecastChart(forecast: forecast, window: window)
+                    .frame(height: 30)
+            }
+
+            Text(caption)
+                .font(.caption2)
+                .foregroundStyle(captionColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    private var hasChart: Bool {
+        forecast.points.count >= 2
+    }
+
+    private func rateCaption(_ rate: Double) -> String {
+        "\(rate.formatted(.number.precision(.fractionLength(1)))) %/h"
+    }
+
+    private var caption: String {
+        switch forecast.outcome {
+        case .notEnoughData:
+            return "Not enough data for a forecast yet"
+        case .flat:
+            return "Usage is flat — no forecast"
+        case .lastsUntilReset:
+            return "Lasts until reset"
+        case .runsOut(let date):
+            return "Runs out \(CCGaugeFormat.resetMoment(date))"
+        }
+    }
+
+    private var captionColor: Color {
+        switch forecast.outcome {
+        case .runsOut: return .red
+        case .lastsUntilReset: return .yellow
+        case .flat, .notEnoughData: return .secondary
+        }
+    }
+}
