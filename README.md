@@ -140,6 +140,24 @@ build, which looks exactly like your changes not applying.
 [SPEC.md](SPEC.md) is the design document and is kept current — it records the
 failures too, which is usually where the reasoning lives.
 
+## Not affiliated with Anthropic
+
+This is an independent project. It is not affiliated with, sponsored by, or
+endorsed by Anthropic.
+
+Claude and Claude Code are trademarks of Anthropic, PBC. They are used here
+descriptively and only to state what this widget is compatible with. No
+claim to those marks is made or implied, and no association with Anthropic
+should be inferred from the name.
+
+The project reads a file that Claude Code hands to a user-configured status
+line command. It does not access Claude models, handle credentials, or
+automate anything on your behalf.
+
 ## Licence
 
-Not chosen yet — see the discussion below before opening a pull request.
+[MIT](LICENSE). Copyright © 2026 illvminat.
+
+MIT matches what the surrounding ecosystem uses — ccusage, ccstatusline and
+neighbours — so code can be borrowed in either direction without a licence
+audit, and the whole text fits on one screen.
