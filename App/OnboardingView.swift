@@ -18,6 +18,8 @@ struct OnboardingView: View {
     @State private var step: Step = .checkClaudeCode
     @State private var failure: String?
     @State private var backupPath: String?
+    @State private var wasSurgical = true
+    private let installer = Installer.live()
     @State private var showsManual = false
     @State private var firstSnapshot: Snapshot?
     @State private var pollTask: Task<Void, Never>?
@@ -61,7 +63,7 @@ struct OnboardingView: View {
 
     @ViewBuilder
     private var checkStep: some View {
-        if Installer.isClaudeCodePresent {
+        if installer.isClaudeCodePresent {
             Label("Claude Code detected.", systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
             Button("Continue") { step = .install }
@@ -81,7 +83,7 @@ struct OnboardingView: View {
     }
 
     private func advanceFromCheck() {
-        guard step == .checkClaudeCode, Installer.isClaudeCodePresent else { return }
+        guard step == .checkClaudeCode, installer.isClaudeCodePresent else { return }
         step = .install
     }
 
@@ -90,7 +92,7 @@ struct OnboardingView: View {
     @ViewBuilder
     private var installStep: some View {
         // Раздел 2.2: без контейнера расширения подставлять нечего.
-        if !SnapshotStore.widgetContainerExists {
+        if !installer.widgetContainerExists {
             Label("Add the widget to your desktop first.", systemImage: "square.grid.2x2")
                 .font(.callout.weight(.medium))
             Text("The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Gauge for Claude Code, then come back.")
@@ -101,10 +103,14 @@ struct OnboardingView: View {
         } else {
             existingStatusLineWarning
 
-            Text("Setup writes the exporter to ~/.claude/ and points the status line at it. Your settings.json is backed up first.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Setup writes the exporter to ~/.claude/ and adds one key to settings.json. Only that key changes — your formatting and key order are kept.")
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("A copy is saved as \(installer.backupNamePattern) next to it first.")
+                    .foregroundStyle(.tertiary)
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
 
             HStack {
                 Button("Set up automatically") { runInstall() }
@@ -117,7 +123,7 @@ struct OnboardingView: View {
     /// Существующий ключ нельзя молча затирать — раздел 11.
     @ViewBuilder
     private var existingStatusLineWarning: some View {
-        if case .foreign(let command) = Installer.statusLineState() {
+        if case .foreign(let command) = installer.statusLineState() {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Another status line is already configured.", systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
@@ -134,7 +140,9 @@ struct OnboardingView: View {
     private func runInstall() {
         failure = nil
         do {
-            backupPath = try Installer.install()?.lastPathComponent
+            let report = try installer.install()
+            backupPath = report.backup?.lastPathComponent
+            wasSurgical = report.editWasSurgical
             step = .waitingForData
             startPolling()
         } catch {
@@ -159,6 +167,13 @@ struct OnboardingView: View {
                 Text("Settings backed up as \(backupPath)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+            }
+            if !wasSurgical {
+                // Раздел 11: если точечно не вышло, молчать об этом нельзя.
+                Label("settings.json had to be rewritten, so key order and indentation changed. The backup has the original.", systemImage: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -213,7 +228,7 @@ struct OnboardingView: View {
             Text("Manual setup")
                 .font(.headline)
             ScrollView {
-                Text(Installer.manualInstructions())
+                Text(installer.manualInstructions())
                     .font(.caption.monospaced())
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,7 +237,7 @@ struct OnboardingView: View {
             HStack {
                 Button("Copy") {
                     NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(Installer.manualInstructions(), forType: .string)
+                    NSPasteboard.general.setString(installer.manualInstructions(), forType: .string)
                 }
                 Spacer()
                 Button("Done") { showsManual = false }

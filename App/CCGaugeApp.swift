@@ -34,7 +34,7 @@ struct RootView: View {
     }
 
     private static var configured: Bool {
-        Installer.statusLineState() == .ours
+        Installer.live().statusLineState() == .ours
             && (try? SnapshotStore.default().load()) != nil
     }
 }

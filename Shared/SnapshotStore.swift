@@ -50,7 +50,14 @@ public struct SnapshotStore: Sendable {
             return URL(filePath: NSHomeDirectory())
                 .appending(path: "Library/Application Support/\(exchangeFolderName)")
         }
-        return widgetContainerURL
+        return exchangeURL(home: FileManager.default.homeDirectoryForCurrentUser)
+    }
+
+    /// То же от заданного корня. Раздел 5.2: код, работающий с путями
+    /// пользователя, обязан принимать корень параметром — иначе его
+    /// нельзя проверить, не тронув настоящий домашний каталог.
+    public static func exchangeURL(home: URL) -> URL {
+        widgetContainerURL(home: home)
             .appending(path: "Data/Library/Application Support/\(exchangeFolderName)")
     }
 
@@ -58,8 +65,11 @@ public struct SnapshotStore: Sendable {
     /// Создаёт его система при первом запуске расширения, создавать
     /// самостоятельно запрещено — см. 2.2.
     public static var widgetContainerURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appending(path: "Library/Containers/\(widgetBundleIdentifier)")
+        widgetContainerURL(home: FileManager.default.homeDirectoryForCurrentUser)
+    }
+
+    public static func widgetContainerURL(home: URL) -> URL {
+        home.appending(path: "Library/Containers/\(widgetBundleIdentifier)")
     }
 
     /// Система уже завела контейнер расширения? Если нет, виджет ни разу
@@ -70,9 +80,14 @@ public struct SnapshotStore: Sendable {
     public static var widgetContainerExists: Bool {
         // Изнутри песочницы вопрос лишён смысла: мы уже в контейнере.
         if isSandboxed { return true }
+        return widgetContainerExists(home: FileManager.default.homeDirectoryForCurrentUser)
+    }
+
+    public static func widgetContainerExists(home: URL) -> Bool {
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(
-            atPath: widgetContainerURL.appending(path: "Data/Library/Application Support").path,
+            atPath: widgetContainerURL(home: home)
+                .appending(path: "Data/Library/Application Support").path,
             isDirectory: &isDirectory
         )
         return exists && isDirectory.boolValue

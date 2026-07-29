@@ -12,6 +12,7 @@
 		CC0000000000000000000105 /* SnapshotWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000105 /* SnapshotWatcher.swift */; };
 		CC0000000000000000000106 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000106 /* OnboardingView.swift */; };
 		CC0000000000000000000107 /* Installer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000107 /* Installer.swift */; };
+		CC0000000000000000000109 /* SettingsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000109 /* SettingsEditor.swift */; };
 		CC0000000000000000000108 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000108 /* Localizable.xcstrings */; };
 		CC0000000000000000000215 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000215 /* Localizable.xcstrings */; };
 		CC0000000000000000000502 /* ccgauge-export.py.template in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000502 /* ccgauge-export.py.template */; };
@@ -69,6 +70,7 @@
 		BB0000000000000000000105 /* SnapshotWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotWatcher.swift; sourceTree = "<group>"; };
 		BB0000000000000000000106 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000107 /* Installer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Installer.swift; sourceTree = "<group>"; };
+		BB0000000000000000000109 /* SettingsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsEditor.swift; sourceTree = "<group>"; };
 		BB0000000000000000000108 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		BB0000000000000000000215 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		BB0000000000000000000103 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -141,6 +143,7 @@
 				BB0000000000000000000105 /* SnapshotWatcher.swift */,
 				BB0000000000000000000106 /* OnboardingView.swift */,
 				BB0000000000000000000107 /* Installer.swift */,
+				BB0000000000000000000109 /* SettingsEditor.swift */,
 				AA0000000000000000000008 /* Resources */,
 				BB0000000000000000000103 /* Info.plist */,
 			);
@@ -313,6 +316,7 @@
 				CC0000000000000000000105 /* SnapshotWatcher.swift in Sources */,
 				CC0000000000000000000106 /* OnboardingView.swift in Sources */,
 				CC0000000000000000000107 /* Installer.swift in Sources */,
+				CC0000000000000000000109 /* SettingsEditor.swift in Sources */,
 				CC0000000000000000000301 /* Snapshot.swift in Sources */,
 				CC0000000000000000000302 /* SnapshotStore.swift in Sources */,
 				CC0000000000000000000303 /* Formatters.swift in Sources */,
