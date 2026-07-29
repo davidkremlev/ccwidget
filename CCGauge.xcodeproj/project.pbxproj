@@ -10,6 +10,11 @@
 		CC0000000000000000000101 /* CCGaugeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000101 /* CCGaugeApp.swift */; };
 		CC0000000000000000000102 /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000102 /* StatusView.swift */; };
 		CC0000000000000000000105 /* SnapshotWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000105 /* SnapshotWatcher.swift */; };
+		CC0000000000000000000106 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000106 /* OnboardingView.swift */; };
+		CC0000000000000000000107 /* Installer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000107 /* Installer.swift */; };
+		CC0000000000000000000108 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000108 /* Localizable.xcstrings */; };
+		CC0000000000000000000215 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000215 /* Localizable.xcstrings */; };
+		CC0000000000000000000502 /* ccgauge-export.py.template in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000502 /* ccgauge-export.py.template */; };
 		CC0000000000000000000201 /* CCGaugeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000201 /* CCGaugeWidget.swift */; };
 		CC0000000000000000000202 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000202 /* Provider.swift */; };
 		CC0000000000000000000203 /* MediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000203 /* MediumView.swift */; };
@@ -62,6 +67,10 @@
 		BB0000000000000000000101 /* CCGaugeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCGaugeApp.swift; sourceTree = "<group>"; };
 		BB0000000000000000000102 /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000105 /* SnapshotWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotWatcher.swift; sourceTree = "<group>"; };
+		BB0000000000000000000106 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000107 /* Installer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Installer.swift; sourceTree = "<group>"; };
+		BB0000000000000000000108 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		BB0000000000000000000215 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		BB0000000000000000000103 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BB0000000000000000000201 /* CCGaugeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCGaugeWidget.swift; sourceTree = "<group>"; };
 		BB0000000000000000000202 /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
@@ -130,6 +139,9 @@
 				BB0000000000000000000101 /* CCGaugeApp.swift */,
 				BB0000000000000000000102 /* StatusView.swift */,
 				BB0000000000000000000105 /* SnapshotWatcher.swift */,
+				BB0000000000000000000106 /* OnboardingView.swift */,
+				BB0000000000000000000107 /* Installer.swift */,
+				AA0000000000000000000008 /* Resources */,
 				BB0000000000000000000103 /* Info.plist */,
 			);
 			path = App;
@@ -145,6 +157,7 @@
 				BB0000000000000000000212 /* LargeView.swift */,
 				BB0000000000000000000213 /* Components.swift */,
 				BB0000000000000000000214 /* ForecastChart.swift */,
+				AA0000000000000000000009 /* Resources */,
 				BB0000000000000000000204 /* Info.plist */,
 				BB0000000000000000000205 /* CCGaugeWidget.entitlements */,
 			);
@@ -163,6 +176,22 @@
 				BB0000000000000000000307 /* Forecast.swift */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000008 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000108 /* Localizable.xcstrings */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000009 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000215 /* Localizable.xcstrings */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		AA0000000000000000000007 /* Scripts */ = {
@@ -237,6 +266,11 @@
 			knownRegions = (
 				en,
 				Base,
+				de,
+				es,
+				ja,
+				ru,
+				"zh-Hans",
 			);
 			mainGroup = AA0000000000000000000002;
 			productRefGroup = AA0000000000000000000003 /* Products */;
@@ -254,6 +288,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC0000000000000000000502 /* ccgauge-export.py.template in Resources */,
+				CC0000000000000000000108 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -261,6 +297,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC0000000000000000000215 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -274,6 +311,8 @@
 				CC0000000000000000000101 /* CCGaugeApp.swift in Sources */,
 				CC0000000000000000000102 /* StatusView.swift in Sources */,
 				CC0000000000000000000105 /* SnapshotWatcher.swift in Sources */,
+				CC0000000000000000000106 /* OnboardingView.swift in Sources */,
+				CC0000000000000000000107 /* Installer.swift in Sources */,
 				CC0000000000000000000301 /* Snapshot.swift in Sources */,
 				CC0000000000000000000302 /* SnapshotStore.swift in Sources */,
 				CC0000000000000000000303 /* Formatters.swift in Sources */,
