@@ -77,7 +77,8 @@ struct WidgetHeader: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(entry.snapshot?.model.map(Self.caption) ?? "Gauge for Claude Code")
+            Text(verbatim: entry.snapshot?.model.map(Self.caption)
+                ?? String(localized: "Gauge for Claude Code"))
                 .font(.subheadline.weight(.medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -115,14 +116,14 @@ struct GaugeRow: View {
 
             Bar(fraction: metric?.fraction ?? 0, tint: tint)
 
-            Text(metric?.value ?? "—")
+            Text(verbatim: metric?.value ?? "—")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(dimmed ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                 .lineLimit(1)
                 .layoutPriority(2)
 
             if let auxiliary = metric?.auxiliary {
-                Text(auxiliary)
+                Text(verbatim: auxiliary)
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -132,7 +133,7 @@ struct GaugeRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(caption)
-        .accessibilityValue(metric?.value ?? "no data")
+        .accessibilityValue(metric.map { Text(verbatim: $0.value) } ?? Text("no data"))
     }
 
     private var tint: Color { metricTint(metric, dimmed: dimmed) }
@@ -158,7 +159,7 @@ struct DetailGaugeRow: View {
 
                 Spacer(minLength: 4)
 
-                Text(metric?.value ?? "—")
+                Text(verbatim: metric?.value ?? "—")
                     .font(.subheadline.weight(.medium).monospacedDigit())
                     .foregroundStyle(dimmed ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                     .lineLimit(1)
@@ -168,7 +169,7 @@ struct DetailGaugeRow: View {
             Bar(fraction: metric?.fraction ?? 0, tint: metricTint(metric, dimmed: dimmed), height: 8)
 
             if let detail {
-                Text(detail)
+                Text(verbatim: detail)
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -177,7 +178,7 @@ struct DetailGaugeRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(caption)
-        .accessibilityValue(metric?.value ?? "no data")
+        .accessibilityValue(metric.map { Text(verbatim: $0.value) } ?? Text("no data"))
     }
 }
 
@@ -210,9 +211,15 @@ struct AgeCaption: View {
     var body: some View {
         if let captured = entry.snapshot?.capturedAt {
             let age = CCGaugeFormat.relativeAge(of: captured, at: entry.date)
-            Text(entry.freshness?.isDimmed == true ? "outdated · \(age)" : "\(age)")
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            Group {
+                if entry.freshness?.isDimmed == true {
+                    Text("outdated · \(age)")
+                } else {
+                    Text(verbatim: age)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
         }
     }
 }

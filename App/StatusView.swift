@@ -17,7 +17,7 @@ struct StatusView: View {
 
             GroupBox("Exchange directory") {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(containerPath)
+                    Text(verbatim: containerPath)
                         .font(.caption.monospaced())
                         .textSelection(.enabled)
 
@@ -37,7 +37,7 @@ struct StatusView: View {
             }
 
             GroupBox("Snapshot") {
-                Text(status)
+                Text(verbatim: status)
                     .font(.caption.monospaced())
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -56,7 +56,7 @@ struct StatusView: View {
                         .foregroundStyle(.orange)
 
                         ForEach(diagnostics, id: \.field) { issue in
-                            Text(issue.summary)
+                            Text(verbatim: issue.summary)
                                 .font(.caption2.monospaced())
                                 .textSelection(.enabled)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -67,7 +67,7 @@ struct StatusView: View {
             }
 
             GroupBox("Watcher") {
-                Text(watcherStatus)
+                Text(verbatim: watcherStatus)
                     .font(.caption.monospaced())
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

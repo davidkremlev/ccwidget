@@ -23,8 +23,8 @@ struct CCGaugeWidget: Widget {
                 .padding(14)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Gauge for Claude Code")
-        .description("Subscription limits, context window and cost at a glance.")
+        .configurationDisplayName(String(localized: "Gauge for Claude Code"))
+        .description(String(localized: "Subscription limits, context window and cost at a glance."))
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         // Свои отступы вместо системных: раздел 9 фиксирует 14–16pt,
         // а стандартные поля виджета съедают их поверх наших.

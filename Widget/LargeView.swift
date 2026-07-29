@@ -71,7 +71,7 @@ struct LargeView: View {
         let until = CCGaugeFormat.countdown(window.timeUntilReset(at: entry.date))
         // Крупная цифра — расход; остаток остаётся здесь, подписанным словом,
         // чтобы полярность нельзя было спутать.
-        return "\(left) left · resets \(moment) · \(until)"
+        return String(localized: "\(left) left · resets \(moment) · \(until)")
     }
 
     // MARK: Подробности
@@ -107,7 +107,7 @@ struct LargeView: View {
                 .foregroundStyle(.secondary)
                 .layoutPriority(1)
             Spacer(minLength: 4)
-            Text(value ?? "—")
+            Text(verbatim: value ?? "—")
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

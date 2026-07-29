@@ -69,7 +69,7 @@ struct MediumView: View {
             HStack(spacing: 6) {
                 Text("this session:")
                 if let cost = snapshot.cost?.sessionUsd {
-                    Text(CCGaugeFormat.money(cost)).monospacedDigit()
+                    Text(verbatim: CCGaugeFormat.money(cost)).monospacedDigit()
                 }
                 if let ratio = snapshot.context?.cacheHitRatio {
                     Text("· cache \(CCGaugeFormat.ratio(ratio))").monospacedDigit()

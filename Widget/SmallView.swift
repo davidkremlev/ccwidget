@@ -22,7 +22,7 @@ struct SmallView: View {
                 MessageView.abandoned(entry: entry, compact: true)
                 Spacer(minLength: 0)
             } else {
-                Text(metric?.value ?? "—")
+                Text(verbatim: metric?.value ?? "—")
                     .font(.system(size: 34, weight: .medium))
                     .monospacedDigit()
                     .lineLimit(1)
@@ -36,7 +36,7 @@ struct SmallView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Week used")
-        .accessibilityValue(metric?.value ?? "no data")
+        .accessibilityValue(metric.map { Text(verbatim: $0.value) } ?? Text("no data"))
     }
 
     private var header: some View {

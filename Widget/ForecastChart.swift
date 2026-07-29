@@ -107,7 +107,7 @@ struct ForecastBlock: View {
                     .font(.caption.weight(.medium))
                 Spacer(minLength: 4)
                 if let rate = forecast.percentPerHour, rate > 0 {
-                    Text(rateCaption(rate))
+                    Text(verbatim: rateCaption(rate))
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -120,7 +120,7 @@ struct ForecastBlock: View {
                     .frame(height: 30)
             }
 
-            Text(caption)
+            caption
                 .font(.caption2)
                 .foregroundStyle(captionColor)
                 .lineLimit(1)
@@ -136,16 +136,13 @@ struct ForecastBlock: View {
         "\(rate.formatted(.number.precision(.fractionLength(1)))) %/h"
     }
 
-    private var caption: String {
+    @ViewBuilder
+    private var caption: some View {
         switch forecast.outcome {
-        case .notEnoughData:
-            return "Not enough data for a forecast yet"
-        case .flat:
-            return "Usage is flat — no forecast"
-        case .lastsUntilReset:
-            return "Lasts until reset"
-        case .runsOut(let date):
-            return "Runs out \(CCGaugeFormat.resetMoment(date))"
+        case .notEnoughData: Text("Not enough data for a forecast yet")
+        case .flat:          Text("Usage is flat — no forecast")
+        case .lastsUntilReset: Text("Lasts until reset")
+        case .runsOut(let date): Text("Runs out \(CCGaugeFormat.resetMoment(date))")
         }
     }
 
