@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Продукты сборки
+build/
+.build/
+DerivedData/
+*.o
+*.dSYM
+*.dSYM.zip
+*.ipa
+*.hmap
+*.moved-aside
+
+# Пользовательское состояние Xcode.
+# Сам project.pbxproj — часть репозитория: без него проект не соберётся
+# ни у кого. Исключается только то, что Xcode пишет под конкретного человека.
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# Секреты и локальные настройки
+*.local
+.env
