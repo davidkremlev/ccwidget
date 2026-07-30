@@ -149,6 +149,41 @@
         }
       }
     },
+    "5-hour used": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 Std. genutzt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 h usado"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5時間 使用"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 часов, расход"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5小时已用"
+          }
+        }
+      }
+    },
     "A copy is saved as %@ next to it first.": {
       "extractionState": "manual",
       "localizations": {
@@ -250,6 +285,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "请先把小组件添加到桌面。"
+          }
+        }
+      }
+    },
+    "Add the widget to your desktop first. Right-click the desktop, choose Edit Widgets, then come back.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fügen Sie das Widget zuerst zum Schreibtisch hinzu: Rechtsklick, „Widgets bearbeiten“, dann zurückkommen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero añade el widget al escritorio: clic derecho, Editar widgets, y vuelve aquí."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先にウィジェットをデスクトップに追加してください。デスクトップを右クリックし「ウィジェットを編集」を選んでから戻ってください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сначала добавьте виджет на рабочий стол: правый клик по столу, «Изменить виджеты», затем вернитесь."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先把小组件添加到桌面：右键点击桌面，选择“编辑小组件”，然后返回。"
           }
         }
       }
@@ -390,6 +460,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新检查"
+          }
+        }
+      }
+    },
+    "Check needed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prüfung nötig"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requiere revisión"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認が必要"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужна проверка"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要检查"
+          }
+        }
+      }
+    },
+    "Claude Code": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code"
           }
         }
       }
@@ -674,6 +814,41 @@
         }
       }
     },
+    "Details": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Details"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detalles"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詳細"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подробности"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "详细信息"
+          }
+        }
+      }
+    },
     "Done": {
       "extractionState": "manual",
       "localizations": {
@@ -740,6 +915,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "交换目录"
+          }
+        }
+      }
+    },
+    "Exporter": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportador"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポーター"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортёр"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出器"
           }
         }
       }
@@ -1055,6 +1265,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "刷新"
+          }
+        }
+      }
+    },
+    "Reinstall the exporter": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter neu installieren"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reinstalar el exportador"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポーターを入れ直す"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переустановить экспортёр"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新安装导出器"
           }
         }
       }
@@ -1409,6 +1654,41 @@
         }
       }
     },
+    "Set up…": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichten…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Configurar…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настроить…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置…"
+          }
+        }
+      }
+    },
     "Settings backed up as %@": {
       "extractionState": "manual",
       "localizations": {
@@ -1475,6 +1755,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "设置已备份为 %@。"
+          }
+        }
+      }
+    },
+    "Setup needed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einrichtung nötig"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta configurar"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定が必要"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужна настройка"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要设置"
           }
         }
       }
@@ -1724,6 +2039,41 @@
         }
       }
     },
+    "The exporter has been modified": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Exporter wurde verändert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El exportador ha sido modificado"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポーターが変更されています"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортёр был изменён"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出器已被修改"
+          }
+        }
+      }
+    },
     "The exporter is missing. Run setup again.": {
       "extractionState": "manual",
       "localizations": {
@@ -1825,6 +2175,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "应用包中缺少导出器模板。"
+          }
+        }
+      }
+    },
+    "The file at ~/.claude/ccwidget-export.py is not the one this app installed. It runs on every status line redraw, so look at it before doing anything else, then reinstall a known copy.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Datei ~/.claude/ccwidget-export.py ist nicht die, die diese App installiert hat. Sie läuft bei jedem Neuzeichnen der Statuszeile — sehen Sie sie sich zuerst an und installieren Sie dann eine bekannte Kopie."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El archivo ~/.claude/ccwidget-export.py no es el que instaló esta app. Se ejecuta en cada redibujado de la línea de estado: revísalo antes de nada y luego reinstala una copia conocida."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "~/.claude/ccwidget-export.py はこのアプリが入れたものではありません。ステータスライン再描画のたびに実行されるので、まず中身を確認してから、既知のコピーを入れ直してください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Файл ~/.claude/ccwidget-export.py — не тот, что установило это приложение. Он исполняется при каждой перерисовке статуслайна, поэтому сначала загляните в него, а потом переустановите известную копию."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "~/.claude/ccwidget-export.py 不是本应用安装的那个。它在每次状态行重绘时运行，请先查看其内容，再重新安装一份已知的副本。"
+          }
+        }
+      }
+    },
+    "The status line is not pointing at this app yet, so nothing is being written.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Statuszeile zeigt noch nicht auf diese App, deshalb wird nichts geschrieben."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La línea de estado aún no apunta a esta app, así que no se escribe nada."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ステータスラインがまだこのアプリを指していないため、何も書き込まれていません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статуслайн ещё не указывает на это приложение, поэтому ничего не пишется."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状态行尚未指向本应用，因此没有任何数据被写入。"
           }
         }
       }
@@ -1969,6 +2389,111 @@
         }
       }
     },
+    "Updated %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisiert %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizado %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新 %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновлено %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新于 %@"
+          }
+        }
+      }
+    },
+    "Waiting": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wartet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待機中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ожидание"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待中"
+          }
+        }
+      }
+    },
+    "Waiting for Claude Code to send data. Send any message in the terminal.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warte auf Daten von Claude Code. Senden Sie eine beliebige Nachricht im Terminal."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando datos de Claude Code. Envía cualquier mensaje en el terminal."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code からのデータを待っています。ターミナルで何かメッセージを送ってください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ждём данных от Claude Code. Отправьте любое сообщение в терминале."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在等待 Claude Code 发送数据。在终端中发送任意消息即可。"
+          }
+        }
+      }
+    },
     "Watcher": {
       "extractionState": "manual",
       "localizations": {
@@ -2004,6 +2529,41 @@
         }
       }
     },
+    "Week resets %@ · updated %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Woche endet %@ · aktualisiert %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La semana se reinicia %@ · actualizado %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "週は %@ にリセット · 更新 %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Неделя сбрасывается %@ · обновлено %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周 %@ 重置 · 更新于 %@"
+          }
+        }
+      }
+    },
     "Week used": {
       "extractionState": "manual",
       "localizations": {
@@ -2035,6 +2595,286 @@
           "stringUnit": {
             "state": "translated",
             "value": "本周已用"
+          }
+        }
+      }
+    },
+    "Working": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Läuft"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Funcionando"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動作中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Работает"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行中"
+          }
+        }
+      }
+    },
+    "installed before checking existed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "installiert, bevor es die Prüfung gab"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "instalado antes de que existiera la comprobación"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検証が追加される前に導入"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "установлен до появления проверки"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在校验功能出现前安装"
+          }
+        }
+      }
+    },
+    "matches the installed copy": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "stimmt mit der installierten Kopie überein"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "coincide con la copia instalada"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール時のものと一致"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "совпадает с установленной копией"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与已安装副本一致"
+          }
+        }
+      }
+    },
+    "modified since installation": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "seit der Installation verändert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "modificado desde la instalación"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール後に変更あり"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "изменён после установки"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装后已被修改"
+          }
+        }
+      }
+    },
+    "no data": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "keine Daten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sin datos"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "データなし"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "нет данных"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无数据"
+          }
+        }
+      }
+    },
+    "not installed": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nicht installiert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no instalado"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未インストール"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "не установлен"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未安装"
+          }
+        }
+      }
+    },
+    "running · %lld reloads · last %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "läuft · %lld Neuladungen · zuletzt %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "en marcha · %lld recargas · última %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動作中 · 再読み込み %lld 回 · 最後 %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "работает · перезагрузок %lld · последняя %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行中 · 重新加载 %lld 次 · 最近 %@"
+          }
+        }
+      }
+    },
+    "running · no reloads yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "läuft · noch keine Neuladungen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "en marcha · sin recargas aún"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動作中 · 再読み込みはまだ"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "работает · перезагрузок пока нет"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行中 · 尚无重新加载"
           }
         }
       }
@@ -2210,6 +3050,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "settings.json 不可写。"
+          }
+        }
+      }
+    },
+    "stopped": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gestoppt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "detenido"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "остановлен"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已停止"
           }
         }
       }

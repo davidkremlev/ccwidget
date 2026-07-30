@@ -18,10 +18,12 @@
 		CC0000000000000000000502 /* ccwidget-export.py.template in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000502 /* ccwidget-export.py.template */; };
 		CC0000000000000000000201 /* CCWidgetGauge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000201 /* CCWidgetGauge.swift */; };
 		CC0000000000000000000202 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000202 /* Provider.swift */; };
+		CC0000000000000000000222 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000202 /* Provider.swift */; };
 		CC0000000000000000000203 /* MediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000203 /* MediumView.swift */; };
 		CC0000000000000000000211 /* SmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000211 /* SmallView.swift */; };
 		CC0000000000000000000212 /* LargeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000212 /* LargeView.swift */; };
 		CC0000000000000000000213 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000213 /* Components.swift */; };
+		CC0000000000000000000223 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000213 /* Components.swift */; };
 		CC0000000000000000000301 /* Snapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000301 /* Snapshot.swift */; };
 		CC0000000000000000000302 /* SnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000302 /* SnapshotStore.swift */; };
 		CC0000000000000000000303 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000303 /* Formatters.swift */; };
@@ -317,6 +319,8 @@
 				CC0000000000000000000106 /* OnboardingView.swift in Sources */,
 				CC0000000000000000000107 /* Installer.swift in Sources */,
 				CC0000000000000000000109 /* SettingsEditor.swift in Sources */,
+				CC0000000000000000000222 /* Provider.swift in Sources */,
+				CC0000000000000000000223 /* Components.swift in Sources */,
 				CC0000000000000000000301 /* Snapshot.swift in Sources */,
 				CC0000000000000000000302 /* SnapshotStore.swift in Sources */,
 				CC0000000000000000000303 /* Formatters.swift in Sources */,

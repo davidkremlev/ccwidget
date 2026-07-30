@@ -1,109 +1,71 @@
 import SwiftUI
 import WidgetKit
 
-/// Этап 2: окно приложения нужно ровно для двух вещей — зарегистрировать
-/// расширение виджета в системе и показать путь контейнера, который
-/// подставляется в шаблон экспортёра. Онбординг из раздела 11 — этап 6.
+/// Окно приложения.
+///
+/// Его открывает клик по виджету — отменить это поведение macOS нельзя,
+/// значит окно видит обычный пользователь, а не только разработчик.
+/// Поэтому сверху состояние человеческим языком и те же полоски, что
+/// в виджете, а диагностика убрана под «Details».
+///
+/// Полоски переиспользуют `GaugeRow` из расширения как есть: окно должно
+/// выглядеть увеличенным виджетом, и совпадение цифр видно без чтения.
 struct StatusView: View {
-    @State private var containerPath = "—"
-    @State private var status = "—"
+    @State private var snapshot: Snapshot?
     @State private var diagnostics: [ParseIssue] = []
-    @StateObject private var watcher = SnapshotWatcher()
+    @State private var integrity: Installer.Integrity = .unknown
+    @State private var showsDetails = false
+    @State private var notice: String?
     @State private var showsRemoval = false
-    @State private var removesHistory = false
-    @State private var removalNote: String?
+    @StateObject private var watcher = SnapshotWatcher()
+
     private let installer = Installer.live()
+    /// Картинки рисуются в подставленном состоянии и не должны его
+    /// перечитывать с диска при появлении.
+    private let isSample: Bool
+
+    /// Обычная точка входа.
+    init() { isSample = false }
+
+    /// Только для снятия картинок: окно рисуется в заданном состоянии,
+    /// не дожидаясь `onAppear`. Тот же приём внедрения, что в разделе 5.2 —
+    /// состояние приходит снаружи, а не добывается изнутри.
+    init(sampleSnapshot: Snapshot?, sampleIntegrity: Installer.Integrity, expanded: Bool = false) {
+        isSample = true
+        _snapshot = State(initialValue: sampleSnapshot)
+        _integrity = State(initialValue: sampleIntegrity)
+        _showsDetails = State(initialValue: expanded)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Gauge for Claude Code")
-                .font(.title2.weight(.semibold))
+            header
 
-            GroupBox("Exchange directory") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(verbatim: containerPath)
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
-
-                    // Раздел 2.2: контейнер заводит система при первом
-                    // запуске расширения, сами мы его не создаём.
-                    if !SnapshotStore.widgetContainerExists {
-                        Label(
-                            "Add the widget to your desktop first, then run setup again.",
-                            systemImage: "exclamationmark.triangle.fill"
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            if integrity == .changed {
+                tamperBanner
             }
 
-            GroupBox("Snapshot") {
-                Text(verbatim: status)
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if let snapshot, state == .working || state == .outdated || state == .abandoned {
+                rows(snapshot)
+                quietLine(snapshot)
+            } else {
+                emptyState
             }
 
-            // Единственное место, где отброшенное при разборе поле видно
-            // без Console.app. В норме этого блока нет вовсе.
-            if !diagnostics.isEmpty {
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label(
-                            "\(diagnostics.count) field(s) dropped while parsing",
-                            systemImage: "exclamationmark.triangle.fill"
-                        )
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.orange)
+            Divider()
+            bottomRow
 
-                        ForEach(diagnostics, id: \.field) { issue in
-                            Text(verbatim: issue.summary)
-                                .font(.caption2.monospaced())
-                                .textSelection(.enabled)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-
-            // Раздел 7 отчёта: приложение кладёт исполняемый файл
-            // в автозапуск и обязано замечать его подмену.
-            integrityNote
-
-            GroupBox("Watcher") {
-                Text(verbatim: watcherStatus)
-                    .font(.caption.monospaced())
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            HStack {
-                Button("Refresh") { reload() }
-                Button("Reload widget") {
-                    WidgetCenter.shared.reloadAllTimelines()
-                }
-                Spacer()
-                Button("Remove…", role: .destructive) { showsRemoval = true }
-            }
-
-            if let removalNote {
-                Text(verbatim: removalNote)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            if showsDetails {
+                details
             }
         }
         .padding(20)
-        .frame(width: 460)
+        .frame(width: 340)
         .onAppear {
+            guard !isSample else { return }
             reload()
             watcher.start()
         }
-        // Без этого источники DispatchSource переживают закрытие окна,
-        // а два дескриптора O_EVTONLY остаются открытыми навсегда.
         .onDisappear { watcher.stop() }
         .confirmationDialog("Remove ccwidget?", isPresented: $showsRemoval, titleVisibility: .visible) {
             Button("Remove, keep history", role: .destructive) { runRemoval(history: false) }
@@ -114,25 +76,287 @@ struct StatusView: View {
         }
     }
 
-    @ViewBuilder
-    private var integrityNote: some View {
-        switch installer.checkIntegrity() {
-        case .changed:
-            Label("The exporter on disk differs from the one this app installed. Something else changed it.",
-                  systemImage: "exclamationmark.triangle.fill")
-                .font(.caption)
-                .foregroundStyle(.orange)
-                .fixedSize(horizontal: false, vertical: true)
-        case .missing:
-            Label("The exporter is missing. Run setup again.", systemImage: "questionmark.circle")
-                .font(.caption)
-                .foregroundStyle(.orange)
-        case .unknown, .matches:
-            EmptyView()
+    // MARK: Состояние
+
+    private enum WindowState {
+        case needsWidget, needsSetup, waiting, working, outdated, abandoned
+    }
+
+    private var state: WindowState {
+        if !isSample {
+            if !installer.widgetContainerExists { return .needsWidget }
+            if installer.statusLineState() != .ours { return .needsSetup }
+        }
+        guard let snapshot else { return .waiting }
+        switch Freshness(age: snapshot.age()) {
+        case .fresh, .recent: return .working
+        case .stale: return .outdated
+        case .abandoned: return .abandoned
         }
     }
 
-    /// Что именно исчезнет — до того, как пользователь подтвердит.
+    // MARK: Шапка
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Gauge for Claude Code")
+                .font(.headline)
+            Spacer(minLength: 8)
+            badge
+        }
+    }
+
+    private var badge: some View {
+        Text(badgeText)
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(badgeColor.opacity(0.18), in: Capsule())
+            .foregroundStyle(badgeColor)
+            .lineLimit(1)
+    }
+
+    /// Несовпадение хеша поднимает метку независимо от свежести данных:
+    /// подменённый экспортёр важнее того, насколько свеж снимок.
+    private var badgeText: LocalizedStringKey {
+        if integrity == .changed { return "Check needed" }
+        switch state {
+        case .needsWidget, .needsSetup: return "Setup needed"
+        case .waiting: return "Waiting"
+        case .working: return "Working"
+        case .outdated, .abandoned: return "Check needed"
+        }
+    }
+
+    private var badgeColor: Color {
+        if integrity == .changed { return .yellow }
+        switch state {
+        case .working: return .green
+        case .waiting: return .secondary
+        case .needsWidget, .needsSetup, .outdated, .abandoned: return .yellow
+        }
+    }
+
+    // MARK: Подменённый экспортёр
+
+    /// Полоса, а не строка: этот случай нельзя пропустить ни при свёрнутых
+    /// подробностях, ни боковым зрением.
+    private var tamperBanner: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.yellow)
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("The exporter has been modified")
+                    .font(.callout.weight(.semibold))
+                Text("The file at ~/.claude/ccwidget-export.py is not the one this app installed. It runs on every status line redraw, so look at it before doing anything else, then reinstall a known copy.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Reinstall the exporter") { runInstall() }
+                    .controlSize(.small)
+                    .padding(.top, 2)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: Полоски
+
+    /// Те же подписи, тот же порядок, тот же расчёт уровня, что в виджете.
+    private func rows(_ snapshot: Snapshot) -> some View {
+        let entry = CCWidgetEntry(date: Date(), snapshot: snapshot, failure: nil, forecast: nil)
+        return VStack(spacing: 8) {
+            GaugeRow(caption: "5-hour used",
+                     metric: entry.limitMetric(snapshot.limits.fiveHour),
+                     dimmed: entry.isDimmed)
+            GaugeRow(caption: "Week used",
+                     metric: entry.limitMetric(snapshot.limits.sevenDay),
+                     dimmed: entry.isDimmed)
+            GaugeRow(caption: "Context used",
+                     metric: entry.contextMetric,
+                     dimmed: entry.isDimmed)
+        }
+    }
+
+    /// Одна тихая строка вместо двух: когда сброс и насколько стар снимок.
+    @ViewBuilder
+    private func quietLine(_ snapshot: Snapshot) -> some View {
+        let age = CCWidgetFormat.relativeAge(of: snapshot.capturedAt)
+        Group {
+            if let week = snapshot.limits.sevenDay {
+                Text("Week resets \(CCWidgetFormat.resetMoment(week.resetsAt)) · updated \(age)")
+            } else {
+                Text("Updated \(age)")
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+    }
+
+    // MARK: Когда данных нет
+
+    /// Структура остаётся прежней: пустое окно с одной надписью выглядит
+    /// сломанным, поэтому здесь объяснение и первичное действие.
+    @ViewBuilder
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            switch state {
+            case .needsWidget:
+                Text("Add the widget to your desktop first. Right-click the desktop, choose Edit Widgets, then come back.")
+            case .needsSetup:
+                Text("The status line is not pointing at this app yet, so nothing is being written.")
+                Button("Set up…") { runInstall() }
+            case .waiting:
+                HStack(alignment: .top, spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Waiting for Claude Code to send data. Send any message in the terminal.")
+                }
+            default:
+                EmptyView()
+            }
+        }
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Нижний ряд
+
+    private var bottomRow: some View {
+        HStack {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) { showsDetails.toggle() }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: showsDetails ? "chevron.down" : "chevron.right")
+                        .font(.caption2)
+                    Text("Details")
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Button("Remove…", role: .destructive) { showsRemoval = true }
+                .controlSize(.small)
+            Button("Refresh") { reload() }
+                .controlSize(.small)
+        }
+        .font(.callout)
+    }
+
+    // MARK: Подробности
+
+    private var details: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            detailRow("Exporter", exporterDescription)
+            detailRow("Watcher", watcherDescription)
+            if let snapshot {
+                detailRow("Snapshot", snapshotDescription(snapshot))
+                detailRow("Claude Code", snapshot.claudeCodeVersion ?? "—")
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Exchange directory")
+                    .foregroundStyle(.secondary)
+                Text(verbatim: SnapshotStore.default().containerURL.path(percentEncoded: false))
+                    .font(.caption2.monospaced())
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if !diagnostics.isEmpty {
+                Divider()
+                Label("\(diagnostics.count) field(s) dropped while parsing",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                ForEach(diagnostics, id: \.field) { issue in
+                    Text(verbatim: issue.summary)
+                        .font(.caption2.monospaced())
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Button("Reload widget") {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+            .controlSize(.small)
+            .padding(.top, 2)
+
+            if let notice {
+                Text(verbatim: notice)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .font(.caption)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func detailRow(_ key: LocalizedStringKey, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(key)
+                .foregroundStyle(.secondary)
+                .frame(width: 92, alignment: .leading)
+            Text(verbatim: value)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var exporterDescription: String {
+        switch integrity {
+        case .matches: return String(localized: "matches the installed copy")
+        case .changed: return String(localized: "modified since installation")
+        case .unknown: return String(localized: "installed before checking existed")
+        case .missing: return String(localized: "not installed")
+        }
+    }
+
+    private var watcherDescription: String {
+        guard watcher.isRunning else { return String(localized: "stopped") }
+        guard let last = watcher.lastReload else {
+            return String(localized: "running · no reloads yet")
+        }
+        let moment = last.formatted(date: .omitted, time: .shortened)
+        return String(localized: "running · \(watcher.reloadCount) reloads · last \(moment)")
+    }
+
+    private func snapshotDescription(_ snapshot: Snapshot) -> String {
+        let moment = snapshot.capturedAt.formatted(date: .omitted, time: .standard)
+        guard let session = snapshot.sessionId else { return moment }
+        return "\(moment) · \(session)"
+    }
+
+    // MARK: Действия
+
+    private func reload() {
+        snapshot = try? SnapshotStore.default().load()
+        diagnostics = snapshot?.diagnostics ?? []
+        integrity = installer.checkIntegrity()
+    }
+
+    private func runInstall() {
+        do {
+            let report = try installer.install()
+            notice = report.backup.map {
+                String(localized: "Settings backed up as \($0.lastPathComponent).")
+            }
+            reload()
+        } catch {
+            notice = error.localizedDescription
+            showsDetails = true
+        }
+    }
+
     private var removalMessage: String {
         let plan = installer.removalPlan()
         var lines: [String] = []
@@ -152,42 +376,16 @@ struct StatusView: View {
     private func runRemoval(history: Bool) {
         do {
             let report = try installer.uninstall(removingHistory: history)
-            var note = [String(localized: "Removed.")]
+            var parts = [String(localized: "Removed.")]
             if let backup = report.backup {
-                note.append(String(localized: "Settings backed up as \(backup.lastPathComponent)."))
+                parts.append(String(localized: "Settings backed up as \(backup.lastPathComponent)."))
             }
-            removalNote = note.joined(separator: " ")
+            notice = parts.joined(separator: " ")
+            showsDetails = true
             reload()
         } catch {
-            removalNote = error.localizedDescription
-        }
-    }
-
-    private var watcherStatus: String {
-        let last = watcher.lastReload.map { $0.formatted(date: .omitted, time: .standard) } ?? "—"
-        let fresh = watcher.freshness.map { String(describing: $0) } ?? "—"
-        return """
-            running   \(watcher.isRunning)
-            reloads   \(watcher.reloadCount), last at \(last)
-            freshness \(fresh)
-            """
-    }
-
-    private func reload() {
-        let store = SnapshotStore.default()
-        containerPath = store.containerURL.path
-        do {
-            let snapshot = try store.load()
-            diagnostics = snapshot.diagnostics
-            let week = snapshot.limits.sevenDay.map { "\($0.usedPercentage)% used" } ?? "—"
-            status = """
-                captured  \(snapshot.capturedAt.formatted(date: .abbreviated, time: .standard))
-                week      \(week)
-                context   \(snapshot.context?.usedPercentage.map { "\($0)%" } ?? "—")
-                project   \(snapshot.project?.name ?? "—")
-                """
-        } catch {
-            status = "\(error)"
+            notice = error.localizedDescription
+            showsDetails = true
         }
     }
 }
