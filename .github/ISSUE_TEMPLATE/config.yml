@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/illVminat/ccgauge/security/advisories/new
+    about: Report privately. Do not open a public issue.
+  - name: Claude Code itself
+    url: https://github.com/anthropics/claude-code/issues
+    about: This project only reads a file Claude Code produces. Problems with Claude Code belong upstream.

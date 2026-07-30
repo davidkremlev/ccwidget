@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest something the widget should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        [SPEC.md](../../blob/main/SPEC.md) section 13 lists what is
+        deliberately out of scope for version 1, and section 14 lists the open
+        questions. A look there first may save you the writing.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you hitting
+      description: Describe the situation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried or considered

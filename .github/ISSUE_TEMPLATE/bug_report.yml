@@ -1,0 +1,62 @@
+name: Bug report
+description: The widget shows something wrong, or nothing at all.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: the widget only works with the **terminal** version of
+        Claude Code. If you use Claude through the desktop app or the web, the
+        status line never runs and the widget stays blank. That is expected.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What the widget shows, and what you expected instead.
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: macOS version, Claude Code version, and the app version from the widget footer.
+      placeholder: "macOS 15.2, Claude Code 2.1.220, app 0.2"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: size
+    attributes:
+      label: Which widget size
+      multiple: true
+      options: [Small, Medium, Large, All of them, Not size-specific]
+    validations:
+      required: true
+
+  - type: textarea
+    id: dump
+    attributes:
+      label: Output of ccgauge-dump
+      description: |
+        Run `./.build/ccgauge-dump`. It prints the parsed snapshot and the
+        parse diagnostics. **Check it before pasting** — it contains your
+        project name and session cost.
+      render: text
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Log output
+      description: |
+        `log show --last 10m --info --predicate 'subsystem == "dev.illvminat.ccgauge"'`
+      render: text
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Checked
+      options:
+        - label: The widget is on my desktop and the app has been run at least once.
+        - label: I compared the numbers with the Usage panel in the Claude app.

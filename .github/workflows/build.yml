@@ -1,0 +1,122 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and check
+    # Widget extensions need a real macOS toolchain; there is no Linux path.
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Build Release
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project CCGauge.xcodeproj \
+            -scheme CCGauge \
+            -configuration Release \
+            -derivedDataPath .build/dd \
+            build \
+            | tee build.log | grep -E "error:|warning:|BUILD" || true
+          grep -q "BUILD SUCCEEDED" build.log
+
+      - name: Fail on warnings
+        run: |
+          # The build is warning-free today. A new warning is a regression,
+          # not a note — it gets caught here rather than in review.
+          if grep -q "warning:" build.log; then
+            echo "::error::the build produced warnings"
+            grep "warning:" build.log
+            exit 1
+          fi
+
+      - name: Check the bundle is complete
+        run: |
+          APP=.build/dd/Build/Products/Release/CCGauge.app
+          test -d "$APP/Contents/PlugIns/CCGaugeWidget.appex" \
+            || { echo "::error::widget extension missing from the bundle"; exit 1; }
+          test -f "$APP/Contents/Resources/ccgauge-export.py.template" \
+            || { echo "::error::exporter template missing from the bundle"; exit 1; }
+          for lang in en de es ja ru zh-Hans; do
+            test -d "$APP/Contents/Resources/$lang.lproj" \
+              || { echo "::error::missing localization: $lang"; exit 1; }
+          done
+
+      - name: Build the self-test
+        run: |
+          swiftc -swift-version 6 -strict-concurrency=complete \
+            -target arm64-apple-macos14.0 \
+            Shared/*.swift App/Installer.swift App/SettingsEditor.swift \
+            Tools/ccgauge-selftest/main.swift \
+            -o .build/ccgauge-selftest
+
+      - name: Run the self-test
+        run: ./.build/ccgauge-selftest
+
+      - name: Build the console tools
+        run: |
+          swiftc -swift-version 6 -strict-concurrency=complete \
+            -target arm64-apple-macos14.0 \
+            Shared/Snapshot.swift Shared/SnapshotStore.swift \
+            Shared/Formatters.swift Shared/Diagnostics.swift \
+            Tools/ccgauge-dump/main.swift -o .build/ccgauge-dump
+
+      - name: Check the exporter is valid Python
+        run: |
+          # The template is not runnable as-is, so render it the way the
+          # installer does before compiling it.
+          python3 - <<'PY'
+          import json, pathlib, py_compile, tempfile
+          body = pathlib.Path("Scripts/ccgauge-export.py.template").read_text()
+          body = body.replace('"__GROUP_DIR__"', json.dumps("/tmp/ccgauge-ci"))
+          with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as f:
+              f.write(body)
+              path = f.name
+          py_compile.compile(path, doraise=True)
+          print("exporter compiles")
+          PY
+
+      - name: Check nothing user-identifying is logged as public
+        run: |
+          # SPEC 6.1: paths, project names and raw values are .private.
+          if grep -rnE '(path|Path|home|NSHomeDirectory|rawValue)[^)]*privacy: \.public' \
+              --include="*.swift" App Shared Widget; then
+            echo "::error::a user path or raw value is logged as .public"
+            exit 1
+          fi
+
+      - name: Check for network code
+        run: |
+          # The README claims nothing leaves the machine. Keep that checkable.
+          if grep -rnE "URLSession|NWConnection|CFStream|Network\.framework" \
+              --include="*.swift" App Shared Widget; then
+            echo "::error::network code found; the README says there is none"
+            exit 1
+          fi
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
