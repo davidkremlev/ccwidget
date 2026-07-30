@@ -114,6 +114,76 @@
         }
       }
     },
+    "%lld history points exist; deleting them resets the forecast.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es gibt %lld Verlaufspunkte; sie zu löschen setzt die Schätzung zurück."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hay %lld puntos de historial; borrarlos reinicia la estimación."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴が %lld 点あります。削除すると推定は最初からになります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Накоплено %lld точек истории; после удаления оценка начнётся заново."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已有 %lld 个历史点；删除后估算将重新开始。"
+          }
+        }
+      }
+    },
+    "A copy is saved as %@ next to it first.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zuvor wird daneben eine Kopie als %@ abgelegt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes se guarda una copia como %@ al lado."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その前に %@ という名前でコピーを隣に保存します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перед этим рядом сохраняется копия %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此之前会在旁边保存一份名为 %@ 的副本。"
+          }
+        }
+      }
+    },
     "Add the widget to your desktop first, then run setup again.": {
       "extractionState": "manual",
       "localizations": {
@@ -250,6 +320,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "已配置了另一个状态行。"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbrechen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャンセル"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отмена"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
           }
         }
       }
@@ -464,6 +569,41 @@
         }
       }
     },
+    "Copy the template to ~/.claude/ccwidget-export.py": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopieren Sie die Vorlage nach ~/.claude/ccwidget-export.py"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia la plantilla a ~/.claude/ccwidget-export.py"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テンプレートを ~/.claude/ccwidget-export.py にコピー"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопируйте шаблон в ~/.claude/ccwidget-export.py"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将模板复制到 ~/.claude/ccwidget-export.py"
+          }
+        }
+      }
+    },
     "Could not read settings.json: %@": {
       "extractionState": "manual",
       "localizations": {
@@ -600,6 +740,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "交换目录"
+          }
+        }
+      }
+    },
+    "Exporter will run under %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter läuft unter %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El exportador se ejecutará con %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポーターは %@ で実行されます"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортёр будет запускаться через %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出器将通过 %@ 运行"
           }
         }
       }
@@ -814,6 +989,41 @@
         }
       }
     },
+    "No working python3 was found. Install the Xcode Command Line Tools with: xcode-select --install": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein funktionierendes python3 gefunden. Installieren Sie die Xcode Command Line Tools mit: xcode-select --install"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró un python3 funcional. Instala las Xcode Command Line Tools con: xcode-select --install"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動作する python3 が見つかりません。xcode-select --install で Xcode Command Line Tools を入れてください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Рабочий python3 не найден. Установите Xcode Command Line Tools: xcode-select --install"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到可用的 python3。请执行 xcode-select --install 安装 Xcode 命令行工具。"
+          }
+        }
+      }
+    },
     "Refresh": {
       "extractionState": "manual",
       "localizations": {
@@ -884,6 +1094,181 @@
         }
       }
     },
+    "Remove and delete history": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen und Verlauf löschen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar y borrar el historial"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除して履歴も消す"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить вместе с историей"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除并删除历史"
+          }
+        }
+      }
+    },
+    "Remove ccwidget?": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ccwidget entfernen?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar ccwidget?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ccwidget を削除しますか？"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить ccwidget?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除 ccwidget？"
+          }
+        }
+      }
+    },
+    "Remove, keep history": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen, Verlauf behalten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar y conservar el historial"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除して履歴は残す"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить, историю оставить"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除，保留历史"
+          }
+        }
+      }
+    },
+    "Removed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminado."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除しました。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалено."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已移除。"
+          }
+        }
+      }
+    },
+    "Remove…": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernen…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除…"
+          }
+        }
+      }
+    },
     "Render the exporter template:": {
       "extractionState": "manual",
       "localizations": {
@@ -915,6 +1300,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "生成导出器模板："
+          }
+        }
+      }
+    },
+    "Replace its first line with:": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ersetzen Sie die erste Zeile durch:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sustituye su primera línea por:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先頭行を次に置き換え:"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Замените первую строку на:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把第一行替换为："
+          }
+        }
+      }
+    },
+    "Replace the GROUP_DIR line with exactly:": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ersetzen Sie die GROUP_DIR-Zeile genau durch:"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sustituye la línea GROUP_DIR exactamente por:"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GROUP_DIR の行をそのまま次に置き換え:"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Замените строку GROUP_DIR ровно на:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把 GROUP_DIR 行原样替换为："
           }
         }
       }
@@ -989,6 +1444,41 @@
         }
       }
     },
+    "Settings backed up as %@.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen gesichert als %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes respaldados como %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を %@ としてバックアップしました。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Копия настроек: %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置已备份为 %@。"
+          }
+        }
+      }
+    },
     "Setup will replace it. The backup lets you put it back.": {
       "extractionState": "manual",
       "localizations": {
@@ -1020,6 +1510,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "设置将替换它。备份可用于还原。"
+          }
+        }
+      }
+    },
+    "Setup writes the exporter to ~/.claude/ and adds one key to settings.json. Only that key changes — your formatting and key order are kept.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Einrichtung schreibt den Exporter nach ~/.claude/ und fügt settings.json einen Schlüssel hinzu. Nur dieser ändert sich, Formatierung und Reihenfolge bleiben."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La configuración escribe el exportador en ~/.claude/ y añade una clave a settings.json. Solo cambia esa clave: tu formato y el orden se conservan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セットアップは ~/.claude/ にエクスポーターを書き、settings.json にキーを一つ加えます。変わるのはそのキーだけで、書式と順序は保たれます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройка положит экспортёр в ~/.claude/ и добавит один ключ в settings.json. Меняется только он — форматирование и порядок ключей сохраняются."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置会把导出器写入 ~/.claude/，并向 settings.json 添加一个键。只有该键会变，你的格式与键顺序保持不变。"
           }
         }
       }
@@ -1199,6 +1724,76 @@
         }
       }
     },
+    "The exporter is missing. Run setup again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Exporter fehlt. Führen Sie die Einrichtung erneut aus."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta el exportador. Vuelve a ejecutar la configuración."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポーターがありません。セットアップをやり直してください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортёра нет. Повторите настройку."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出器缺失，请重新运行设置。"
+          }
+        }
+      }
+    },
+    "The exporter on disk differs from the one this app installed. Something else changed it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Exporter auf der Festplatte weicht von dem ab, den diese App installiert hat. Etwas anderes hat ihn geändert."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El exportador en disco difiere del que instaló esta app. Algo más lo ha modificado."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ディスク上のエクスポーターは、このアプリが入れたものと違います。別の何かが変更しました。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортёр на диске отличается от установленного этим приложением. Его изменило что-то другое."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘上的导出器与本应用安装的不同，它被别的东西改动过。"
+          }
+        }
+      }
+    },
     "The exporter template is missing from the app bundle.": {
       "extractionState": "manual",
       "localizations": {
@@ -1265,6 +1860,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "状态行在每次重绘时运行，因此模型回复后几秒内就会出现第一批数字。"
+          }
+        }
+      }
+    },
+    "The statusLine key is removed from settings.json. Other keys are untouched.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Schlüssel statusLine wird aus settings.json entfernt. Andere Schlüssel bleiben unberührt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se elimina la clave statusLine de settings.json. Las demás claves no se tocan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json から statusLine キーを削除します。他のキーは変更しません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Из settings.json удаляется ключ statusLine. Остальные ключи не трогаются."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将从 settings.json 中删除 statusLine 键，其他键保持不变。"
+          }
+        }
+      }
+    },
+    "These have to be removed by hand: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese müssen von Hand entfernt werden: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto hay que eliminarlo a mano: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これらは手動で削除してください: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это придётся убрать вручную: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以下需要手动删除：%@"
           }
         }
       }
@@ -1374,6 +2039,111 @@
         }
       }
     },
+    "settings.json had to be rewritten, so key order and indentation changed. The backup has the original.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json musste neu geschrieben werden, Reihenfolge und Einrückung haben sich geändert. Das Original liegt in der Sicherung."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hubo que reescribir settings.json, así que el orden y la sangría cambiaron. El original está en la copia."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json を書き直したため、キーの順序とインデントが変わりました。元はバックアップにあります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json пришлось пересобрать, порядок ключей и отступы изменились. Исходник — в копии."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json 不得不重建，键顺序和缩进已改变。原文件在备份中。"
+          }
+        }
+      }
+    },
+    "settings.json is a symlink whose target cannot be written. Setup would replace the link with a regular file.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json ist ein Symlink, dessen Ziel nicht beschreibbar ist. Die Einrichtung würde den Link durch eine normale Datei ersetzen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json es un enlace simbólico cuyo destino no se puede escribir. La configuración lo reemplazaría por un archivo normal."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json はシンボリックリンクですが、リンク先に書き込めません。セットアップはリンクを通常のファイルで置き換えてしまいます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json — символическая ссылка, но её цель недоступна на запись. Установка заменит ссылку обычным файлом."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json 是符号链接，但目标不可写。设置会用普通文件替换该链接。"
+          }
+        }
+      }
+    },
+    "settings.json is a symlink. Setup writes through it, so the link stays intact.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json ist ein Symlink. Die Einrichtung schreibt hindurch, der Link bleibt erhalten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json es un enlace simbólico. La configuración escribe a través de él y el enlace se conserva."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json はシンボリックリンクです。リンク先に書き込むので、リンクは残ります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json — символическая ссылка. Запись идёт по цели, ссылка сохранится."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json 是符号链接。设置将写入其目标，链接保持不变。"
+          }
+        }
+      }
+    },
     "settings.json is not a JSON object.": {
       "extractionState": "manual",
       "localizations": {
@@ -1405,6 +2175,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "settings.json 不是 JSON 对象。"
+          }
+        }
+      }
+    },
+    "settings.json is not writable.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json ist nicht beschreibbar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json no se puede escribir."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json に書き込めません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json недоступен на запись."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "settings.json 不可写。"
+          }
+        }
+      }
+    },
+    "~/.claude/ccwidget-export.py is deleted.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "~/.claude/ccwidget-export.py wird gelöscht."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se elimina ~/.claude/ccwidget-export.py."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "~/.claude/ccwidget-export.py を削除します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удаляется ~/.claude/ccwidget-export.py."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将删除 ~/.claude/ccwidget-export.py。"
           }
         }
       }

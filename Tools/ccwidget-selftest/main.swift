@@ -415,6 +415,42 @@ do {
 }
 
 do {
+    // Регресс: уже установленный НАШ статуслайн не должен читаться чужим.
+    // Живой запуск показал предупреждение «Another status line is already
+    // configured» с путём нашего же экспортёра — виноват был не код,
+    // а оставшееся приложение под старым именем. Проверка ловит и это,
+    // и любую будущую рассинхронизацию между тем, что мы пишем в конфиг,
+    // и тем, с чем сравниваем.
+    let home = sandbox()
+    let template = makeTemplate(in: home)
+    makeContainer(in: home)
+    write("{}", to: home)
+
+    _ = try! installer(home: home, template: template).install()
+
+    // Новый экземпляр — как при следующем запуске приложения.
+    let fresh = installer(home: home, template: template)
+    check("свой статуслайн узнан после установки", fresh.statusLineState() == .ours,
+          "получено \(fresh.statusLineState())")
+
+    var foreignWarning = false
+    if case .foreign = fresh.statusLineState() { foreignWarning = true }
+    check("предупреждения о чужом статуслайне нет", !foreignWarning)
+
+    let stored = ((try? JSONSerialization.jsonObject(
+        with: Data(contentsOf: fresh.settingsURL)) as? [String: Any])
+        .flatMap { ($0?["statusLine"] as? [String: Any])?["command"] as? String }) ?? ""
+    check("записанный путь совпадает с вычисляемым",
+          stored == fresh.exporterURL.path(percentEncoded: false),
+          "записано [\(stored)], вычислено [\(fresh.exporterURL.path(percentEncoded: false))]")
+
+    // Повторная установка поверх своей же не должна ничего ломать.
+    _ = try! fresh.install()
+    check("повторная установка оставляет статуслайн своим",
+          fresh.statusLineState() == .ours)
+}
+
+do {
     // Чужой статуслайн удаление трогать не должно.
     let home = sandbox()
     let template = makeTemplate(in: home)
