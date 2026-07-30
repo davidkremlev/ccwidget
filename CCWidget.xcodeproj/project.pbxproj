@@ -17,7 +17,7 @@
 		CC0000000000000000000108 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000108 /* Localizable.xcstrings */; };
 		CC0000000000000000000215 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000215 /* Localizable.xcstrings */; };
 		CC0000000000000000000502 /* ccwidget-export.py.template in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000502 /* ccwidget-export.py.template */; };
-		CC0000000000000000000201 /* CCWidgetGauge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000201 /* CCWidgetGauge.swift */; };
+		CC0000000000000000000201 /* CCWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000201 /* CCWidgetBundle.swift */; };
 		CC0000000000000000000202 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000202 /* Provider.swift */; };
 		CC0000000000000000000222 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000202 /* Provider.swift */; };
 		CC0000000000000000000203 /* MediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000203 /* MediumView.swift */; };
@@ -78,7 +78,7 @@
 		BB0000000000000000000108 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		BB0000000000000000000215 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		BB0000000000000000000103 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		BB0000000000000000000201 /* CCWidgetGauge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCWidgetGauge.swift; sourceTree = "<group>"; };
+		BB0000000000000000000201 /* CCWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCWidgetBundle.swift; sourceTree = "<group>"; };
 		BB0000000000000000000202 /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
 		BB0000000000000000000203 /* MediumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediumView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000211 /* SmallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallView.swift; sourceTree = "<group>"; };
@@ -158,7 +158,7 @@
 		AA0000000000000000000005 /* Widget */ = {
 			isa = PBXGroup;
 			children = (
-				BB0000000000000000000201 /* CCWidgetGauge.swift */,
+				BB0000000000000000000201 /* CCWidgetBundle.swift */,
 				BB0000000000000000000202 /* Provider.swift */,
 				BB0000000000000000000203 /* MediumView.swift */,
 				BB0000000000000000000211 /* SmallView.swift */,
@@ -339,7 +339,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CC0000000000000000000201 /* CCWidgetGauge.swift in Sources */,
+				CC0000000000000000000201 /* CCWidgetBundle.swift in Sources */,
 				CC0000000000000000000202 /* Provider.swift in Sources */,
 				CC0000000000000000000203 /* MediumView.swift in Sources */,
 				CC0000000000000000000211 /* SmallView.swift in Sources */,

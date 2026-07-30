@@ -23,7 +23,7 @@ struct CCWidgetExtension: Widget {
                 .padding(14)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName(String(localized: "Gauge for Claude Code"))
+        .configurationDisplayName(String(localized: "Usage Widget for Claude Code"))
         .description(String(localized: "Subscription limits, context window and cost at a glance."))
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         // Свои отступы вместо системных: раздел 9 фиксирует 14–16pt,

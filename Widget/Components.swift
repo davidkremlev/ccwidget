@@ -82,7 +82,7 @@ struct WidgetHeader: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(verbatim: entry.snapshot?.model.map(Self.caption)
-                ?? String(localized: "Gauge for Claude Code"))
+                ?? String(localized: "Usage Widget for Claude Code"))
                 .font(.subheadline.weight(.medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

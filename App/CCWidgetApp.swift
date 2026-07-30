@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct CCWidgetApp: App {
     var body: some Scene {
-        Window("Gauge for Claude Code", id: "main") {
+        Window("Usage Widget for Claude Code", id: "main") {
             RootView()
         }
         .windowResizability(.contentSize)

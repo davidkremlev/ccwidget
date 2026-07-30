@@ -7,7 +7,7 @@
 | Где | Значение |
 |---|---|
 | Репозиторий, формула Homebrew | `ccwidget` |
-| Отображаемое имя приложения | `Gauge for Claude Code` |
+| Отображаемое имя приложения | `Usage Widget for Claude Code` |
 | Имя бандла в Finder | `CCWidget.app` |
 | Bundle identifier | `dev.illvminat.ccwidget` |
 | Bundle identifier расширения | `dev.illvminat.ccwidget.widget` — часть формата данных, см. 2.2 |
@@ -454,7 +454,7 @@ CCWidget/
 │   └── Resources/
 │       └── Localizable.xcstrings
 ├── Widget/                       # расширение виджета
-│   ├── CCWidgetGauge.swift   # объявление виджета и семейств
+│   ├── CCWidgetBundle.swift   # объявление виджета и семейств
 │   ├── Provider.swift            # TimelineProvider
 │   ├── Components.swift          # полоска, строки, шапка, состояния без цифр
 │   ├── ForecastChart.swift       # график расхода и линия прогноза

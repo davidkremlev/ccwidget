@@ -79,7 +79,7 @@ struct StatusView: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text("Gauge for Claude Code")
+            Text("Usage Widget for Claude Code")
                 .font(.headline)
             Spacer(minLength: 8)
             badge

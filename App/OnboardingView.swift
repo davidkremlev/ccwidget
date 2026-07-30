@@ -51,7 +51,7 @@ struct OnboardingView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Gauge for Claude Code")
+            Text("Usage Widget for Claude Code")
                 .font(.title2.weight(.semibold))
             Text("Subscription limits on your desktop.")
                 .font(.callout)
@@ -95,7 +95,7 @@ struct OnboardingView: View {
         if !installer.widgetContainerExists {
             Label("Add the widget to your desktop first.", systemImage: "square.grid.2x2")
                 .font(.callout.weight(.medium))
-            Text("The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Gauge for Claude Code, then come back.")
+            Text("The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Usage Widget for Claude Code, then come back.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

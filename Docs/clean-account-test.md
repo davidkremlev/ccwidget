@@ -83,7 +83,7 @@ a machine with the widget already installed can never exercise.
 
 ## 4. Add the widget
 
-Right-click the desktop → **Edit Widgets** → find *Gauge for Claude Code* →
+Right-click the desktop → **Edit Widgets** → find *Usage Widget for Claude Code* →
 add the **medium** size.
 
 **Expected:** the widget appears and shows *"No data yet"* with an instruction

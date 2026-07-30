@@ -989,41 +989,6 @@
         }
       }
     },
-    "Gauge for Claude Code": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gauge for Claude Code"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gauge for Claude Code"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gauge for Claude Code"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gauge for Claude Code"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gauge for Claude Code"
-          }
-        }
-      }
-    },
     "If the widget is not on your desktop yet, right-click the desktop and choose Edit Widgets.": {
       "extractionState": "manual",
       "localizations": {
@@ -2004,37 +1969,37 @@
         }
       }
     },
-    "The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Gauge for Claude Code, then come back.": {
+    "The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Usage Widget for Claude Code, then come back.": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das Austauschverzeichnis legt das System beim ersten Start des Widgets an. Rechtsklick auf den Schreibtisch, „Widgets bearbeiten“, Gauge for Claude Code hinzufügen, dann zurückkommen."
+            "value": "Das Austauschverzeichnis legt das System beim ersten Start des Widgets an. Rechtsklick auf den Schreibtisch, „Widgets bearbeiten“, Usage Widget for Claude Code hinzufügen, dann zurückkommen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El sistema crea el directorio de intercambio cuando el widget se ejecuta por primera vez. Haz clic derecho en el escritorio, elige Editar widgets, añade Gauge for Claude Code y vuelve aquí."
+            "value": "El sistema crea el directorio de intercambio cuando el widget se ejecuta por primera vez. Haz clic derecho en el escritorio, elige Editar widgets, añade Usage Widget for Claude Code y vuelve aquí."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "交換用ディレクトリはウィジェットの初回起動時にシステムが作成します。デスクトップを右クリックして「ウィジェットを編集」を選び、Gauge for Claude Code を追加してから戻ってください。"
+            "value": "交換用ディレクトリはウィジェットの初回起動時にシステムが作成します。デスクトップを右クリックして「ウィジェットを編集」を選び、Usage Widget for Claude Code を追加してから戻ってください。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Каталог обмена создаёт система при первом запуске виджета. Щёлкните правой кнопкой по рабочему столу, выберите «Изменить виджеты», добавьте Gauge for Claude Code и вернитесь сюда."
+            "value": "Каталог обмена создаёт система при первом запуске виджета. Щёлкните правой кнопкой по рабочему столу, выберите «Изменить виджеты», добавьте Usage Widget for Claude Code и вернитесь сюда."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "交换目录由系统在小组件首次运行时创建。右键点击桌面，选择“编辑小组件”，添加 Gauge for Claude Code，然后返回。"
+            "value": "交换目录由系统在小组件首次运行时创建。右键点击桌面，选择“编辑小组件”，添加 Usage Widget for Claude Code，然后返回。"
           }
         }
       }
@@ -2420,6 +2385,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "更新于 %@"
+          }
+        }
+      }
+    },
+    "Usage Widget for Claude Code": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage Widget for Claude Code"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage Widget for Claude Code"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage Widget for Claude Code"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage Widget for Claude Code"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usage Widget for Claude Code"
           }
         }
       }

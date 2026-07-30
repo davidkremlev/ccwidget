@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The display name is now "Usage Widget for Claude Code".** It used to be
+  "Gauge for Claude Code", which no longer connected to anything: people
+  install `ccwidget` and something called *Gauge* appears in their
+  applications. The bundle in Finder stays `CCWidget.app`; only the name
+  shown to people changed.
+
 - **Renamed from ccgauge to ccwidget.** The old name was already taken by a
   live project in the same niche — a Claude Code usage dashboard published on
   npm — and a Homebrew formula under that name would have collided with it in

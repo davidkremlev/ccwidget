@@ -1,4 +1,4 @@
-# ccwidget — Gauge for Claude Code
+# ccwidget — Usage Widget for Claude Code
 
 A macOS desktop widget showing how much of your Claude subscription you have
 spent, how full the context window is, and when the weekly quota runs out.
@@ -112,7 +112,7 @@ it is forty lines.
 Then, in this order:
 
 1. **Add the widget to your desktop first** — right-click the desktop, choose
-   *Edit Widgets*, find *Gauge for Claude Code*. This step cannot be skipped:
+   *Edit Widgets*, find *Usage Widget for Claude Code*. This step cannot be skipped:
    the exchange directory is created by the system when the widget extension
    first runs, and the app deliberately refuses to create it itself.
 2. Open the app and press **Set up automatically.** It writes the exporter to
