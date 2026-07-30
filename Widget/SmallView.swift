@@ -1,13 +1,14 @@
 import SwiftUI
 import WidgetKit
 
-/// Раздел 9: только недельный лимит. На 158×158 читается ровно одно число.
+/// Section 9: the weekly limit and nothing else. At 158x158 exactly one
+/// number is readable.
 struct SmallView: View {
     let entry: CCWidgetEntry
 
-    /// 34pt по разделу 9, но масштабируется вместе с системным шрифтом.
-    /// Жёсткий размер выключал Dynamic Type совсем: подписи вокруг росли,
-    /// а цифра нет, и макет разъезжался.
+    /// 34pt per section 9, but it scales with the system font size. A hard
+    /// size switched Dynamic Type off entirely: the labels around it grew
+    /// while the number did not, and the layout came apart.
     @ScaledMetric(relativeTo: .largeTitle) private var valueSize: CGFloat = 34
 
     private var window: LimitWindow? { entry.snapshot?.limits.sevenDay }
@@ -23,7 +24,8 @@ struct SmallView: View {
                 MessageView.noData(compact: true)
                 Spacer(minLength: 0)
             } else if entry.hidesNumbers {
-                // Раздел 2.4: вместо цифр приглашение запустить Claude Code.
+                // Section 2.4: an invitation to launch Claude Code replaces
+                // the digits.
                 MessageView.abandoned(entry: entry, compact: true)
                 Spacer(minLength: 0)
             } else {
@@ -54,8 +56,8 @@ struct SmallView: View {
         }
     }
 
-    /// «израсходовано, сброс ср 3:00» — крупная цифра теперь растёт
-    /// к концу недели, и подпись обязана читаться в ту же сторону.
+    /// "used, resets Wed 3:00". The large number now grows towards the end
+    /// of the week, and the caption has to read in the same direction.
     @ViewBuilder
     private var caption: some View {
         Group {

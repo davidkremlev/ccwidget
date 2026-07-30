@@ -1,7 +1,7 @@
 import SwiftUI
 import WidgetKit
 
-/// Раздел 9: шапка, три строки-полоски, подвал через разделитель.
+/// Section 9: header, three bar rows, footer behind a divider.
 struct MediumView: View {
     let entry: CCWidgetEntry
 
@@ -18,8 +18,8 @@ struct MediumView: View {
                 }
                 Spacer(minLength: 0)
             } else if let snapshot = entry.snapshot {
-                // Симметричные распорки: блок строк стоит по центру
-                // свободного места, а не прижат к шапке.
+                // Symmetric spacers: the block of rows sits centred in the
+                // free space instead of being pinned under the header.
                 Spacer(minLength: 0)
                 rows(snapshot)
                 Spacer(minLength: 0)
@@ -29,9 +29,10 @@ struct MediumView: View {
         }
     }
 
-    /// Все три строки — израсходовано. «5-hour» вместо «Session»: слово
-    /// «сессия» занято сессией Claude Code, к которой относятся контекст
-    /// и стоимость, а пятичасовое окно принадлежит аккаунту целиком.
+    /// All three rows show consumption. "5-hour" rather than "Session": the
+    /// word session already belongs to the Claude Code session, which is what
+    /// the context and the cost describe, while the five-hour window belongs
+    /// to the account as a whole.
     private func rows(_ snapshot: Snapshot) -> some View {
         VStack(spacing: 7) {
             GaugeRow(
@@ -46,7 +47,8 @@ struct MediumView: View {
             )
             GaugeRow(
                 caption: "Context used",
-                // Имя проекта стоит здесь: контекст принадлежит сессии.
+                // The project name lives here: the context belongs to a
+                // session.
                 metric: entry.contextMetric.map {
                     GaugeMetric(
                         fraction: $0.fraction,
@@ -62,10 +64,10 @@ struct MediumView: View {
 
     private func footer(_ snapshot: Snapshot) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            // «this session» относится ко всему подвалу: и деньги, и доля
-            // кеша посессионные, а не общие для аккаунта. Без этой подписи
-            // после переноса проекта из шапки они остались бы деньгами
-            // непонятной принадлежности.
+            // "this session" governs the whole footer: both the money and
+            // the cache share are per-session, not account-wide. Once the
+            // project name left the header, without this label the money
+            // would have belonged to nobody in particular.
             HStack(spacing: 6) {
                 Text("this session:")
                 if let cost = snapshot.cost?.sessionUsd {

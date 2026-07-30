@@ -1,12 +1,11 @@
 import SwiftUI
 import WidgetKit
 
-/// Экран первого запуска. Раздел 11: три шага, ведущие за руку.
+/// The first-run screen. Section 11: three steps, hand-held.
 ///
-/// Самое слабое место продукта — виджет не заработает, пока пользователь
-/// не пропишет строку в конфиге Claude Code. Экран существует ровно
-/// затем, чтобы этот шаг нельзя было не заметить и нельзя было сделать
-/// неправильно.
+/// The product's weakest point is that the widget does nothing until the user
+/// adds a line to the Claude Code config. This screen exists precisely so
+/// that step cannot be missed and cannot be done wrong.
 struct OnboardingView: View {
     enum Step {
         case checkClaudeCode
@@ -59,7 +58,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: Шаг 1 — проверка
+    // MARK: Step 1 — detection
 
     @ViewBuilder
     private var checkStep: some View {
@@ -87,11 +86,12 @@ struct OnboardingView: View {
         step = .install
     }
 
-    // MARK: Шаг 2 — установка
+    // MARK: Step 2 — installation
 
     @ViewBuilder
     private var installStep: some View {
-        // Раздел 2.2: без контейнера расширения подставлять нечего.
+        // Section 2.2: with no extension container there is no path to
+        // substitute.
         if !installer.widgetContainerExists {
             Label("Add the widget to your desktop first.", systemImage: "square.grid.2x2")
                 .font(.callout.weight(.medium))
@@ -122,7 +122,7 @@ struct OnboardingView: View {
         }
     }
 
-    /// Раздел 11: предупреждать до записи, а не отчитываться после.
+    /// Section 11: warn before writing, not report afterwards.
     @ViewBuilder
     private var preflightNotes: some View {
         let check = installer.preflight()
@@ -156,7 +156,7 @@ struct OnboardingView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// Существующий ключ нельзя молча затирать — раздел 11.
+    /// An existing key must never be overwritten silently — section 11.
     @ViewBuilder
     private var existingStatusLineWarning: some View {
         if case .foreign(let command) = installer.statusLineState() {
@@ -186,7 +186,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: Шаг 3 — ожидание
+    // MARK: Step 3 — waiting
 
     private var waitingStep: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -205,7 +205,7 @@ struct OnboardingView: View {
                     .foregroundStyle(.tertiary)
             }
             if !wasSurgical {
-                // Раздел 11: если точечно не вышло, молчать об этом нельзя.
+                // Section 11: if the surgical edit failed, say so.
                 Label("settings.json had to be rewritten, so key order and indentation changed. The backup has the original.", systemImage: "info.circle")
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -229,7 +229,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: Готово
+    // MARK: Done
 
     @ViewBuilder
     private var readyStep: some View {
@@ -257,7 +257,7 @@ struct OnboardingView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    // MARK: Ручная установка
+    // MARK: Manual instructions
 
     private var manualSheet: some View {
         VStack(alignment: .leading, spacing: 12) {

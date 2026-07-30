@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# Сборка и переустановка CCWidget.app для разработки.
+# Builds and reinstalls CCWidget.app for development.
 #
-# Последний шаг — killall chronod — обязателен. Без него демон виджетов
-# продолжает крутить прежнюю сборку расширения, и правки выглядят
-# неприменившимися. Подробнее в SPEC.md, раздел 5.
+# The last step — killall chronod — is mandatory. Without it the widget daemon
+# keeps running the previous build of the extension and your changes look as
+# though they never applied. See SPEC.md, section 5.
 #
 set -euo pipefail
 
@@ -13,7 +13,7 @@ CONFIGURATION="${1:-Release}"
 DERIVED="$ROOT/.build/dd"
 APP="/Applications/CCWidget.app"
 
-echo "==> Сборка ($CONFIGURATION)"
+echo "==> Building ($CONFIGURATION)"
 xcodebuild \
     -project "$ROOT/CCWidget.xcodeproj" \
     -scheme CCWidget \
@@ -24,30 +24,30 @@ xcodebuild \
 
 BUILT="$DERIVED/Build/Products/$CONFIGURATION/CCWidget.app"
 if [ ! -d "$BUILT" ]; then
-    echo "!! Сборка не дала бандла: $BUILT" >&2
+    echo "!! The build produced no bundle: $BUILT" >&2
     exit 1
 fi
 
-echo "==> Остановка запущенных копий"
+echo "==> Stopping running copies"
 pkill -f "$APP" 2>/dev/null || true
 pkill -f CCWidgetExtension 2>/dev/null || true
 sleep 2
 
-echo "==> Установка в $APP"
+echo "==> Installing into $APP"
 rm -rf "$APP"
 cp -R "$BUILT" "$APP"
 codesign -v --deep --strict "$APP"
 sleep 1
 
-echo "==> Запуск (регистрирует расширение в системе)"
+echo "==> Launching (this registers the extension with the system)"
 open "$APP"
 sleep 3
 
-# Демон виджетов держит расширение загруженным и переживает подмену бандла.
-# Если его не перезапустить, он отрисует старый код поверх новых файлов —
-# и это выглядит так, будто правки не применились.
-echo "==> Перезапуск демона виджетов"
+# The widget daemon keeps the extension loaded and survives the bundle being
+# replaced. Without a restart it draws the old code over the new files, which
+# looks exactly like changes that did not apply.
+echo "==> Restarting the widget daemon"
 killall chronod 2>/dev/null || true
 
-echo "==> Готово. Логи:"
+echo "==> Done. Logs:"
 echo "    log stream --predicate 'subsystem == \"dev.illvminat.ccwidget\"' --level info"

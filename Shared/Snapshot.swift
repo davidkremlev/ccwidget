@@ -1,7 +1,7 @@
 import Foundation
 
-/// Версия схемы, которую понимает этот код.
-/// Снимок с большей версией считается непригодным — рисовать по нему нельзя.
+/// The schema version this code understands. A snapshot with a higher
+/// version is unusable — drawing from it would be guesswork.
 public let ccwidgetSupportedSchemaVersion = 1
 
 public struct Snapshot: Codable, Sendable {
@@ -15,8 +15,8 @@ public struct Snapshot: Codable, Sendable {
     public let context: ContextInfo?
     public let cost: CostInfo?
 
-    /// Поля, которые разбор отбросил. В норме пусто.
-    /// Собирается при декодировании, в JSON не хранится.
+    /// Fields the parser dropped. Empty in the normal case. Collected while
+    /// decoding; never stored in the JSON itself.
     public let diagnostics: [ParseIssue]
 
     private enum CodingKeys: String, CodingKey {
@@ -48,8 +48,9 @@ public struct Snapshot: Codable, Sendable {
         self.diagnostics = diagnostics
     }
 
-    /// Обязательны только версия схемы и момент снимка — без них снимок
-    /// бессмыслен. Всё остальное разбирается мягко и громко.
+    /// Only the schema version and the capture moment are required — without
+    /// them a snapshot means nothing. Everything else is parsed softly, and
+    /// loudly.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         schemaVersion = try c.decode(Int.self, forKey: .schemaVersion)
@@ -64,11 +65,11 @@ public struct Snapshot: Codable, Sendable {
         limits = c.decodeSoft(Limits.self, forKey: .limits, path: "limits", decoder: decoder)
             ?? Limits(fiveHour: nil, sevenDay: nil)
 
-        // Читается последним, когда вложенные разборы уже отчитались.
+        // Read last, once the nested decoders have reported in.
         diagnostics = decoder.ccwidgetDiagnostics?.issues ?? []
     }
 
-    /// Возраст снимка на момент `now`.
+    /// How old the snapshot is at `now`.
     public func age(at now: Date = Date()) -> TimeInterval {
         now.timeIntervalSince(capturedAt)
     }
@@ -82,9 +83,9 @@ public struct ModelInfo: Codable, Sendable {
 
 public struct ProjectInfo: Codable, Sendable {
     public let name: String?
-    // Полного пути здесь нет намеренно — см. раздел 4. Экспортёр его
-    // не пишет, и поля в модели тоже нет: поле, всегда равное nil,
-    // заставляет думать, что где-то оно всё-таки заполняется.
+    // The full path is deliberately absent — see section 4. The exporter
+    // does not write it, and there is no field for it here either: a field
+    // that is always nil suggests something somewhere does fill it in.
 }
 
 public struct Limits: Codable, Sendable {
@@ -96,10 +97,11 @@ public struct Limits: Codable, Sendable {
         self.sevenDay = sevenDay
     }
 
-    /// Окно разбирается мягко: битое или неполное окно даёт `nil`,
-    /// а не роняет разбор всего снимка. Отсутствие `rate_limits` —
-    /// штатная ситуация в первые секунды сессии, и она молчит;
-    /// а вот испорченное окно обязано попасть в лог и в диагностику.
+    /// Each window is parsed softly: a broken or partial one yields `nil`
+    /// instead of taking the whole snapshot down. A missing `rate_limits` is
+    /// expected in the first seconds of a session and stays silent; a
+    /// corrupted window, on the other hand, must reach the log and the
+    /// diagnostics.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         fiveHour = c.decodeSoft(LimitWindow.self, forKey: .fiveHour, path: "limits.fiveHour", decoder: decoder)
@@ -116,8 +118,8 @@ public struct LimitWindow: Codable, Sendable {
         self.resetsAt = resetsAt
     }
 
-    /// Проценты приходят то целыми, то дробными — живой снимок принёс
-    /// `28.000000000000004`. Строгий разбор терял всё окно целиком.
+    /// Percentages arrive whole or fractional — a live snapshot carried
+    /// `28.000000000000004`. Strict decoding lost the entire window over it.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         usedPercentage = try c.decodeRoundedInt(forKey: .usedPercentage)
@@ -126,7 +128,7 @@ public struct LimitWindow: Codable, Sendable {
 
     public var remainingPercentage: Int { 100 - usedPercentage }
 
-    /// Время до сброса окна.
+    /// Time left until the window resets.
     public func timeUntilReset(at now: Date = Date()) -> TimeInterval {
         resetsAt.timeIntervalSince(now)
     }
@@ -155,7 +157,7 @@ public struct ContextInfo: Codable, Sendable {
 }
 
 extension KeyedDecodingContainer {
-    /// Число, которое источник может прислать и целым, и дробным.
+    /// A number the source may send either whole or fractional.
     public func decodeRoundedInt(forKey key: Key) throws -> Int {
         if let value = try? decode(Int.self, forKey: key) { return value }
         return Int(try decode(Double.self, forKey: key).rounded())
@@ -166,19 +168,19 @@ public struct CostInfo: Codable, Sendable {
     public let sessionUsd: Double?
 }
 
-// MARK: - Пороги
+// MARK: - Levels
 
 public enum Level: String, Sendable {
     case healthy, warning, critical, depleted
 }
 
 extension LimitWindow {
-    /// Уровень считается от **израсходованного**, как и у контекста:
-    /// в одном столбце не должно стоять двух противоположных величин.
+    /// The level follows **consumption**, exactly as the context's does: one
+    /// column must never hold two opposite quantities.
     ///
-    /// Пороги — та же граница, что и раньше, переписанная от расхода:
-    /// прежние «остаток > 50 / 20–50 / 1–20 / 0» дают в точности
-    /// «расход < 50 / 50–80 / 81–99 / 100». Цвета не поменялись местами.
+    /// The thresholds are the same boundaries as before, rewritten in terms of
+    /// consumption: the old "remaining > 50 / 20-50 / 1-20 / 0" maps precisely
+    /// onto "used < 50 / 50-80 / 81-99 / 100". No colour changed places.
     public var level: Level {
         switch usedPercentage {
         case ..<50: return .healthy
@@ -190,7 +192,7 @@ extension LimitWindow {
 }
 
 extension ContextInfo {
-    /// Контекст опасен, когда наполняется: уровень считается от заполнения.
+    /// Context is dangerous as it fills, so its level follows how full it is.
     public var level: Level? {
         guard let used = usedPercentage else { return nil }
         switch used {

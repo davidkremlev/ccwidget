@@ -1,57 +1,62 @@
 import Foundation
 
-/// Оценка исчерпания недельной квоты. Раздел 7.
+/// An estimate of when the weekly quota runs out. Section 7.
 ///
-/// Именно оценка, а не предсказание, и в интерфейсе она так и называется.
-/// Врать хуже, чем молчать, но молчать там, где есть что измерить, — тоже
-/// плохо: у измерения и у экстраполяции разная цена ошибки, и они разделены.
+/// An estimate, not a prediction, and the interface says so. A lie is worse
+/// than silence — but staying silent where something is actually measurable
+/// is bad too. A measurement and an extrapolation carry different costs when
+/// wrong, so they are kept apart.
 public struct Forecast: Sendable {
     public enum Outcome: Sendable, Equatable {
-        /// Точек мало, разброс узкий или линия не описывает данные.
+        /// Too few points, too narrow a base, or the line does not describe
+        /// the data.
         case notEnoughData
-        /// Наклон не положительный — расход стоит.
+        /// The slope is not positive — consumption has stopped.
         case flat
-        /// Темп измерен, но до конца окна дальше, чем позволяет база.
-        /// Показываем скорость без даты: скорость — измерение,
-        /// дата была бы догадкой.
+        /// The rate is measured, but the end of the window is further away
+        /// than the base supports. The rate is shown without a date: a rate
+        /// is a measurement, a date here would be a guess.
         case rateOnly
-        /// Исчерпание позже сброса, и сам сброс в пределах горизонта.
+        /// Exhaustion falls after the reset, and the reset itself is within
+        /// the horizon.
         case lastsUntilReset
-        /// Исчерпание раньше сброса и в пределах горизонта.
+        /// Exhaustion falls before the reset and within the horizon.
         case runsOut(at: Date)
     }
 
     public let outcome: Outcome
-    /// Точки текущего окна, по которым считали. Ими же рисуется график.
+    /// The points of the current window used for the fit. The chart draws
+    /// the same ones.
     public let points: [HistoryEntry]
-    /// Процентов в секунду. `nil`, когда регрессию не строили.
+    /// Percent per second. `nil` when no regression was run.
     public let slope: Double?
-    /// Момент достижения 100% — даже когда показывать его нельзя.
+    /// When 100% is reached — kept even when it must not be shown.
     public let exhaustionAt: Date?
-    /// Доля объяснённой дисперсии. `nil`, когда регрессию не строили.
+    /// Share of variance explained. `nil` when no regression was run.
     public let fitQuality: Double?
-    /// Длина базы наблюдений.
+    /// Length of the observation base.
     public let observationSpan: TimeInterval
 
-    // MARK: Пороги достоверности
+    // MARK: Confidence thresholds
 
-    /// При дедупликации раз в десять минут десять точек означают, что они
-    /// не из одной вспышки активности.
+    /// With deduplication at ten-minute intervals, ten points mean they did
+    /// not all come from a single burst of activity.
     public static let minimumPoints = 10
 
-    /// Два часа. Полчаса давали экстраполяцию в триста раз дальше базы.
+    /// Two hours. Half an hour extrapolated three hundred times further
+    /// than its own base.
     public static let minimumSpan: TimeInterval = 2 * 3600
 
-    /// Ниже этого линия не описывает данные, и уверенная дата вводит
-    /// в заблуждение сильнее, чем прочерк.
+    /// Below this the line does not describe the data, and a confident date
+    /// misleads more than a dash would.
     public static let minimumFitQuality = 0.7
 
-    /// Дата называется, только если до неё не дальше десяти длин базы.
-    /// Два часа наблюдений дают горизонт в двадцать часов, не в неделю.
+    /// A date is named only if it lies within ten base lengths. Two hours of
+    /// observation earn a twenty-hour horizon, not a week.
     public static let horizonMultiplier: Double = 10
 
-    /// Период полуспада веса: вчерашний марафон не должен портить
-    /// сегодняшнюю оценку, но и обнулять историю нельзя.
+    /// Weight half-life: yesterday's marathon must not skew today's
+    /// estimate, but the history cannot be thrown away either.
     public static let weightHalfLife: TimeInterval = 12 * 3600
 
     public static func make(
@@ -59,8 +64,8 @@ public struct Forecast: Sendable {
         window: LimitWindow,
         now: Date = Date()
     ) -> Forecast {
-        // 1. Только текущее окно: при сбросе процент падает скачком,
-        //    и регрессия по смешанным окнам даст мусор.
+        // 1. Current window only. A reset drops the percentage in one step,
+        //    and a regression across mixed windows produces garbage.
         let points = history.filter { entry in
             guard let resets = entry.resetsAt else { return false }
             return abs(resets.timeIntervalSince(window.resetsAt)) < 1
@@ -71,7 +76,7 @@ public struct Forecast: Sendable {
                      exhaustionAt: nil, fitQuality: nil, observationSpan: span)
         }
 
-        // 2. Мало точек или узкая база — считать нечего.
+        // 2. Too few points or too narrow a base — nothing to compute.
         guard points.count >= minimumPoints,
               let first = points.first,
               let last = points.last
@@ -80,17 +85,18 @@ public struct Forecast: Sendable {
         let span = last.time.timeIntervalSince(first.time)
         guard span >= minimumSpan else { return giveUp(span) }
 
-        // Плато определяем по целым процентам, а не по дисперсии: при
-        // одинаковых значениях средневзвешенное выходит на волос мимо,
-        // дисперсия получается микроскопически положительной, наклон —
-        // микроскопически ненулевым, и случай уезжал в «данных мало».
+        // A plateau is detected from the integer percentages, not from the
+        // variance. With identical values the weighted mean lands a hair off,
+        // the variance comes out microscopically positive, the slope
+        // microscopically non-zero, and the case fell through to "not enough
+        // data".
         let values = points.map(\.sevenDayUsed)
         guard let lowest = values.min(), let highest = values.max(), highest > lowest else {
             return Forecast(outcome: .flat, points: points, slope: 0,
                             exhaustionAt: nil, fitQuality: nil, observationSpan: span)
         }
 
-        // 3. Взвешенная регрессия наименьших квадратов.
+        // 3. Weighted least-squares regression.
         let origin = first.time
         func weight(_ point: HistoryEntry) -> Double {
             pow(0.5, last.time.timeIntervalSince(point.time) / weightHalfLife)
@@ -122,7 +128,7 @@ public struct Forecast: Sendable {
         let slope = sxy / sxx
         let intercept = meanY - slope * meanX
 
-        // 4. Насколько линия вообще описывает данные.
+        // 4. How well the line describes the data at all.
         var ssResidual = 0.0, ssTotal = 0.0
         for p in points {
             let w = weight(p)
@@ -134,27 +140,28 @@ public struct Forecast: Sendable {
         }
         let quality = ssTotal > 0 ? max(0, 1 - ssResidual / ssTotal) : 0
 
-        // 5. Расход стоит — оценивать нечего.
+        // 5. Consumption has stopped — nothing to estimate.
         guard slope > 0 else {
             return Forecast(outcome: .flat, points: points, slope: slope,
                             exhaustionAt: nil, fitQuality: quality, observationSpan: span)
         }
 
-        // 6. Линия не описывает данные — молчим. Но наклон и R² сохраняем:
-        //    иначе отладочная утилита не покажет, из-за чего именно отказ,
-        //    и «данных мало» станет неотличимо от «линия кривая».
+        // 6. The line does not describe the data — stay silent. Keep the
+        //    slope and R² anyway: without them the dump tool cannot show why
+        //    it refused, and "not enough data" becomes indistinguishable from
+        //    "the line is a poor fit".
         guard quality >= minimumFitQuality else {
             return Forecast(outcome: .notEnoughData, points: points, slope: slope,
                             exhaustionAt: nil, fitQuality: quality, observationSpan: span)
         }
 
-        // 7. Экстраполяция до 100%.
+        // 7. Extrapolate to 100%.
         let secondsTo100 = (100 - intercept) / slope
         let exhaustion = origin.addingTimeInterval(max(secondsTo100, 0))
 
-        // 8. Горизонт. Дальше десяти длин базы утверждать нельзя ничего —
-        //    ни даты исчерпания, ни того, что квоты хватит до сброса.
-        //    Второе — такая же экстраполяция, как и первое.
+        // 8. The horizon. Beyond ten base lengths nothing can be asserted —
+        //    neither an exhaustion date nor that the quota lasts to the reset.
+        //    The second is every bit as much an extrapolation as the first.
         let maxHorizon = span * horizonMultiplier
         let toExhaustion = exhaustion.timeIntervalSince(last.time)
         let toReset = window.resetsAt.timeIntervalSince(last.time)
@@ -163,8 +170,8 @@ public struct Forecast: Sendable {
         if toExhaustion <= maxHorizon {
             outcome = .runsOut(at: max(exhaustion, now))
         } else if toReset <= maxHorizon {
-            // Исчерпание за горизонтом, а сброс внутри — значит сброс
-            // наступит раньше, и это утверждение база выдерживает.
+            // Exhaustion is beyond the horizon while the reset is inside it,
+            // so the reset comes first — a claim the base does support.
             outcome = .lastsUntilReset
         } else {
             outcome = .rateOnly
@@ -175,14 +182,14 @@ public struct Forecast: Sendable {
                         observationSpan: span)
     }
 
-    /// Расход в процентах за час — измерение, а не экстраполяция.
-    /// Честно при любой длине базы, поэтому показывается и тогда,
-    /// когда даты назвать нельзя.
+    /// Consumption in percent per hour — a measurement, not an
+    /// extrapolation. Honest at any base length, which is why it is shown
+    /// even when no date can be named.
     public var percentPerHour: Double? {
         slope.map { $0 * 3600 }
     }
 
-    /// Есть ли что показывать в виде скорости.
+    /// Whether there is a rate worth showing.
     public var hasRate: Bool {
         switch outcome {
         case .rateOnly, .lastsUntilReset, .runsOut: return (percentPerHour ?? 0) > 0
@@ -190,8 +197,8 @@ public struct Forecast: Sendable {
         }
     }
 
-    /// Рисовать ли пунктир прогноза. При `.rateOnly` — нет: линия до ста
-    /// процентов и есть та самая неназванная дата, только нарисованная.
+    /// Whether to draw the projection. Not for `.rateOnly`: a dashed line
+    /// running to a hundred percent is the unnamed date, only drawn.
     public var showsProjection: Bool {
         if case .runsOut = outcome { return true }
         if case .lastsUntilReset = outcome { return true }

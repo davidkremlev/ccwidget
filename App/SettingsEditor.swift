@@ -1,17 +1,19 @@
 import Foundation
 
-/// Точечная правка `settings.json`.
+/// Surgical edits to `settings.json`.
 ///
-/// `JSONSerialization` теряет отступы и порядок ключей: у пользователя
-/// с аккуратным конфигом получается диф на весь файл вместо одной строки.
-/// Поэтому значение ключа подменяется прямо в тексте, а остальные байты
-/// не трогаются вовсе.
+/// `JSONSerialization` loses the indentation and the key order: someone who
+/// keeps a tidy config ends up with a whole-file diff instead of one line.
+/// So the key's value is patched directly in the text and every other byte
+/// is left alone.
 enum SettingsEditor {
-    /// Как прошла правка. Онбординг обязан сказать это до нажатия кнопки.
+    /// How the edit went. Onboarding has to say this before the button is
+    /// pressed.
     enum Outcome {
-        /// Изменился только нужный ключ, форматирование сохранено.
+        /// Only the intended key changed; the formatting survived.
         case surgical(String)
-        /// Точечно не вышло — файл пересобран, порядок ключей и отступы уйдут.
+        /// The surgical route failed — the file was rebuilt, so key order
+        /// and indentation are gone.
         case rewritten(String)
     }
 
@@ -29,18 +31,18 @@ enum SettingsEditor {
         return .rewritten(rewrite(original, key: key, value: value))
     }
 
-    /// Итог удаления ключа.
+    /// The outcome of removing a key.
     enum RemovalOutcome {
         case surgical(String)
         case rewritten(String)
         case absent
     }
 
-    /// Удаляет верхнеуровневый ключ, сохраняя форматирование остального.
+    /// Removes a top-level key while preserving the formatting around it.
     ///
-    /// Нужна для деинсталлятора: восстанавливать `settings.json` из копии
-    /// нельзя, потому что между установкой и удалением пользователь мог
-    /// менять другие ключи, и откат файла целиком отобрал бы эти правки.
+    /// Needed by the uninstaller: restoring `settings.json` from a backup is
+    /// not an option, because other keys may have changed between install and
+    /// removal and rolling the whole file back would take those edits away.
     static func removing(_ key: String, from original: String?) -> RemovalOutcome {
         guard let original,
               let data = original.data(using: .utf8),
@@ -71,7 +73,8 @@ enum SettingsEditor {
               let keyStart = keyStart(chars, of: key, in: root)
         else { return nil }
 
-        // Съедаем запятую с одной из сторон, иначе останется висячая.
+        // Swallow the comma on one side or the other, or a dangling one is
+        // left behind.
         var from = keyStart
         var to = span.upperBound
         var cursor = to
@@ -83,7 +86,7 @@ enum SettingsEditor {
             while back > root.open, chars[back].isWhitespace { back -= 1 }
             if back > root.open, chars[back] == "," { from = back }
         }
-        // Заодно убираем осиротевший перевод строки перед ключом.
+        // Take the orphaned newline before the key with it.
         var lineStart = from
         while lineStart > root.open, chars[lineStart - 1] == " " || chars[lineStart - 1] == "\t" {
             lineStart -= 1
@@ -113,7 +116,7 @@ enum SettingsEditor {
         return nil
     }
 
-    // MARK: Точечная правка
+    // MARK: Surgical edit
 
     private static func surgicalEdit(_ text: String, key: String, value: [String: Any]) -> String? {
         let chars = Array(text)
@@ -122,11 +125,11 @@ enum SettingsEditor {
         guard let rendered = render(value, indent: indent, level: 1) else { return nil }
 
         if let span = valueSpan(chars, of: key, in: root) {
-            // Ключ есть: подменяем только его значение.
+            // The key exists: replace only its value.
             return String(chars[..<span.lowerBound]) + rendered + String(chars[span.upperBound...])
         }
 
-        // Ключа нет: дописываем перед закрывающей скобкой, повторяя отступ.
+        // No such key: append before the closing brace, matching the indent.
         let isEmpty = chars[(root.open + 1)..<root.close]
             .allSatisfy { $0.isWhitespace }
         var insertion = ""
@@ -141,7 +144,7 @@ enum SettingsEditor {
         return String(chars[...root.open]) + insertion + String(chars[root.close...])
     }
 
-    /// Границы корневого объекта.
+    /// The bounds of the root object.
     private static func topLevelBraces(_ chars: [Character]) -> (open: Int, close: Int)? {
         var open: Int?
         var close: Int?
@@ -169,8 +172,9 @@ enum SettingsEditor {
         return (open, close)
     }
 
-    /// Диапазон значения верхнеуровневого ключа. Одноимённые ключи
-    /// на большей глубине игнорируются — иначе правка уедет внутрь.
+    /// The range of a top-level key's value. Keys of the same name at
+    /// greater depth are ignored — otherwise the edit lands inside a nested
+    /// object.
     private static func valueSpan(
         _ chars: [Character],
         of key: String,
@@ -211,7 +215,7 @@ enum SettingsEditor {
         return nil
     }
 
-    /// Последний индекс значения, начинающегося с `start`.
+    /// The last index of the value that begins at `start`.
     private static func valueEnd(_ chars: [Character], from start: Int) -> Int? {
         switch chars[start] {
         case "\"": return stringEnd(chars, from: start)
@@ -248,7 +252,7 @@ enum SettingsEditor {
         return index >= 0 ? index : nil
     }
 
-    /// Отступ первого верхнеуровневого ключа — им же и дописываем.
+    /// The indent of the first top-level key; new entries reuse it.
     private static func detectIndent(_ chars: [Character], openBrace: Int) -> String {
         var index = openBrace + 1
         var run = ""
@@ -260,13 +264,13 @@ enum SettingsEditor {
         return run.isEmpty ? "  " : run
     }
 
-    // MARK: Отрисовка значения
+    // MARK: Rendering the value
 
     private static func render(_ value: [String: Any], indent: String, level: Int) -> String? {
         guard JSONSerialization.isValidJSONObject(value) else { return nil }
         let inner = String(repeating: indent, count: level + 1)
         let outer = String(repeating: indent, count: level)
-        // Порядок как в ТЗ, раздел 3: type, command, padding.
+        // Order as in section 3: type, command, padding.
         let order = ["type", "command", "padding"]
         let keys = order.filter { value[$0] != nil } + value.keys.filter { !order.contains($0) }.sorted()
         var lines: [String] = []
@@ -290,11 +294,11 @@ enum SettingsEditor {
         }
     }
 
-    // MARK: Страховка
+    // MARK: Safety net
 
-    /// Правка принимается, только если результат разбирается и отличается
-    /// от исходника ровно нужным ключом. Без этой проверки текстовая
-    /// подмена однажды тихо испортит чужой конфиг.
+    /// The edit is accepted only if the result parses and differs from the
+    /// original by exactly the intended key. Without this check a textual
+    /// substitution will one day quietly corrupt somebody's config.
     private static func isEquivalent(
         _ edited: String, to original: String, key: String, value: [String: Any]
     ) -> Bool {

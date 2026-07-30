@@ -1,19 +1,20 @@
 #!/bin/bash
 #
-# Снимает установку ccwidget.
+# Undoes a ccwidget installation.
 #
-# Дублирует кнопку «Remove…» в приложении и существует как страховка: если
-# приложение не запускается или уже удалено, кнопки нет, а следы в конфиге
-# остались. Инструмент, который правит чужой файл и прописывает
-# автозапускаемую команду, обязан уметь себя убрать без себя самого.
+# It mirrors the "Remove…" button in the app and exists as a fallback: if the
+# app will not launch, or has already been deleted, the button is gone while
+# the traces in the config remain. A tool that edits someone else's file and
+# registers an auto-running command has to be able to remove itself without
+# itself.
 #
-# Ключ statusLine удаляется точечно, а не откатом из копии: между установкой
-# и удалением можно было менять другие ключи, и откат файла целиком отобрал
-# бы эти правки.
+# The statusLine key is deleted surgically rather than rolled back from a
+# backup: other keys may have changed between install and removal, and rolling
+# the whole file back would take those edits away.
 #
-#   ./Scripts/uninstall.sh              # снять установку, историю оставить
-#   ./Scripts/uninstall.sh --purge      # заодно удалить историю и приложение
-#   ./Scripts/uninstall.sh --dry-run    # только показать, что будет сделано
+#   ./Scripts/uninstall.sh              # undo the install, keep the history
+#   ./Scripts/uninstall.sh --purge      # remove the history and the app too
+#   ./Scripts/uninstall.sh --dry-run    # only show what would happen
 #
 set -euo pipefail
 
@@ -32,55 +33,55 @@ for arg in "$@"; do
     case "$arg" in
         --purge) PURGE=1 ;;
         --dry-run) DRY=1 ;;
-        *) echo "неизвестный аргумент: $arg" >&2; exit 2 ;;
+        *) echo "unknown argument: $arg" >&2; exit 2 ;;
     esac
 done
 
 run() {
-    if [ "$DRY" -eq 1 ]; then echo "    [сухой прогон] $*"; else "$@"; fi
+    if [ "$DRY" -eq 1 ]; then echo "    [dry run] $*"; else "$@"; fi
 }
 
-echo "==> Что будет сделано"
+echo "==> What will happen"
 
 # --- statusLine ---
 if [ -f "$SETTINGS" ] && grep -q "ccwidget-export.py" "$SETTINGS" 2>/dev/null; then
-    echo "    из settings.json удаляется ключ statusLine (остальные не трогаются)"
+    echo "    the statusLine key is removed from settings.json (others untouched)"
     REMOVE_KEY=1
 else
-    echo "    statusLine на нас не указывает — settings.json не трогаем"
+    echo "    statusLine does not point at us — settings.json left alone"
     REMOVE_KEY=0
 fi
 
-[ -f "$EXPORTER" ] && echo "    удаляется $EXPORTER" || echo "    экспортёра нет"
+[ -f "$EXPORTER" ] && echo "    deleting $EXPORTER" || echo "    no exporter present"
 
 HISTORY_LINES=0
 [ -f "$EXCHANGE/history.jsonl" ] && HISTORY_LINES=$(wc -l < "$EXCHANGE/history.jsonl" | tr -d ' ')
 if [ "$PURGE" -eq 1 ]; then
-    echo "    удаляется история ($HISTORY_LINES точек) — прогноз начнётся заново"
-    echo "    удаляется $APP"
+    echo "    deleting the history ($HISTORY_LINES points) — the estimate restarts"
+    echo "    deleting $APP"
 else
-    echo "    история сохраняется ($HISTORY_LINES точек); удалить — запустите с --purge"
-    echo "    $APP остаётся; удалить — вручную или с --purge"
+    echo "    the history is kept ($HISTORY_LINES points); use --purge to delete it"
+    echo "    $APP stays; remove it by hand or with --purge"
 fi
 echo
 
 if [ "$DRY" -eq 0 ]; then
-    printf "Продолжить? [y/N] "
+    printf "Continue? [y/N] "
     read -r answer
-    case "$answer" in y|Y|yes|Yes) ;; *) echo "отменено"; exit 0 ;; esac
+    case "$answer" in y|Y|yes|Yes) ;; *) echo "cancelled"; exit 0 ;; esac
 fi
 
-# --- удаление ключа с сохранением форматирования ---
+# --- remove the key while preserving the formatting ---
 if [ "$REMOVE_KEY" -eq 1 ]; then
     STAMP=$(date +%Y%m%d-%H%M%S)
     BACKUP="$CLAUDE_DIR/settings.json.bak-$STAMP"
-    echo "==> Копия настроек: $(basename "$BACKUP")"
+    echo "==> Settings backup: $(basename "$BACKUP")"
     if [ "$DRY" -eq 0 ]; then
         cp "$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$SETTINGS")" "$BACKUP"
         chmod 600 "$BACKUP"
     fi
 
-    echo "==> Удаление ключа statusLine"
+    echo "==> Removing the statusLine key"
     if [ "$DRY" -eq 0 ]; then
         python3 - "$SETTINGS" <<'PY'
 import json, os, sys
@@ -94,8 +95,8 @@ if "statusLine" not in data:
     sys.exit(0)
 del data["statusLine"]
 
-# Пытаемся вырезать только этот ключ, чтобы не потерять отступы соседей.
-# Не вышло — пересобираем и говорим об этом.
+# Try to cut out only this key so the neighbours keep their indentation.
+# If that fails, rebuild the file and say so.
 import re
 pattern = re.compile(r'\n[ \t]*"statusLine"\s*:\s*\{[^{}]*\}\s*,?', re.S)
 edited, count = pattern.subn("", text, count=1)
@@ -109,34 +110,34 @@ except ValueError:
 if ok:
     with open(path, "w") as f:
         f.write(edited)
-    print("    ключ вырезан, форматирование остального сохранено")
+    print("    key removed, the formatting around it is intact")
 else:
     with open(path, "w") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
-    print("    точечно не вышло: файл пересобран, порядок ключей и отступы изменились")
-    print("    исходник — в копии рядом")
+    print("    surgical edit failed: the file was rebuilt, key order and indentation changed")
+    print("    the original is in the backup next to it")
 PY
     fi
 fi
 
-echo "==> Удаление экспортёра"
+echo "==> Removing the exporter"
 run rm -f "$EXPORTER" "$INTEGRITY"
 
 if [ "$PURGE" -eq 1 ]; then
-    echo "==> Удаление истории и контейнера"
+    echo "==> Removing the history and the container"
     run rm -rf "$CONTAINER"
-    echo "==> Удаление приложения"
+    echo "==> Removing the app"
     run rm -rf "$APP"
-    echo "==> Перезапуск демона виджетов"
+    echo "==> Restarting the widget daemon"
     [ "$DRY" -eq 0 ] && killall chronod 2>/dev/null || true
 fi
 
 echo
-echo "==> Готово"
+echo "==> Done"
 if [ "$PURGE" -eq 0 ]; then
-    echo "    Осталось убрать вручную, если нужно:"
+    echo "    Left to remove by hand, if you want to:"
     echo "      $APP"
     echo "      $CONTAINER"
-    echo "    И снять виджет с рабочего стола."
+    echo "    And drag the widget off your desktop."
 fi

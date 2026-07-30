@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 import json, os, stat, sys, time
 
-# Обе подстановки делает установщик:
-#   __GROUP_DIR__  — вместе с кавычками, корректным литералом Python
-#   первая строка  — абсолютным путём к интерпретатору
+# The installer performs both substitutions:
+#   __GROUP_DIR__  quotes included, as a valid Python literal
+#   the first line replaced with an absolute interpreter path
 GROUP_DIR = "__GROUP_DIR__"
 
-# Больше — не наши данные. Статуслайн присылает килобайты; мегабайт с запасом
-# в триста раз, а без предела гигабайтный вход попадал в снимок целиком
-# и валил расширение виджета при чтении.
+# Anything larger is not our data. The status line sends kilobytes; a megabyte
+# is three hundred times the headroom. Without a limit a gigabyte of input
+# landed in the snapshot whole and killed the widget extension on read.
 MAX_INPUT = 1 << 20
 
-MIN_INTERVAL = 600   # см. раздел 7: дедупликация истории
-MAX_HISTORY = 2000   # раздел 7: предел строк истории
-KEEP_HISTORY = 1000  # сколько оставить при усечении
+MIN_INTERVAL = 600   # see section 7: history deduplication
+MAX_HISTORY = 2000   # section 7: line limit for the history
+KEEP_HISTORY = 1000  # how many lines to keep when truncating
 
 
 def is_regular_or_absent(path):
-    """Правда, если по пути обычный файл или ничего.
+    """True if the path holds a regular file or nothing at all.
 
-    Символическая ссылка обычным файлом не считается: запись сквозь неё
-    уничтожает файл на другом конце, а экспортёр работает десятки раз
-    в минуту с правами пользователя.
+    A symlink does not count as a regular file: writing through one destroys
+    whatever is on the other end, and this exporter runs dozens of times a
+    minute with the user's privileges.
     """
     try:
         st = os.lstat(path)
@@ -33,9 +33,9 @@ def is_regular_or_absent(path):
 
 
 def open_new(path):
-    """Открывает файл на запись, отказываясь идти по ссылке."""
+    """Opens a file for writing, refusing to follow a symlink."""
     try:
-        # unlink снимает саму ссылку, а не то, на что она указывает.
+        # unlink removes the link itself, not what it points at.
         os.unlink(path)
     except FileNotFoundError:
         pass
@@ -59,11 +59,11 @@ def open_append(path):
 
 
 def truncate_history(path):
-    """Усечение по разделу 7.
+    """Truncation per section 7.
 
-    Живёт здесь, а не в приложении: экспортёр выполняется при каждой
-    перерисовке, а окно приложения пользователь может не открыть ни разу,
-    и тогда предел не соблюдался бы никогда.
+    It lives here rather than in the app: the exporter runs on every redraw,
+    while the app window may never be opened at all — and then the limit would
+    never be enforced.
     """
     try:
         with open(path, "rb") as f:
@@ -83,7 +83,7 @@ def truncate_history(path):
 
 
 def last_history_entry(path):
-    """Последняя непустая строка истории. Читаем хвост, а не весь файл."""
+    """The last non-empty history line. Read the tail, not the whole file."""
     try:
         with open(path, "rb") as f:
             f.seek(0, os.SEEK_END)
@@ -119,9 +119,10 @@ def main():
     if not isinstance(d, dict):
         return
 
-    # Контейнер расширения заводит система при первом запуске виджета.
-    # Создавать его снаружи нельзя: containermanagerd может счесть каталог
-    # чужим и увести его в сторону. Родителя нет — виджет не запускался.
+    # The system creates the extension's container the first time the widget
+    # runs. Creating it from outside is not allowed: containermanagerd may
+    # decide the directory is foreign and relocate it. No parent means the
+    # widget has never run.
     if not os.path.isdir(os.path.dirname(GROUP_DIR)):
         return
 
@@ -140,7 +141,7 @@ def main():
     ratio = round(read / total, 4) if total else None
 
     def pct(v):
-        """Проценты приходят то целыми, то дробными: 28.000000000000004."""
+        """Percentages arrive whole or fractional: 28.000000000000004."""
         try:
             return int(round(float(v)))
         except (TypeError, ValueError):
@@ -155,8 +156,8 @@ def main():
             "resetsAt": w.get("resets_at"),
         }
 
-    # Раздел 4: пишем только то, что показывается. Полного пути к проекту
-    # здесь нет — виджет его не отображает, а выдать он может заказчика.
+    # Section 4: write only what is displayed. There is no full project path
+    # here — the widget never shows it, and it can name a client.
     session = d.get("session_id")
     session = session[:8] if isinstance(session, str) else None
 
@@ -194,7 +195,7 @@ def main():
     with handle as f:
         json.dump(snap, f, ensure_ascii=False)
     target = os.path.join(GROUP_DIR, "snapshot.json")
-    # os.replace переименовывает саму ссылку, а не идёт по ней.
+    # os.replace renames the link itself rather than following it.
     os.replace(tmp, target)
 
     sd = snap["limits"]["sevenDay"]

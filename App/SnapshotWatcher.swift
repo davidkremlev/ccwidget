@@ -1,25 +1,26 @@
 import Foundation
 import WidgetKit
 
-/// Раздел 2.4: следит за снимком и дёргает перезагрузку виджета.
+/// Section 2.4: watches the snapshot and triggers widget reloads.
 ///
-/// Две вещи, без которых наблюдатель работает ровно один раз:
+/// Two things, without which the watcher fires exactly once:
 ///
-/// 1. **Экспортёр пишет через `os.replace`** — inode подменяется, и источник,
-///    привязанный к старому дескриптору, после первой же записи получает
-///    `.rename`/`.delete` и больше не срабатывает. Поэтому дескриптор
-///    переоткрывается, а на случай, когда файла ещё нет, отдельно
-///    отслеживается каталог.
-/// 2. **Бюджет WidgetKit** — статуслайн перерисовывается десятки раз в минуту,
-///    и перезагружать виджет на каждую запись значит сжечь бюджет за час
-///    (раздел 2.3). Перезагрузка идёт только если изменились сами цифры
-///    и с прошлой перезагрузки прошло не меньше минуты.
+/// 1. **The exporter writes through `os.replace`**, so the inode is swapped.
+///    A source bound to the old descriptor gets `.rename`/`.delete` on the
+///    first write and never fires again. Hence the descriptor is reopened,
+///    and the directory is watched separately for the case where the file
+///    does not exist yet.
+/// 2. **The WidgetKit budget.** The status line redraws dozens of times a
+///    minute, and reloading the widget on every write would burn through the
+///    budget within hours (section 2.3). A reload happens only when the
+///    numbers themselves changed and at least a minute has passed.
 @MainActor
 final class SnapshotWatcher: ObservableObject {
-    /// Минимум между перезагрузками. Меньше — расточительно, больше —
-    /// заметная задержка между «поработал» и «виджет обновился».
+    /// Minimum gap between reloads. Less is wasteful; more puts a noticeable
+    /// delay between doing the work and seeing the widget catch up.
     static let minimumReloadInterval: TimeInterval = 60
-    /// Экспортёр пишет снимок и историю подряд; ждём, пока уляжется.
+    /// The exporter writes the snapshot and the history back to back; wait
+    /// for the dust to settle.
     static let debounce: TimeInterval = 2
 
     @Published private(set) var lastReload: Date?
@@ -40,7 +41,7 @@ final class SnapshotWatcher: ObservableObject {
         self.store = store
     }
 
-    // MARK: Запуск
+    // MARK: Lifecycle
 
     func start() {
         guard !isRunning else { return }
@@ -50,9 +51,9 @@ final class SnapshotWatcher: ObservableObject {
         watchFile()
         startFreshnessTimer()
 
-        // Перезагрузка при запуске приложения. Помимо очевидной пользы —
-        // показать свежие цифры сразу — она страхует случай, когда виджет
-        // простоял с устаревшим таймлайном, пока приложение было закрыто.
+        // Reload on app launch. Beyond the obvious — showing fresh numbers
+        // right away — it covers the case where the widget sat on a stale
+        // timeline the whole time the app was closed.
         reload(reason: "app launch", force: true)
     }
 
@@ -67,10 +68,10 @@ final class SnapshotWatcher: ObservableObject {
         isRunning = false
     }
 
-    // MARK: Наблюдение
+    // MARK: Watching
 
-    /// Каталог переживает подмену файла и ловит появление снимка,
-    /// которого ещё нет.
+    /// The directory survives the file being replaced and catches a snapshot
+    /// that does not exist yet.
     private func watchDirectory() {
         directorySource?.cancel()
         directoryDescriptor = open(store.containerURL.path, O_EVTONLY)
@@ -94,7 +95,8 @@ final class SnapshotWatcher: ObservableObject {
         directorySource = source
     }
 
-    /// Дескриптор самого файла: даёт события записи без перебора каталога.
+    /// A descriptor on the file itself: write events without scanning the
+    /// directory.
     private func watchFile() {
         fileSource?.cancel()
         fileDescriptor = open(store.snapshotURL.path, O_EVTONLY)
@@ -110,7 +112,8 @@ final class SnapshotWatcher: ObservableObject {
             Task { @MainActor in
                 guard let self else { return }
                 let data = source.data
-                // Подмена inode: дескриптор больше не указывает на снимок.
+                // The inode was swapped: this descriptor no longer points at
+                // the snapshot.
                 if data.contains(.delete) || data.contains(.rename) {
                     self.watchFile()
                 }
@@ -132,11 +135,11 @@ final class SnapshotWatcher: ObservableObject {
         }
     }
 
-    // MARK: Перезагрузка
+    // MARK: Reloading
 
-    /// Цифры, при изменении которых виджету действительно есть что показать.
-    /// Возраст снимка в подпись не входит: он меняется каждую секунду,
-    /// а отрисовывается предгенерированным таймлайном без нашей помощи.
+    /// The numbers whose change actually gives the widget something new to
+    /// show. The snapshot's age is deliberately left out: it changes every
+    /// second and the pre-generated timeline draws it without our help.
     private func signature(of snapshot: Snapshot) -> String {
         [
             snapshot.limits.fiveHour?.usedPercentage.description ?? "-",
@@ -157,8 +160,8 @@ final class SnapshotWatcher: ObservableObject {
             guard current != lastSignature else { return }
 
             if let lastReload, Date().timeIntervalSince(lastReload) < Self.minimumReloadInterval {
-                // Цифры новые, но бюджет беречь надо: досрочно не дёргаем,
-                // а ждём — следующая запись экспортёра нас разбудит.
+                // New numbers, but the budget has to last: do not fire early.
+                // The exporter's next write will wake us again.
                 ccwidgetStoreLog.debug("watcher: reload deferred, budget window")
                 return
             }
@@ -175,11 +178,11 @@ final class SnapshotWatcher: ObservableObject {
         )
     }
 
-    // MARK: Свежесть
+    // MARK: Freshness
 
-    /// Раз в минуту пересчитываем возраст. Переход через порог раздела 2.4
-    /// меняет вид виджета, поэтому его надо показать, не дожидаясь новых
-    /// данных, — иначе устаревание останется незамеченным.
+    /// Recompute the age once a minute. Crossing a threshold from section
+    /// 2.4 changes how the widget looks, so it has to be shown without
+    /// waiting for new data — otherwise going stale passes unnoticed.
     private func startFreshnessTimer() {
         freshnessTimer?.invalidate()
         let timer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in

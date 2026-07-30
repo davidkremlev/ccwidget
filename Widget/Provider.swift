@@ -2,15 +2,15 @@ import WidgetKit
 import Foundation
 
 struct CCWidgetEntry: TimelineEntry {
-    /// Момент, на который рассчитана запись. Все производные величины —
-    /// возраст снимка, обратный отсчёт до сброса — считаются от него,
-    /// а не от `Date()`. Иначе таймлайн из предгенерированных записей
-    /// показывал бы одно и то же время.
+    /// The moment this entry is computed for. Everything derived — the
+    /// snapshot's age, the countdown to the reset — is measured from here
+    /// rather than from `Date()`. Otherwise a pre-generated timeline would
+    /// show the same clock in every entry.
     let date: Date
     let snapshot: Snapshot?
     let failure: String?
-    /// Считается один раз на весь таймлайн вместе со снимком:
-    /// раздел 2.3 запрещает лишние обращения к диску.
+    /// Computed once per timeline along with the snapshot: section 2.3
+    /// rules out extra trips to disk.
     var forecast: Forecast?
 
     var freshness: Freshness? {
@@ -19,8 +19,8 @@ struct CCWidgetEntry: TimelineEntry {
 }
 
 struct CCWidgetProvider: TimelineProvider {
-    /// Шаг и длина таймлайна из раздела 2.3: тридцать записей по минуте.
-    /// Обратный отсчёт тикает полчаса без единого обращения к диску.
+    /// Timeline step and length from section 2.3: thirty entries a minute
+    /// apart. The countdown ticks for half an hour without touching disk.
     static let step: TimeInterval = 60
     static let count = 30
 
@@ -40,13 +40,14 @@ struct CCWidgetProvider: TimelineProvider {
         completion(makeTimeline(now: Date()))
     }
 
-    /// Отдельно от `getTimeline`, потому что `TimelineProviderContext`
-    /// снаружи не создаётся — иначе таймлайн нечем проверить.
+    /// Kept separate from `getTimeline` because `TimelineProviderContext`
+    /// cannot be constructed from outside — without this the timeline could
+    /// not be checked at all.
     func makeTimeline(now: Date) -> Timeline<CCWidgetEntry> {
         let base = Self.load(at: now)
 
-        // Одно чтение диска на весь таймлайн. Записи отличаются только
-        // моментом, снимок во всех один и тот же.
+        // One disk read per timeline. The entries differ only in their
+        // moment; the snapshot inside them is the same one.
         let entries = (0..<Self.count).map { index in
             CCWidgetEntry(
                 date: now.addingTimeInterval(Double(index) * Self.step),
@@ -56,8 +57,8 @@ struct CCWidgetProvider: TimelineProvider {
             )
         }
 
-        // .after последней записи: система сама придёт за новой порцией.
-        // Досрочно таймлайн перезагрузит демон при изменении снимка.
+        // .after the last entry: the system comes back for more on its own.
+        // The watcher reloads it early when the snapshot actually changes.
         let last = entries.last?.date ?? now
         return Timeline(entries: entries, policy: .after(last))
     }
@@ -98,7 +99,8 @@ struct CCWidgetProvider: TimelineProvider {
 }
 
 extension Snapshot {
-    /// Данные для галереи виджетов и превью. Живыми не притворяются.
+    /// Data for the widget gallery and previews. It does not pretend to be
+    /// live.
     static let preview = Snapshot(
         schemaVersion: 1,
         capturedAt: Date(),

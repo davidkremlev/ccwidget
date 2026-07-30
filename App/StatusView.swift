@@ -1,18 +1,19 @@
 import SwiftUI
 import WidgetKit
 
-/// Окно приложения.
+/// The app window.
 ///
-/// Его открывает клик по виджету — отменить это поведение macOS нельзя,
-/// значит окно видит обычный пользователь, а не только разработчик.
-/// Поэтому сверху состояние человеческим языком и те же полоски, что
-/// в виджете, а диагностика убрана под «Details».
+/// Clicking the widget opens it, and macOS gives no way to refuse that, so
+/// this window is seen by ordinary users rather than only by the developer.
+/// Hence the state in plain language at the top, the same bars the widget
+/// draws, and the diagnostics tucked under "Details".
 ///
-/// Полоски переиспользуют `GaugeRow` из расширения как есть: окно должно
-/// выглядеть увеличенным виджетом, и совпадение цифр видно без чтения.
+/// The bars reuse `GaugeRow` from the extension unchanged: the window should
+/// look like an enlarged widget, which is what makes the numbers matching
+/// visible without reading anything.
 struct StatusView: View {
-    /// Источник состояния приходит снаружи — раздел 5.2. Внутри типа
-    /// нет ни одной ветки «а если это снимок экрана».
+    /// The state source comes from outside — section 5.2. There is not one
+    /// "what if this is a screenshot" branch inside the type.
     @StateObject private var model: StatusModel
     @State private var showsDetails: Bool
     @State private var showsRemoval = false
@@ -58,7 +59,7 @@ struct StatusView: View {
         }
     }
 
-    // MARK: Состояние
+    // MARK: State
 
     private enum WindowState {
         case needsWidget, needsSetup, waiting, working, outdated, abandoned
@@ -75,7 +76,7 @@ struct StatusView: View {
         }
     }
 
-    // MARK: Шапка
+    // MARK: Header
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
@@ -96,8 +97,8 @@ struct StatusView: View {
             .lineLimit(1)
     }
 
-    /// Несовпадение хеша поднимает метку независимо от свежести данных:
-    /// подменённый экспортёр важнее того, насколько свеж снимок.
+    /// A hash mismatch raises the badge regardless of how fresh the data is:
+    /// a tampered exporter outranks a stale snapshot.
     private var badgeText: LocalizedStringKey {
         if model.integrity == .changed { return "Check needed" }
         switch state {
@@ -117,10 +118,10 @@ struct StatusView: View {
         }
     }
 
-    // MARK: Подменённый экспортёр
+    // MARK: Tampered exporter
 
-    /// Полоса, а не строка: этот случай нельзя пропустить ни при свёрнутых
-    /// подробностях, ни боковым зрением.
+    /// A banner, not a line: this case must not be missable with Details
+    /// collapsed or out of the corner of an eye.
     private var tamperBanner: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -143,9 +144,9 @@ struct StatusView: View {
         .background(Color.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: Полоски
+    // MARK: Bars
 
-    /// Те же подписи, тот же порядок, тот же расчёт уровня, что в виджете.
+    /// The same captions, order and level calculation as the widget.
     private func rows(_ snapshot: Snapshot) -> some View {
         let entry = CCWidgetEntry(date: Date(), snapshot: snapshot, failure: nil, forecast: nil)
         return VStack(spacing: 8) {
@@ -161,7 +162,8 @@ struct StatusView: View {
         }
     }
 
-    /// Одна тихая строка вместо двух: когда сброс и насколько стар снимок.
+    /// One quiet line instead of two: when the reset happens and how old the
+    /// snapshot is.
     @ViewBuilder
     private func quietLine(_ snapshot: Snapshot) -> some View {
         let age = CCWidgetFormat.relativeAge(of: snapshot.capturedAt)
@@ -178,10 +180,10 @@ struct StatusView: View {
         .minimumScaleFactor(0.8)
     }
 
-    // MARK: Когда данных нет
+    // MARK: When there is no data
 
-    /// Структура остаётся прежней: пустое окно с одной надписью выглядит
-    /// сломанным, поэтому здесь объяснение и первичное действие.
+    /// The structure stays the same: an empty window with a single line in it
+    /// reads as broken, so this carries an explanation and a primary action.
     @ViewBuilder
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -206,7 +208,7 @@ struct StatusView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: Нижний ряд
+    // MARK: Bottom row
 
     private var bottomRow: some View {
         HStack {
@@ -232,7 +234,7 @@ struct StatusView: View {
         .font(.callout)
     }
 
-    // MARK: Подробности
+    // MARK: Details
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 6) {

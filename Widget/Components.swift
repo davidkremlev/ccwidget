@@ -1,16 +1,16 @@
 import SwiftUI
 import WidgetKit
 
-/// Одна измеряемая величина в виде, готовом к отрисовке.
-/// Полоска всегда равна показанному числу — иначе взгляд ловит расхождение.
+/// One measured quantity, ready to draw. The bar always matches the number
+/// beside it — otherwise the eye catches the discrepancy.
 struct GaugeMetric {
     let fraction: Double
     let value: String
     let auxiliary: String?
     let level: Level
 
-    /// Для VoiceOver: доля, а не готовая строка. Иначе голос читает
-    /// «38 %» как текст, без понимания, что это процент.
+    /// For VoiceOver: the fraction, not a pre-formatted string. Otherwise
+    /// the voice reads "38 %" as text, with no idea it is a percentage.
     var accessibilityValue: Text { Text(fraction, format: .percent) }
 }
 
@@ -18,9 +18,9 @@ extension CCWidgetEntry {
     var isDimmed: Bool { freshness?.isDimmed ?? false }
     var hidesNumbers: Bool { freshness?.hidesNumbers ?? false }
 
-    /// Все три строки показывают израсходованное — см. раздел 8.
-    /// Полоска заполняется по мере расхода, как и у контекста,
-    /// и совпадает с панелью Usage без вычитания из ста.
+    /// All three rows show consumption — see section 8. The bar fills as
+    /// usage grows, just like the context's, and matches the Usage panel
+    /// without subtracting from a hundred.
     func limitMetric(_ window: LimitWindow?) -> GaugeMetric? {
         guard !hidesNumbers, let window else { return nil }
         return GaugeMetric(
@@ -31,7 +31,7 @@ extension CCWidgetEntry {
         )
     }
 
-    /// Контекст и раньше показывал заполнение — трогать нечего.
+    /// The context already showed how full it was — nothing to change.
     var contextMetric: GaugeMetric? {
         guard !hidesNumbers,
               let context = snapshot?.context,
@@ -47,7 +47,7 @@ extension CCWidgetEntry {
     }
 }
 
-// MARK: - Полоска
+// MARK: - Bar
 
 struct Bar: View {
     let fraction: Double
@@ -67,15 +67,15 @@ struct Bar: View {
     }
 }
 
-// MARK: - Шапка
+// MARK: - Header
 
-/// В шапке только модель.
+/// The header carries the model and nothing else.
 ///
-/// Имя проекта отсюда убрано намеренно: экспортёр глобальный, все сессии
-/// пишут в один снимок, и проект относится к последней отрисовавшейся
-/// сессии — а не к виджету целиком. В заголовке оно читалось как «этот
-/// виджет про проект X», что неверно. Теперь оно стоит рядом со строкой
-/// контекста, к которой действительно относится (раздел 13, вариант A).
+/// The project name was deliberately moved out. The exporter is global, every
+/// session writes into the same snapshot, and the project belongs to whichever
+/// session redrew last — not to the widget as a whole. In the header it read
+/// as "this widget is about project X", which is false. It now sits next to
+/// the context row, which is what it actually describes (section 13, option A).
 struct WidgetHeader: View {
     let entry: CCWidgetEntry
 
@@ -96,15 +96,15 @@ struct WidgetHeader: View {
 }
 
 extension CCWidgetEntry {
-    /// Имя проекта последней отрисовавшейся сессии.
+    /// The project name of whichever session redrew last.
     var projectName: String? { snapshot?.project?.name }
 }
 
-// MARK: - Компактная строка (средний размер)
+// MARK: - Compact row (medium size)
 
 struct GaugeRow: View {
     let caption: LocalizedStringKey
-    /// `nil` — данных нет: прочерк вместо цифр, пустая полоска.
+    /// `nil` means no data: a dash instead of digits and an empty bar.
     let metric: GaugeMetric?
     let dimmed: Bool
 
@@ -143,7 +143,7 @@ struct GaugeRow: View {
     private var tint: Color { metricTint(metric, dimmed: dimmed) }
 }
 
-// MARK: - Подробная строка (большой размер)
+// MARK: - Detailed row (large size)
 
 struct DetailGaugeRow: View {
     let caption: LocalizedStringKey
@@ -186,9 +186,10 @@ struct DetailGaugeRow: View {
     }
 }
 
-// MARK: - Мелочи
+// MARK: - Small pieces
 
-/// Цвет не единственный носитель смысла: форма глифа меняется вместе с уровнем.
+/// Colour is not the only carrier of meaning: the glyph's shape changes with
+/// the level.
 struct LevelGlyph: View {
     let level: Level?
     let dimmed: Bool
@@ -207,8 +208,8 @@ func metricTint(_ metric: GaugeMetric?, dimmed: Bool) -> Color {
     return dimmed ? .secondary : metric.level.color
 }
 
-/// Возраст снимка. Раздел 2.4: устаревшие данные обязаны выглядеть устаревшими,
-/// поэтому после часа к возрасту добавляется явное слово.
+/// The snapshot's age. Section 2.4: stale data must look stale, so past an
+/// hour the age gets an explicit word in front of it.
 struct AgeCaption: View {
     let entry: CCWidgetEntry
 
@@ -228,12 +229,12 @@ struct AgeCaption: View {
     }
 }
 
-/// Одно окно для всех случаев, когда цифр показывать нельзя.
+/// One panel for every case where digits must not be shown.
 struct MessageView: View {
     let title: LocalizedStringKey
     let message: LocalizedStringKey
-    /// Возраст снимка, если он есть: в состоянии «заброшено» это
-    /// единственное честное число на виджете.
+    /// The snapshot's age, when there is one. In the abandoned state it is
+    /// the only honest number left on the widget.
     var age: String?
     var compact = false
 
@@ -271,7 +272,7 @@ struct MessageView: View {
 }
 
 extension MessageView {
-    /// Снимка нет вообще — экспортёр ещё ни разу не отработал.
+    /// No snapshot at all — the exporter has never run.
     static func noData(compact: Bool = false) -> MessageView {
         MessageView(
             title: "No data yet",
@@ -280,7 +281,8 @@ extension MessageView {
         )
     }
 
-    /// Снимок старше суток. Раздел 2.4: вместо цифр — приглашение.
+    /// The snapshot is over a day old. Section 2.4: an invitation replaces
+    /// the digits.
     static func abandoned(entry: CCWidgetEntry, compact: Bool = false) -> MessageView {
         MessageView(
             title: "Data is stale",

@@ -10,23 +10,23 @@ public enum SnapshotStoreError: Error, CustomStringConvertible {
     public var description: String {
         switch self {
         case .containerUnavailable:
-            return "Каталог обмена недоступен"
+            return "The exchange directory is unavailable"
         case .fileMissing(let url):
-            return "Снимок не найден: \(url.path)"
+            return "Snapshot not found: \(url.path)"
         case .unreadable(let url, let error):
-            return "Не удалось прочитать \(url.path): \(error)"
+            return "Could not read \(url.path): \(error)"
         case .malformed(let error):
-            return "Снимок повреждён: \(error)"
+            return "Snapshot is corrupted: \(error)"
         case .unsupportedSchema(let found, let supported):
-            return "Схема снимка \(found) новее поддерживаемой \(supported)"
+            return "Snapshot schema \(found) is newer than the supported \(supported)"
         }
     }
 }
 
 public struct SnapshotStore: Sendable {
-    /// Обмен идёт через собственный контейнер расширения виджета — см. 2.2.
-    /// App Group отвергнута: расширению в песочнице её контейнер при
-    /// ad-hoc подписи не выдаётся.
+    /// Exchange happens through the widget extension's own container — see
+    /// section 2.2. An App Group was rejected: under ad-hoc signing the
+    /// sandbox never grants the extension access to the group container.
     public static let widgetBundleIdentifier = "dev.illvminat.ccwidget.widget"
     public static let exchangeFolderName = "ccwidget"
 
@@ -39,12 +39,12 @@ public struct SnapshotStore: Sendable {
         self.containerURL = containerURL
     }
 
-    /// Каталог обмена.
+    /// The exchange directory.
     ///
-    /// Внутри песочницы домашний каталог процесса **и есть** его контейнер,
-    /// поэтому расширение добирается до обменного каталога коротким путём,
-    /// а всё, что снаружи, — длинным, через `~/Library/Containers`.
-    /// Ветвление обязательно: сложить один путь с другим значит удвоить его.
+    /// Inside the sandbox a process's home directory **is** its container, so
+    /// the extension reaches the exchange directory by the short path while
+    /// everything outside takes the long one through `~/Library/Containers`.
+    /// The branch is mandatory: adding one path to the other doubles it.
     public static var exchangeURL: URL {
         if isSandboxed {
             return URL(filePath: NSHomeDirectory())
@@ -53,17 +53,17 @@ public struct SnapshotStore: Sendable {
         return exchangeURL(home: FileManager.default.homeDirectoryForCurrentUser)
     }
 
-    /// То же от заданного корня. Раздел 5.2: код, работающий с путями
-    /// пользователя, обязан принимать корень параметром — иначе его
-    /// нельзя проверить, не тронув настоящий домашний каталог.
+    /// The same from a given root. Section 5.2: code that touches the user's
+    /// paths must take the root as a parameter — otherwise it cannot be
+    /// tested without touching a real home directory.
     public static func exchangeURL(home: URL) -> URL {
         widgetContainerURL(home: home)
             .appending(path: "Data/Library/Application Support/\(exchangeFolderName)")
     }
 
-    /// Контейнер целиком, каким его видно снаружи песочницы.
-    /// Создаёт его система при первом запуске расширения, создавать
-    /// самостоятельно запрещено — см. 2.2.
+    /// The whole container as seen from outside the sandbox. The system
+    /// creates it when the extension first runs; creating it ourselves is
+    /// forbidden — see section 2.2.
     public static var widgetContainerURL: URL {
         widgetContainerURL(home: FileManager.default.homeDirectoryForCurrentUser)
     }
@@ -72,13 +72,15 @@ public struct SnapshotStore: Sendable {
         home.appending(path: "Library/Containers/\(widgetBundleIdentifier)")
     }
 
-    /// Система уже завела контейнер расширения? Если нет, виджет ни разу
-    /// не запускался, и установщику нечего подставлять в шаблон.
+    /// Has the system created the extension's container yet? If not, the
+    /// widget has never run and the installer has no path to substitute into
+    /// the template.
     ///
-    /// Проверяется `Data/Library/Application Support` — этот подкаталог
-    /// создаёт система, и по нему видно, что контейнер настоящий.
+    /// The check looks for `Data/Library/Application Support`: the system
+    /// creates that subdirectory, so its presence means the container is
+    /// genuine rather than something we made up.
     public static var widgetContainerExists: Bool {
-        // Изнутри песочницы вопрос лишён смысла: мы уже в контейнере.
+        // From inside the sandbox the question is moot: we are already in it.
         if isSandboxed { return true }
         return widgetContainerExists(home: FileManager.default.homeDirectoryForCurrentUser)
     }
@@ -101,14 +103,14 @@ public struct SnapshotStore: Sendable {
         return SnapshotStore(containerURL: url)
     }
 
-    /// Внутри песочницы домашняя папка процесса подменена на контейнер.
+    /// Inside the sandbox the process's home directory is its container.
     public static var isSandboxed: Bool {
         NSHomeDirectory().contains("/Library/Containers/")
     }
 
-    /// Что процесс на самом деле видит в контейнере. Нужно, когда система
-    /// контейнер выдала, а файл всё равно не открывается: без этого
-    /// «нет доступа» и «нет файла» неотличимы.
+    /// What the process actually sees in the container. Needed when the
+    /// system hands over the container and the file still will not open:
+    /// without this, "permission denied" and "no such file" look the same.
     public func describeAccess() -> String {
         let fm = FileManager.default
         var parts: [String] = [
@@ -127,8 +129,8 @@ public struct SnapshotStore: Sendable {
         return parts.joined(separator: "; ")
     }
 
-    /// Каждый разбор получает свою копилку: диагностика относится
-    /// к конкретному снимку, а не накапливается за всё время работы.
+    /// Every parse gets its own collector: diagnostics belong to one
+    /// snapshot rather than piling up across the process's lifetime.
     public static func makeDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .secondsSince1970
@@ -136,8 +138,8 @@ public struct SnapshotStore: Sendable {
         return decoder
     }
 
-    /// Читает и разбирает снимок. Снимок с неизвестной схемой отвергается —
-    /// лучше прочерк, чем нарисованная чушь.
+    /// Reads and parses the snapshot. One with an unknown schema is
+    /// rejected — a dash beats drawing nonsense.
     public func load() throws -> Snapshot {
         let url = snapshotURL
         guard FileManager.default.fileExists(atPath: url.path) else {
@@ -165,13 +167,13 @@ public struct SnapshotStore: Sendable {
     }
 }
 
-// MARK: - Свежесть
+// MARK: - Freshness
 
 public enum Freshness: Sendable {
-    case fresh          // менее 5 минут
-    case recent         // 5–60 минут
-    case stale          // более 60 минут
-    case abandoned      // более 24 часов
+    case fresh          // under 5 minutes
+    case recent         // 5 to 60 minutes
+    case stale          // over an hour
+    case abandoned      // over a day
 
     public init(age: TimeInterval) {
         switch age {

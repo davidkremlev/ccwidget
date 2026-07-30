@@ -1,16 +1,15 @@
 import Foundation
 
-/// Локализованное форматирование. Ручной склейки строк быть не должно —
-/// см. раздел 10 ТЗ.
+/// Localized formatting. No hand-assembled strings — see section 10.
 public enum CCWidgetFormat {
-    /// «2 минуты назад». Локализовано из коробки.
+    /// "2 minutes ago". Localized out of the box.
     public static func relativeAge(of date: Date, at now: Date = Date()) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
         return formatter.localizedString(for: date, relativeTo: now)
     }
 
-    /// Обратный отсчёт до сброса окна. Две старшие единицы, сокращённо.
+    /// Countdown to the window reset. Two largest units, abbreviated.
     public static func countdown(_ seconds: TimeInterval) -> String {
         let style = Duration.UnitsFormatStyle(
             allowedUnits: [.days, .hours, .minutes],
@@ -20,7 +19,8 @@ public enum CCWidgetFormat {
         return Duration.seconds(max(0, seconds)).formatted(style)
     }
 
-    /// Момент сброса: «Wed 3:00». День недели без даты — сброс всегда близко.
+    /// Reset moment: "Wed 3:00". Weekday without a date — a reset is never
+    /// far away.
     public static func resetMoment(_ date: Date) -> String {
         date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
     }
@@ -29,7 +29,7 @@ public enum CCWidgetFormat {
         value.formatted(.percent)
     }
 
-    /// Доля кеша: 0.9943 → «99%».
+    /// Cache share: 0.9943 becomes "99%".
     public static func ratio(_ value: Double) -> String {
         value.formatted(.percent.precision(.fractionLength(0)))
     }
@@ -38,13 +38,13 @@ public enum CCWidgetFormat {
         value.formatted(.currency(code: "USD").precision(.fractionLength(2)))
     }
 
-    /// Компактные токены: 62777 → «62.8K», 1000000 → «1M».
+    /// Compact tokens: 62777 becomes "62.8K", 1000000 becomes "1M".
     public static func tokens(_ value: Int) -> String {
         value.formatted(.number.notation(.compactName).precision(.significantDigits(1...3)))
     }
 
-    /// Точные токены с разделителями разрядов — для большого размера,
-    /// где место есть и округление только теряет информацию.
+    /// Exact tokens with digit grouping — for the large size, where there is
+    /// room and rounding would only throw information away.
     public static func tokensExact(_ value: Int) -> String {
         value.formatted(.number.grouping(.automatic))
     }

@@ -5,10 +5,10 @@ public let ccwidgetParseLog = Logger(subsystem: "dev.illvminat.ccwidget", catego
 public let ccwidgetWidgetLog = Logger(subsystem: "dev.illvminat.ccwidget", category: "widget")
 public let ccwidgetStoreLog = Logger(subsystem: "dev.illvminat.ccwidget", category: "store")
 
-/// Одно поле, которое разбор отбросил.
+/// One field the parser dropped.
 public struct ParseIssue: Sendable, Equatable, Codable {
     public let field: String
-    /// Сырое значение из JSON. `nil`, если его не удалось даже прочитать.
+    /// The raw JSON value. `nil` when even that could not be read.
     public let rawValue: String?
     public let reason: String
 
@@ -17,10 +17,10 @@ public struct ParseIssue: Sendable, Equatable, Codable {
     }
 }
 
-/// Копилка отброшенных полей на время одного разбора.
+/// Collects dropped fields for the duration of one parse.
 ///
-/// Мягкий разбор без неё — это молчаливая потеря данных: поле исчезает,
-/// виджет рисует прочерк, а причину приходится искать вслепую.
+/// Soft parsing without this is silent data loss: the field disappears, the
+/// widget draws a dash, and the cause has to be hunted for blind.
 public final class DiagnosticsCollector: @unchecked Sendable {
     private let lock = NSLock()
     private var storage: [ParseIssue] = []
@@ -81,11 +81,11 @@ extension Decoder {
     }
 }
 
-// MARK: - Мягкий разбор
+// MARK: - Soft parsing
 
 extension KeyedDecodingContainer {
-    /// Разбирает поле, а при неудаче записывает его в лог и в диагностику
-    /// и возвращает `nil`. Тихого проглатывания здесь не бывает.
+    /// Decodes a field; on failure records it in the log and in the
+    /// diagnostics and returns `nil`. Nothing is swallowed quietly here.
     public func decodeSoft<T: Decodable>(
         _ type: T.Type,
         forKey key: Key,
@@ -106,7 +106,8 @@ extension KeyedDecodingContainer {
         }
     }
 
-    /// То же для чисел, которые источник шлёт то целыми, то дробными.
+    /// The same for numbers the source sends sometimes whole, sometimes
+    /// fractional.
     public func decodeSoftRoundedInt(
         forKey key: Key,
         path: String,
@@ -127,10 +128,10 @@ extension KeyedDecodingContainer {
     }
 }
 
-// MARK: - Сырое значение
+// MARK: - Raw value
 
-/// Минимальное представление любого узла JSON — нужно только чтобы
-/// показать в логе, что именно не разобралось.
+/// A minimal representation of any JSON node. Its only job is to show in
+/// the log what exactly failed to decode.
 public enum JSONValue: Decodable, Sendable {
     case null
     case bool(Bool)
@@ -149,7 +150,7 @@ public enum JSONValue: Decodable, Sendable {
         else { self = .object(try c.decode([String: JSONValue].self)) }
     }
 
-    /// Короткая запись для лога: длинные узлы обрезаются.
+    /// Short form for the log: long nodes are truncated.
     public var compactDescription: String {
         let full = description
         return full.count > 200 ? String(full.prefix(200)) + "…" : full

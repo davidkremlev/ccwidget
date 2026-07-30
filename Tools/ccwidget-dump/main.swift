@@ -1,7 +1,7 @@
 import Foundation
 
-// Консольная проверка этапа 1: читает snapshot.json из папки App Group
-// и печатает разобранные значения. Xcode для этого не нужен.
+// A console check: reads snapshot.json from the exchange directory and prints
+// the parsed values. Xcode is not needed for this.
 
 let store: SnapshotStore
 if CommandLine.arguments.count > 1 {
@@ -12,7 +12,7 @@ if CommandLine.arguments.count > 1 {
 }
 
 func fail(_ message: String) -> Never {
-    FileHandle.standardError.write(Data(("ошибка: " + message + "\n").utf8))
+    FileHandle.standardError.write(Data(("error: " + message + "\n").utf8))
     exit(1)
 }
 
@@ -25,7 +25,7 @@ do {
     fail("\(error)")
 }
 
-// MARK: - Форматирование
+// MARK: - Formatting
 
 let percent: FloatingPointFormatStyle<Double>.Percent = .percent.precision(.fractionLength(0))
 let money: FloatingPointFormatStyle<Double>.Currency = .currency(code: "USD").precision(.fractionLength(2))
@@ -58,74 +58,74 @@ func describe(_ level: Level) -> String {
 
 func describe(_ freshness: Freshness) -> String {
     switch freshness {
-    case .fresh: return "только что"
-    case .recent: return "недавно"
-    case .stale: return "данные устарели"
-    case .abandoned: return "запустите Claude Code"
+    case .fresh: return "just now"
+    case .recent: return "recent"
+    case .stale: return "outdated"
+    case .abandoned: return "launch Claude Code"
     }
 }
 
 func report(_ title: String, _ window: LimitWindow?) {
     guard let window else {
-        print("\(title): нет данных (rate_limits ещё не пришли)")
+        print("\(title): no data (rate_limits have not arrived yet)")
         return
     }
     let reset = window.resetsAt.formatted(date: .abbreviated, time: .shortened)
     print("\(title):")
-    line("израсходовано", "\(window.usedPercentage)%")
-    line("остаток", "\(window.remainingPercentage)%  [\(describe(window.level))]")
-    line("сброс", "\(reset)  (через \(duration(window.timeUntilReset())))")
+    line("used", "\(window.usedPercentage)%")
+    line("remaining", "\(window.remainingPercentage)%  [\(describe(window.level))]")
+    line("resets", "\(reset)  (in \(duration(window.timeUntilReset())))")
 }
 
-// MARK: - Вывод
+// MARK: - Output
 
 let age = snapshot.age()
 
-print("Контейнер: \(store.containerURL.path)")
-print("Файл:      \(store.snapshotURL.lastPathComponent)")
+print("Directory: \(store.containerURL.path)")
+print("File:      \(store.snapshotURL.lastPathComponent)")
 print("")
-print("Снимок:")
-line("схема", "\(snapshot.schemaVersion)")
-line("снят", "\(snapshot.capturedAt.formatted(date: .abbreviated, time: .standard))")
-line("возраст", "\(duration(age))  [\(describe(Freshness(age: age)))]")
-line("сессия", dash(snapshot.sessionId))
+print("Snapshot:")
+line("schema", "\(snapshot.schemaVersion)")
+line("captured", "\(snapshot.capturedAt.formatted(date: .abbreviated, time: .standard))")
+line("age", "\(duration(age))  [\(describe(Freshness(age: age)))]")
+line("session", dash(snapshot.sessionId))
 line("Claude Code", dash(snapshot.claudeCodeVersion))
 print("")
 
-print("Модель:")
+print("Model:")
 line("id", dash(snapshot.model?.id))
-line("название", dash(snapshot.model?.displayName))
-line("усилие", dash(snapshot.model?.effort))
+line("name", dash(snapshot.model?.displayName))
+line("effort", dash(snapshot.model?.effort))
 print("")
 
-print("Проект:")
-line("имя", dash(snapshot.project?.name))
+print("Project:")
+line("name", dash(snapshot.project?.name))
 print("")
 
-report("Пятичасовое окно", snapshot.limits.fiveHour)
+report("Five-hour window", snapshot.limits.fiveHour)
 print("")
-report("Недельное окно", snapshot.limits.sevenDay)
+report("Weekly window", snapshot.limits.sevenDay)
 print("")
 
-print("Контекст:")
+print("Context:")
 if let context = snapshot.context {
-    line("заполнено", context.usedPercentage.map { "\($0)%" } ?? "—")
-    line("уровень", context.level.map(describe) ?? "—")
-    line("токенов", context.totalInputTokens.map { $0.formatted(tokens) } ?? "—")
-    line("окно", context.windowSize.map { $0.formatted(tokens) } ?? "—")
-    line("доля кеша", context.cacheHitRatio.map { $0.formatted(percent) } ?? "—")
+    line("used", context.usedPercentage.map { "\($0)%" } ?? "—")
+    line("level", context.level.map(describe) ?? "—")
+    line("tokens", context.totalInputTokens.map { $0.formatted(tokens) } ?? "—")
+    line("window", context.windowSize.map { $0.formatted(tokens) } ?? "—")
+    line("cache share", context.cacheHitRatio.map { $0.formatted(percent) } ?? "—")
 } else {
-    line("—", "нет данных")
+    line("—", "no data")
 }
 print("")
 
-print("Стоимость:")
-line("сессия", snapshot.cost?.sessionUsd.map { $0.formatted(money) } ?? "—")
+print("Cost:")
+line("session", snapshot.cost?.sessionUsd.map { $0.formatted(money) } ?? "—")
 print("")
 
-print("Диагностика разбора:")
+print("Parse diagnostics:")
 if snapshot.diagnostics.isEmpty {
-    line("—", "чисто, полей не отброшено")
+    line("—", "clean, no fields dropped")
 } else {
     for issue in snapshot.diagnostics {
         line(issue.field, "\(issue.rawValue ?? "?")  ←  \(issue.reason)")

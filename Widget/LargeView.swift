@@ -1,8 +1,9 @@
 import SwiftUI
 import WidgetKit
 
-/// Раздел 9: всё из среднего размера, но развёрнуто — у каждой полоски
-/// своя подпись с моментом сброса, блок прогноза и расширенный подвал.
+/// Section 9: everything from the medium size, spelled out — every bar gets
+/// its own caption with the reset moment, plus the estimate block and a wider
+/// footer.
 struct LargeView: View {
     let entry: CCWidgetEntry
 
@@ -33,11 +34,11 @@ struct LargeView: View {
         }
     }
 
-    // MARK: Полоски
+    // MARK: Bars
 
     private func rows(_ snapshot: Snapshot) -> some View {
-        // Свободное место раздаётся между строками, а не копится одной дырой
-        // над подвалом. Прогноз этапа 4 заберёт его обратно.
+        // Free space is shared between the rows rather than pooling into one
+        // hole above the footer.
         VStack(alignment: .leading, spacing: 0) {
             DetailGaugeRow(
                 caption: "5-hour used",
@@ -55,8 +56,8 @@ struct LargeView: View {
             Spacer(minLength: 6)
             DetailGaugeRow(
                 caption: "Context used",
-                // Имя проекта здесь: контекст принадлежит сессии,
-                // а два окна выше — аккаунту целиком.
+                // The project name belongs here: the context is per-session,
+                // while the two windows above are account-wide.
                 metric: entry.contextMetric,
                 detail: entry.projectName,
                 dimmed: entry.isDimmed
@@ -68,20 +69,21 @@ struct LargeView: View {
         guard !entry.hidesNumbers, let window else { return nil }
         let moment = CCWidgetFormat.resetMoment(window.resetsAt)
         let until = CCWidgetFormat.countdown(window.timeUntilReset(at: entry.date))
-        // Остатка здесь нет намеренно. Раздел 8 запрещает две полярности
-        // в одном столбце, а «35% left» под «Week used 65%» — ровно они,
-        // одна под другой: сверяющий с панелью Usage хватал не то число.
+        // No remaining figure here, deliberately. Section 8 forbids two
+        // polarities in one column, and "35% left" under "Week used 65%" is
+        // exactly that, one directly beneath the other: anyone checking
+        // against the Usage panel grabbed the wrong number.
         return String(localized: "resets \(moment) · \(until)")
     }
 
-    // MARK: Подробности
+    // MARK: Footer details
 
-    /// Раздел 9: подвал большого размера — стоимость, токены, доля кеша.
-    /// Все три величины посессионные, поэтому блок подписан целиком.
+    /// Section 9: the large footer — cost, tokens, cache share. All three are
+    /// per-session, so the block is labelled as a whole.
     private func details(_ snapshot: Snapshot) -> some View {
         VStack(spacing: 3) {
-            // Имя проекта не повторяем: оно уже стоит у строки контекста,
-            // здесь достаточно указать принадлежность сессии.
+            // The project name is not repeated: it already sits by the
+            // context row, and naming the session is enough here.
             HStack(spacing: 4) {
                 Text("This session")
                 Spacer(minLength: 0)
@@ -116,7 +118,7 @@ struct LargeView: View {
         .font(.caption)
     }
 
-    // MARK: Подвал
+    // MARK: Footer
 
     private var footer: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {

@@ -1,8 +1,8 @@
 import SwiftUI
 
 extension Level {
-    /// Системные цвета — сами подстраиваются под тему и настройки доступности.
-    /// Своей палитры не заводим, см. раздел 8 ТЗ.
+    /// System colours adapt to light and dark and to the accessibility
+    /// settings on their own. No custom palette — see section 8.
     public var color: Color {
         switch self {
         case .healthy: return .green
@@ -12,8 +12,8 @@ extension Level {
         }
     }
 
-    /// Цвет не должен быть единственным носителем смысла: форма глифа
-    /// отличается на каждом уровне, а не только оттенок.
+    /// Colour must not be the only carrier of meaning: the glyph's shape
+    /// differs at every level, not just its tint.
     public var symbolName: String {
         switch self {
         case .healthy: return "checkmark.circle.fill"
@@ -25,8 +25,8 @@ extension Level {
 }
 
 extension Freshness {
-    /// Данные старше часа приглушаются: виджет, молча показывающий
-    /// вчерашние проценты, хуже отсутствующего.
+    /// Anything older than an hour is dimmed. A widget that quietly shows
+    /// yesterday's percentages is worse than no widget at all.
     public var isDimmed: Bool {
         switch self {
         case .fresh, .recent: return false

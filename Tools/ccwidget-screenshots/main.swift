@@ -1,18 +1,18 @@
 import SwiftUI
 import AppKit
 
-// Скриншоты для README. Утилита, а не разовый рендер: снимки должны
-// пересниматься одной командой, иначе они устареют на первой же правке
-// вёрстки и README начнёт врать.
+// README screenshots. A tool rather than a one-off render: they have to be
+// re-shootable with a single command, otherwise the first layout change makes
+// them stale and the README starts lying.
 //
 //   swiftc -swift-version 6 -target arm64-apple-macos14.0 \
 //       Shared/*.swift Widget/{Provider,Components,SmallView,MediumView,LargeView,ForecastChart}.swift \
 //       Tools/ccwidget-screenshots/main.swift -o .build/ccwidget-screenshots
 //   ./.build/ccwidget-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"
 //
-// Локаль задаётся явно: подписи в README английские, а числа и даты идут
-// через системный регион (раздел 10). Без -AppleLocale снимки выйдут
-// с русскими «4 ч 16 мин» под английскими подписями.
+// The locale is set explicitly: the README is in English while numbers and
+// dates follow the system region (section 10). Without -AppleLocale the shots
+// come out with localized durations under English captions.
 
 let outDir = URL(filePath: CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "Docs/screenshots")
 try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
@@ -26,11 +26,11 @@ let forecast = week.map { Forecast.make(history: history, window: $0, now: now) 
 let entry = CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: forecast)
 
 guard snapshot != nil else {
-    FileHandle.standardError.write(Data("нет снимка — сначала запустите Claude Code\n".utf8))
+    FileHandle.standardError.write(Data("no snapshot yet — run Claude Code first\n".utf8))
     exit(1)
 }
 
-/// Радиус углов виджетов на рабочем столе macOS.
+/// Corner radius of desktop widgets on macOS.
 let cornerRadius: CGFloat = 20
 
 @MainActor
@@ -41,7 +41,7 @@ func shoot(_ name: String, _ size: CGSize, _ scheme: ColorScheme, @ViewBuilder _
         .background(scheme == .dark ? Color(white: 0.14) : Color.white)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .environment(\.colorScheme, scheme)
-        // Поля вокруг: скруглённый угол не должен упираться в край картинки.
+        // Margin around it: a rounded corner must not touch the image edge.
         .padding(12)
 
     let renderer = ImageRenderer(content: body)
@@ -51,7 +51,7 @@ func shoot(_ name: String, _ size: CGSize, _ scheme: ColorScheme, @ViewBuilder _
           let tiff = image.tiffRepresentation,
           let rep = NSBitmapImageRep(data: tiff),
           let png = rep.representation(using: .png, properties: [:]) else {
-        FileHandle.standardError.write(Data("не удалось отрисовать \(name)\n".utf8))
+        FileHandle.standardError.write(Data("could not render \(name)\n".utf8))
         return
     }
     let url = outDir.appending(path: "\(name).png")

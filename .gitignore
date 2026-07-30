@@ -1,7 +1,7 @@
 # macOS
 .DS_Store
 
-# Продукты сборки
+# Build products
 build/
 .build/
 DerivedData/
@@ -12,9 +12,10 @@ DerivedData/
 *.hmap
 *.moved-aside
 
-# Пользовательское состояние Xcode.
-# Сам project.pbxproj — часть репозитория: без него проект не соберётся
-# ни у кого. Исключается только то, что Xcode пишет под конкретного человека.
+# Xcode's per-user state.
+# project.pbxproj itself belongs in the repository: without it the project
+# builds for nobody. Only what Xcode writes for one particular person is
+# excluded.
 xcuserdata/
 *.xcuserstate
 *.xcscmblueprint
@@ -25,6 +26,6 @@ xcuserdata/
 .swiftpm/
 Package.resolved
 
-# Секреты и локальные настройки
+# Secrets and local settings
 *.local
 .env

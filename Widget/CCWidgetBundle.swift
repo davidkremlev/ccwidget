@@ -26,8 +26,8 @@ struct CCWidgetExtension: Widget {
         .configurationDisplayName(String(localized: "Usage Widget for Claude Code"))
         .description(String(localized: "Subscription limits, context window and cost at a glance."))
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
-        // Свои отступы вместо системных: раздел 9 фиксирует 14–16pt,
-        // а стандартные поля виджета съедают их поверх наших.
+        // Our own insets instead of the system's: section 9 fixes them at
+        // 14-16pt, and the default widget margins would stack on top.
         .contentMarginsDisabled()
     }
 }

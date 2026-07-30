@@ -1,13 +1,13 @@
 import Foundation
 import SwiftUI
 
-/// Источник состояния для окна.
+/// The window's source of state.
 ///
-/// Раздел 5.2 требует внедрять зависимость, а не переключать поведение
-/// флагом внутри типа. Здесь то же правило, но для состояния, а не для
-/// путей: боевая модель читает диск и держит наблюдателя, модель для
-/// картинок отдаёт заданное и не делает ничего. Окно между ними не
-/// различает — у него нет ветки «если это снимок экрана».
+/// Section 5.2 requires injecting a dependency rather than switching behaviour
+/// on a flag inside the type. Same rule here, applied to state instead of
+/// paths: the live model reads the disk and owns the watcher, while the one
+/// used for screenshots returns what it was given and starts nothing. The
+/// window cannot tell them apart — it has no "if this is a screenshot" branch.
 @MainActor
 class StatusModel: ObservableObject {
     @Published fileprivate(set) var snapshot: Snapshot?
@@ -15,9 +15,10 @@ class StatusModel: ObservableObject {
     @Published fileprivate(set) var integrity: Installer.Integrity = .unknown
     @Published fileprivate(set) var containerExists = true
     @Published fileprivate(set) var statusLineIsOurs = true
-    /// Готовая строка про наблюдателя: окну не нужно знать, откуда она.
+    /// A ready-made line about the watcher: the window need not know where
+    /// it came from.
     @Published fileprivate(set) var watcherSummary = ""
-    /// Сообщение о последнем действии — установка, удаление, отказ.
+    /// The outcome of the last action — install, remove, or a failure.
     @Published var notice: String?
 
     let installer: Installer
@@ -30,13 +31,13 @@ class StatusModel: ObservableObject {
         watcherSummary = String(localized: "stopped")
     }
 
-    // MARK: Жизненный цикл
+    // MARK: Lifecycle
 
     func start() {
         watcher.start()
         refresh()
-        // Наблюдатель — отдельный объект со своими публикациями; окно
-        // подписано на модель, поэтому переносим их сюда.
+        // The watcher is a separate object with its own publications, and
+        // the window subscribes to the model, so bring them across.
         observation = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
@@ -74,7 +75,7 @@ class StatusModel: ObservableObject {
         watcherSummary = String(localized: "running · \(watcher.reloadCount) reloads · last \(moment)")
     }
 
-    // MARK: Действия
+    // MARK: Actions
 
     func install() {
         do {
@@ -119,9 +120,9 @@ class StatusModel: ObservableObject {
     }
 }
 
-/// Модель с заданным состоянием — для снятия картинок.
+/// A model with fixed state, for taking screenshots.
 ///
-/// Диск не читает и наблюдателя не заводит: у неё просто нечего запускать.
+/// It reads no disk and starts no watcher: there is simply nothing to run.
 @MainActor
 final class FixedStatusModel: StatusModel {
     init(snapshot: Snapshot?, integrity: Installer.Integrity,

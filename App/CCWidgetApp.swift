@@ -10,8 +10,8 @@ struct CCWidgetApp: App {
     }
 }
 
-/// Онбординг показывается, пока экспортёр не подключён к статуслайну
-/// либо пока не пришёл первый снимок. Дальше — обычное окно состояния.
+/// Onboarding stays up until the exporter is wired into the status line and
+/// the first snapshot has arrived. After that, the ordinary status window.
 struct RootView: View {
     @State private var isConfigured = RootView.configured
 
@@ -24,8 +24,8 @@ struct RootView: View {
             }
         }
         .onAppear { isConfigured = Self.configured }
-        // Настройка происходит в другом процессе (пользователь мог
-        // прописать statusLine руками), поэтому проверяем на возврате фокуса.
+        // Setup can happen in another process — the user may have edited
+        // statusLine by hand — so re-check whenever we regain focus.
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification
         )) { _ in

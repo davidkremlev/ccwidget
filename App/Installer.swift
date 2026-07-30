@@ -1,22 +1,22 @@
 import CryptoKit
 import Foundation
 
-/// Установка экспортёра в конфигурацию Claude Code. Раздел 11.
+/// Installs the exporter into the Claude Code configuration. Section 11.
 ///
-/// Все пути приходят снаружи — см. раздел 5.2.
+/// Every path is supplied from outside — see section 5.2.
 struct Installer {
     let home: URL
     let exchangeDirectory: URL
-    /// `nil` — шаблона нет, установка невозможна.
+    /// `nil` means the template is missing and installation is impossible.
     let templateURL: URL?
-    /// Кандидаты в интерпретаторы, в порядке предпочтения.
+    /// Interpreter candidates, in order of preference.
     var interpreterCandidates: [URL] = Installer.defaultInterpreters
 
-    /// Системный Python идёт первым осознанно: `/usr/bin/python3`
-    /// принадлежит root, а `/opt/homebrew/bin` — пользователю. Экспортёр
-    /// исполняется десятки раз в минуту, и интерпретатор из каталога,
-    /// доступного на запись кому угодно из-под этого же пользователя,
-    /// расширяет поверхность без нужды.
+    /// The system Python comes first on purpose: `/usr/bin/python3` is owned
+    /// by root while `/opt/homebrew/bin` is owned by the user. The exporter
+    /// runs dozens of times a minute, and taking its interpreter from a
+    /// directory any process of this user can write to widens the attack
+    /// surface for nothing.
     static let defaultInterpreters: [URL] = [
         URL(filePath: "/usr/bin/python3"),
         URL(filePath: "/opt/homebrew/bin/python3"),
@@ -59,19 +59,19 @@ struct Installer {
 
     struct Report {
         let backup: URL?
-        /// Ложь означает, что `settings.json` пересобран целиком.
+        /// False means `settings.json` had to be rebuilt from scratch.
         let editWasSurgical: Bool
         let interpreter: URL
     }
 
-    /// Что установка сделает, до того как её запустят. Раздел 11 требует
-    /// предупреждать заранее, а не отчитываться постфактум.
+    /// What installation will do, before it is run. Section 11 requires
+    /// warning up front rather than reporting after the fact.
     struct Preflight {
         let widgetContainerExists: Bool
         let interpreter: URL?
-        /// `settings.json` — символическая ссылка, и вот её цель.
+        /// `settings.json` is a symlink, and this is its target.
         let settingsLinkTarget: URL?
-        /// Ссылку удастся сохранить: цель доступна на запись.
+        /// The link can be preserved: its target is writable.
         let canPreserveLink: Bool
         let settingsWritable: Bool
 
@@ -80,7 +80,7 @@ struct Installer {
         }
     }
 
-    // MARK: Пути
+    // MARK: Paths
 
     var claudeDirectory: URL { home.appending(path: ".claude") }
     var settingsURL: URL { claudeDirectory.appending(path: "settings.json") }
@@ -88,24 +88,25 @@ struct Installer {
 
     var backupNamePattern: String { "settings.json.bak-YYYYMMDD-HHMMSS" }
 
-    /// Куда записан хеш установленного экспортёра.
+    /// Where the hash of the installed exporter is kept.
     ///
-    /// Приложение кладёт исполняемый файл в автозапуск статуслайна и без
-    /// этого больше на него не смотрит: подменить его может кто угодно,
-    /// кто пишет в `~/.claude`, а интерфейс продолжал бы показывать
-    /// «настроено». Хеш не защищает от подмены — он делает её видимой.
+    /// The app drops an executable into the status line's path and, without
+    /// this, never looks at it again: anyone able to write to `~/.claude`
+    /// could replace it while the interface kept saying "configured". The
+    /// hash does not prevent tampering — it makes tampering visible.
     var integrityURL: URL { claudeDirectory.appending(path: ".ccwidget-export.sha256") }
 
-    /// Сколько копий держать. Копия конфига — файл с чужими настройками;
-    /// копить их без предела незачем, а старые ещё и устаревают.
+    /// How many backups to keep. A backup holds someone's configuration;
+    /// hoarding them serves nobody, and old ones go stale besides.
     static let backupsKept = 5
 
-    /// Куда на самом деле писать настройки.
+    /// Where the settings actually have to be written.
     ///
-    /// Если `~/.claude/settings.json` — ссылка в репозиторий dotfiles, писать
-    /// надо по цели. Иначе атомарная запись подменит саму ссылку обычным
-    /// файлом: связь с dotfiles молча рвётся, настоящий конфиг остаётся без
-    /// `statusLine`, а причина неочевидна.
+    /// If `~/.claude/settings.json` is a symlink into a dotfiles repository,
+    /// the write has to go through to the target. Otherwise an atomic write
+    /// replaces the link itself with a regular file: the connection to
+    /// dotfiles breaks silently, the real config never gets its `statusLine`,
+    /// and nothing on screen explains why.
     var resolvedSettingsURL: URL {
         var url = settingsURL
         var hops = 0
@@ -126,7 +127,7 @@ struct Installer {
         resolvedSettingsURL.path(percentEncoded: false) != settingsURL.path(percentEncoded: false)
     }
 
-    // MARK: Состояние
+    // MARK: State
 
     var isClaudeCodePresent: Bool {
         FileManager.default.fileExists(atPath: settingsURL.path(percentEncoded: false))
@@ -136,12 +137,12 @@ struct Installer {
         SnapshotStore.widgetContainerExists(home: home)
     }
 
-    /// Совпадает ли экспортёр с тем, что мы установили.
+    /// Whether the exporter still matches the one we installed.
     enum Integrity: Equatable {
         case matches
         case changed
-        case unknown      // хеша нет: установка была до появления проверки
-        case missing      // самого экспортёра нет
+        case unknown      // no hash: installed before the check existed
+        case missing      // the exporter itself is gone
     }
 
     func checkIntegrity() -> Integrity {
@@ -170,8 +171,8 @@ struct Installer {
         let directory = resolved.deletingLastPathComponent()
         let fm = FileManager.default
         let targetExists = fm.fileExists(atPath: resolved.path(percentEncoded: false))
-        // Атомарная запись создаёт временный файл рядом с целью, значит
-        // нужен доступ на запись в каталог, а не только в файл.
+        // An atomic write puts a temporary file next to the target, so what
+        // is needed is write access to the directory, not just the file.
         let writable = fm.isWritableFile(atPath: directory.path(percentEncoded: false))
             || (!targetExists && !fm.fileExists(atPath: directory.path(percentEncoded: false)))
 
@@ -184,14 +185,14 @@ struct Installer {
         )
     }
 
-    // MARK: Интерпретатор
+    // MARK: Interpreter
 
-    /// Первый кандидат, который действительно запускается и отвечает «3».
+    /// The first candidate that actually runs and answers "3".
     ///
-    /// Проверка обязательна: на чистой macOS `/usr/bin/python3` существует,
-    /// но это заглушка, вызывающая предложение поставить Command Line Tools.
-    /// Без проверки экспортёр молча не работал бы, а онбординг показывал бы
-    /// бесконечное ожидание.
+    /// Running it is mandatory: on a clean macOS `/usr/bin/python3` exists but
+    /// is a stub that pops up an offer to install the Command Line Tools.
+    /// Without the check the exporter would silently do nothing while
+    /// onboarding waited forever.
     func findInterpreter() -> URL? {
         for candidate in interpreterCandidates where
             FileManager.default.isExecutableFile(atPath: candidate.path(percentEncoded: false)) {
@@ -207,7 +208,7 @@ struct Installer {
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
-        // Заглушка Command Line Tools интерактивна — ввод ей не даём.
+        // The Command Line Tools stub is interactive; give it no input.
         process.standardInput = FileHandle.nullDevice
         do { try process.run() } catch { return false }
         process.waitUntilExit()
@@ -218,7 +219,7 @@ struct Installer {
         return text.trimmingCharacters(in: .whitespacesAndNewlines) == "3"
     }
 
-    // MARK: Установка
+    // MARK: Installing
 
     @discardableResult
     func install() throws -> Report {
@@ -237,10 +238,10 @@ struct Installer {
         else { throw Failure.templateMissing }
 
         var rendered = body
-        // Голая замена внутри кавычек — сток для внедрения кода: путь
-        // с кавычкой или переводом строки выходит за литерал, а файл
-        // затем исполняется на каждую перерисовку. Подставляем готовый
-        // литерал вместе с кавычками.
+        // A bare substitution inside the quotes is a code-injection sink: a
+        // path containing a quote or a newline escapes the literal, and the
+        // file is then executed on every redraw. Substitute a finished
+        // literal, quotes included.
         rendered = rendered.replacingOccurrences(
             of: "\"__GROUP_DIR__\"",
             with: Self.pythonStringLiteral(exchangeDirectory.path(percentEncoded: false))
@@ -260,12 +261,12 @@ struct Installer {
         }
     }
 
-    /// Экранирование по правилам JSON. Python принимает те же escape-последовательности,
-    /// включая `\uXXXX`, поэтому результат — корректный литерал в обоих языках.
+    /// Escaped by JSON's rules. Python accepts the same escape sequences,
+    /// `\uXXXX` included, so the result is a valid literal in both languages.
     static func pythonStringLiteral(_ value: String) -> String {
-        // `.withoutEscapingSlashes` обязателен: по умолчанию слэши уходят
-        // как `\/`, что для JSON законно, а для Python — нераспознанная
-        // escape-последовательность и предупреждение на каждый запуск.
+        // `.withoutEscapingSlashes` is mandatory: by default slashes come
+        // out as `\/`, which is legal JSON but an unrecognised escape for
+        // Python — and a warning on every single run.
         guard let data = try? JSONSerialization.data(
                 withJSONObject: [value], options: [.withoutEscapingSlashes]),
               let text = String(data: data, encoding: .utf8) else {
@@ -285,8 +286,8 @@ struct Installer {
         return lines.joined(separator: "\n")
     }
 
-    /// Каталог создаём закрытым. Права уже существующего не трогаем —
-    /// он не наш.
+    /// We create the directory closed. We never touch the permissions of one
+    /// that already exists — it is not ours.
     private func createClaudeDirectoryIfNeeded() throws {
         guard !FileManager.default.fileExists(atPath: claudeDirectory.path(percentEncoded: false)) else { return }
         try FileManager.default.createDirectory(
@@ -296,9 +297,9 @@ struct Installer {
         )
     }
 
-    /// Копия всегда обычный файл, даже если оригинал — ссылка: копия-ссылка
-    /// указывает на файл, который мы вот-вот перезапишем, и восстанавливать
-    /// из неё нечего.
+    /// The backup is always a regular file, even when the original is a
+    /// symlink: a symlinked backup would point at the very file we are about
+    /// to overwrite, leaving nothing to restore from.
     private func backupSettings() throws -> URL? {
         let source = resolvedSettingsURL
         guard let contents = try? Data(contentsOf: source) else { return nil }
@@ -318,8 +319,8 @@ struct Installer {
         do {
             try createClaudeDirectoryIfNeeded()
             try contents.write(to: backup, options: .atomic)
-            // settings.json может содержать переменные окружения и ключи.
-            // Копия обязана быть не доступнее оригинала.
+            // settings.json can hold environment variables and keys. The
+            // backup must be no more readable than the original.
             try FileManager.default.setAttributes(
                 [.posixPermissions: 0o600], ofItemAtPath: backup.path(percentEncoded: false)
             )
@@ -330,7 +331,7 @@ struct Installer {
         return backup
     }
 
-    /// Оставляет свежие копии, старые удаляет.
+    /// Keeps the recent backups and deletes the rest.
     private func pruneBackups() {
         let fm = FileManager.default
         guard let names = try? fm.contentsOfDirectory(atPath: claudeDirectory.path(percentEncoded: false))
@@ -345,7 +346,7 @@ struct Installer {
     }
 
     private func writeStatusLine() throws -> Bool {
-        // Пишем по цели ссылки, а не по ней самой.
+        // Write through to the link's target, not to the link itself.
         let destination = resolvedSettingsURL
         let original = try? String(contentsOf: destination, encoding: .utf8)
         let value: [String: Any] = [
@@ -375,14 +376,15 @@ struct Installer {
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
 
-    // MARK: Удаление
+    // MARK: Removal
 
-    /// Что удаление сделает и что останется после него.
+    /// What removal will do, and what will be left behind.
     struct RemovalPlan {
         let removesStatusLine: Bool
         let removesExporter: Bool
         let historyLineCount: Int
-        /// Приложение и контейнер расширения средствами приложения не удалить.
+        /// The app bundle and the extension's container cannot be removed by
+        /// the app itself.
         let manualLeftovers: [String]
     }
 
@@ -409,12 +411,12 @@ struct Installer {
         )
     }
 
-    /// Снимает установку.
+    /// Undoes the installation.
     ///
-    /// Ключ `statusLine` удаляется точечно, а не восстанавливается из копии:
-    /// между установкой и удалением пользователь мог менять другие ключи,
-    /// и откат файла целиком отобрал бы у него эти правки. Копия остаётся
-    /// запасным вариантом, а не механизмом отката.
+    /// The `statusLine` key is deleted surgically rather than restored from a
+    /// backup: other keys may have changed between install and removal, and
+    /// rolling the whole file back would take those edits away. The backup
+    /// stays a fallback, not the mechanism.
     @discardableResult
     func uninstall(removingHistory: Bool) throws -> RemovalReport {
         var backup: URL?
@@ -456,10 +458,11 @@ struct Installer {
         )
     }
 
-    // MARK: Ручная установка
+    // MARK: Manual instructions
 
-    /// Без `sed`: путь с символом `|` ломает разделитель, а с кавычкой —
-    /// литерал в самом скрипте. Показываем готовую строку целиком.
+    /// No `sed`: a path containing `|` breaks the delimiter and one
+    /// containing a quote breaks the literal inside the script itself. Show
+    /// the finished line instead.
     func manualInstructions() -> String {
         let interpreter = findInterpreter()?.path(percentEncoded: false) ?? "/usr/bin/python3"
         return """

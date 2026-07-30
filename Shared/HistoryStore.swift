@@ -12,10 +12,10 @@ public struct HistoryEntry: Sendable, Equatable {
     }
 }
 
-/// Чтение и усечение `history.jsonl`.
+/// Reads and truncates `history.jsonl`.
 ///
-/// Формат намеренно построчный: экспортёр только дописывает, а виджет
-/// обязан читать быстро и не бояться оборванной последней строки.
+/// The line-per-record format is deliberate: the exporter only ever appends,
+/// and the widget has to read quickly and survive a truncated last line.
 public struct HistoryStore: Sendable {
     public let url: URL
 
@@ -27,12 +27,12 @@ public struct HistoryStore: Sendable {
         self.url = store.historyURL
     }
 
-    /// Раздел 7: не более 2000 строк, при превышении оставляем последние 1000.
+    /// Section 7: at most 2000 lines; past that, keep the last 1000.
     public static let maxLines = 2000
     public static let keepLines = 1000
 
-    /// Разбирает историю. Битая строка пропускается, но не молча —
-    /// правило раздела 6.1 действует и здесь.
+    /// Parses the history. A broken line is skipped, but never quietly — the
+    /// rule from section 6.1 applies here too.
     public func load() -> [HistoryEntry] {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
 
@@ -63,7 +63,7 @@ public struct HistoryStore: Sendable {
         return entries.sorted { $0.time < $1.time }
     }
 
-    /// Усечение. Выполняет приложение, а не виджет: виджет только читает.
+    /// Truncation. Done by the app, never the widget: the widget only reads.
     @discardableResult
     public func truncateIfNeeded() -> Int {
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return 0 }
@@ -73,9 +73,9 @@ public struct HistoryStore: Sendable {
         let removed = lines.count - Self.keepLines
         let kept = lines.suffix(Self.keepLines).joined(separator: "\n") + "\n"
 
-        // Через временный файл: усечение не должно застать экспортёр врасплох.
-        // Открываем с O_NOFOLLOW и O_EXCL — иначе подложенная ссылка
-        // превращает усечение в затирание чужого файла.
+        // Through a temporary file, so truncation never catches the exporter
+        // mid-write. Opened with O_NOFOLLOW and O_EXCL: without them a planted
+        // symlink turns truncation into overwriting somebody else's file.
         let tmp = url.deletingLastPathComponent().appending(path: "history.jsonl.tmp")
         do {
             guard try writeExclusively(kept, to: tmp) else { return 0 }
@@ -89,10 +89,10 @@ public struct HistoryStore: Sendable {
         }
     }
 
-    /// Создаёт файл, отказываясь идти по символической ссылке.
+    /// Creates the file, refusing to follow a symlink.
     private func writeExclusively(_ text: String, to url: URL) throws -> Bool {
         let path = url.path(percentEncoded: false)
-        // unlink снимает саму ссылку, а не то, на что она указывает.
+        // unlink removes the link itself, not what it points at.
         try? FileManager.default.removeItem(at: url)
         let descriptor = path.withCString { pointer in
             Darwin.open(pointer, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)

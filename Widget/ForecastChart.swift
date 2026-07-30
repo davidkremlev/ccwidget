@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// График накопленного расхода недели с пунктирной линией прогноза.
-/// Раздел 7: жёлтая линия — хватит до сброса, красная — не хватит.
+/// Accumulated weekly consumption with a dashed projection line. Section 7:
+/// yellow means the quota lasts to the reset, red means it does not.
 struct ForecastChart: View {
     let forecast: Forecast
     let window: LimitWindow
@@ -10,7 +10,8 @@ struct ForecastChart: View {
         GeometryReader { geo in
             let size = geo.size
             ZStack {
-                // Потолок в 100%: без него не видно, куда линия стремится.
+                // The 100% ceiling: without it there is no telling where the
+                // line is heading.
                 Path { p in
                     p.move(to: CGPoint(x: 0, y: 0))
                     p.addLine(to: CGPoint(x: size.width, y: 0))
@@ -33,10 +34,10 @@ struct ForecastChart: View {
         .accessibilityHidden(true)
     }
 
-    // MARK: Геометрия
+    // MARK: Geometry
 
-    /// Ось времени тянется до сброса — так сразу видно, укладывается расход
-    /// в окно или упирается в потолок раньше.
+    /// The time axis runs to the reset, which makes it obvious at a glance
+    /// whether consumption fits inside the window or hits the ceiling first.
     private var axis: (start: Date, end: Date)? {
         guard let first = forecast.points.first else { return nil }
         let end = window.resetsAt
@@ -72,8 +73,8 @@ struct ForecastChart: View {
               slope > 0
         else { return nil }
 
-        // Пунктир идёт либо до потолка, либо до правого края — смотря
-        // что случится раньше.
+        // The dashes run either to the ceiling or to the right edge,
+        // whichever comes first.
         let end = min(forecast.exhaustionAt ?? axis.end, axis.end)
         guard end > last.time else { return nil }
 
@@ -94,7 +95,7 @@ struct ForecastChart: View {
     }
 }
 
-// MARK: - Блок прогноза целиком
+// MARK: - The estimate block
 
 struct ForecastBlock: View {
     let forecast: Forecast
@@ -103,8 +104,8 @@ struct ForecastBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                // «Estimate», не «Forecast»: слово должно обещать ровно
-                // столько, сколько метод даёт.
+                // "Estimate", not "Forecast": the word must promise exactly
+                // as much as the method delivers.
                 Text("Estimate")
                     .font(.caption.weight(.medium))
                 Spacer(minLength: 4)
@@ -130,12 +131,12 @@ struct ForecastBlock: View {
         }
     }
 
-    /// При «данных мало» график не рисуется вовсе.
+    /// With "not enough data" the chart is not drawn at all.
     ///
-    /// Ось растянута до сброса — это может быть шесть дней вперёд, — и пара
-    /// точек занимает считанные проценты ширины. Получается обрубок слева,
-    /// неотличимый от артефакта отрисовки: он не сообщает ничего, но выглядит
-    /// поломкой. Подписи «Not enough data yet» достаточно.
+    /// The axis stretches to the reset, which can be six days out, so a couple
+    /// of points occupy a few percent of the width. The result is a stub on
+    /// the left, indistinguishable from a drawing artifact: it says nothing
+    /// and reads as broken. The "Not enough data yet" caption is enough.
     private var hasChart: Bool {
         if case .notEnoughData = forecast.outcome { return false }
         return forecast.points.count >= 2
@@ -153,12 +154,13 @@ struct ForecastBlock: View {
         case .flat:
             Text("Usage is flat")
         case .rateOnly:
-            // Темп без даты. Скорость измерена, горизонт до неё не дотянулся.
+            // A rate with no date: the speed is measured, the horizon did not
+            // reach far enough to name one.
             Text("Rate only — too little history for a date")
         case .lastsUntilReset:
             Text("Lasts until reset")
         case .runsOut(let date):
-            // Тильда обязательна: это оценка, а не расписание.
+            // The tilde is mandatory: this is an estimate, not a timetable.
             Text("Runs out ~\(CCWidgetFormat.resetMoment(date))")
         }
     }
