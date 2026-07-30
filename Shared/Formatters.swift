@@ -2,7 +2,7 @@ import Foundation
 
 /// Локализованное форматирование. Ручной склейки строк быть не должно —
 /// см. раздел 10 ТЗ.
-public enum CCGaugeFormat {
+public enum CCWidgetFormat {
     /// «2 минуты назад». Локализовано из коробки.
     public static func relativeAge(of date: Date, at now: Date = Date()) -> String {
         let formatter = RelativeDateTimeFormatter()

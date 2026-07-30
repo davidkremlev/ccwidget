@@ -26,7 +26,7 @@ If a deadline slips you will be told, and told why.
 
 The parts of this project that touch your machine:
 
-- **The exporter** (`Scripts/ccgauge-export.py.template`) — it runs on every
+- **The exporter** (`Scripts/ccwidget-export.py.template`) — it runs on every
   status line redraw with your privileges. Anything that lets it write outside
   its exchange directory, follow a symlink, execute injected code, or consume
   unbounded resources is in scope.

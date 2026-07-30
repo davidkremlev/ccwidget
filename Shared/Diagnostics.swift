@@ -1,9 +1,9 @@
 import Foundation
 import os
 
-public let ccgaugeParseLog = Logger(subsystem: "dev.illvminat.ccgauge", category: "parsing")
-public let ccgaugeWidgetLog = Logger(subsystem: "dev.illvminat.ccgauge", category: "widget")
-public let ccgaugeStoreLog = Logger(subsystem: "dev.illvminat.ccgauge", category: "store")
+public let ccwidgetParseLog = Logger(subsystem: "dev.illvminat.ccwidget", category: "parsing")
+public let ccwidgetWidgetLog = Logger(subsystem: "dev.illvminat.ccwidget", category: "widget")
+public let ccwidgetStoreLog = Logger(subsystem: "dev.illvminat.ccwidget", category: "store")
 
 /// Одно поле, которое разбор отбросил.
 public struct ParseIssue: Sendable, Equatable, Codable {
@@ -37,7 +37,7 @@ public final class DiagnosticsCollector: @unchecked Sendable {
         storage.append(issue)
         lock.unlock()
 
-        ccgaugeParseLog.error(
+        ccwidgetParseLog.error(
             """
             soft parse dropped field \(field, privacy: .public); \
             raw=\(issue.rawValue ?? "<unreadable>", privacy: .private); \
@@ -70,14 +70,14 @@ public final class DiagnosticsCollector: @unchecked Sendable {
 }
 
 extension CodingUserInfoKey {
-    public static let ccgaugeDiagnostics = CodingUserInfoKey(
-        rawValue: "dev.illvminat.ccgauge.diagnostics"
+    public static let ccwidgetDiagnostics = CodingUserInfoKey(
+        rawValue: "dev.illvminat.ccwidget.diagnostics"
     )!
 }
 
 extension Decoder {
-    public var ccgaugeDiagnostics: DiagnosticsCollector? {
-        userInfo[.ccgaugeDiagnostics] as? DiagnosticsCollector
+    public var ccwidgetDiagnostics: DiagnosticsCollector? {
+        userInfo[.ccwidgetDiagnostics] as? DiagnosticsCollector
     }
 }
 
@@ -97,7 +97,7 @@ extension KeyedDecodingContainer {
             if try decodeNil(forKey: key) { return nil }
             return try decode(T.self, forKey: key)
         } catch {
-            decoder.ccgaugeDiagnostics?.record(
+            decoder.ccwidgetDiagnostics?.record(
                 field: path,
                 raw: try? decode(JSONValue.self, forKey: key),
                 error: error
@@ -117,7 +117,7 @@ extension KeyedDecodingContainer {
             if try decodeNil(forKey: key) { return nil }
             return try decodeRoundedInt(forKey: key)
         } catch {
-            decoder.ccgaugeDiagnostics?.record(
+            decoder.ccwidgetDiagnostics?.record(
                 field: path,
                 raw: try? decode(JSONValue.self, forKey: key),
                 error: error

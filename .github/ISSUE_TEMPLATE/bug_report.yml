@@ -38,9 +38,9 @@ body:
   - type: textarea
     id: dump
     attributes:
-      label: Output of ccgauge-dump
+      label: Output of ccwidget-dump
       description: |
-        Run `./.build/ccgauge-dump`. It prints the parsed snapshot and the
+        Run `./.build/ccwidget-dump`. It prints the parsed snapshot and the
         parse diagnostics. **Check it before pasting** — it contains your
         project name and session cost.
       render: text
@@ -50,7 +50,7 @@ body:
     attributes:
       label: Log output
       description: |
-        `log show --last 10m --info --predicate 'subsystem == "dev.illvminat.ccgauge"'`
+        `log show --last 10m --info --predicate 'subsystem == "dev.illvminat.ccwidget"'`
       render: text
 
   - type: checkboxes

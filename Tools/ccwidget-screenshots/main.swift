@@ -7,8 +7,8 @@ import AppKit
 //
 //   swiftc -swift-version 6 -target arm64-apple-macos14.0 \
 //       Shared/*.swift Widget/{Provider,Components,SmallView,MediumView,LargeView,ForecastChart}.swift \
-//       Tools/ccgauge-screenshots/main.swift -o .build/ccgauge-screenshots
-//   ./.build/ccgauge-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"
+//       Tools/ccwidget-screenshots/main.swift -o .build/ccwidget-screenshots
+//   ./.build/ccwidget-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"
 //
 // Локаль задаётся явно: подписи в README английские, а числа и даты идут
 // через системный регион (раздел 10). Без -AppleLocale снимки выйдут
@@ -23,7 +23,7 @@ let history = HistoryStore(store: store).load()
 let now = Date()
 let week = snapshot?.limits.sevenDay
 let forecast = week.map { Forecast.make(history: history, window: $0, now: now) }
-let entry = CCGaugeEntry(date: now, snapshot: snapshot, failure: nil, forecast: forecast)
+let entry = CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: forecast)
 
 guard snapshot != nil else {
     FileHandle.standardError.write(Data("нет снимка — сначала запустите Claude Code\n".utf8))

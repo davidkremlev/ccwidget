@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CC0000000000000000000101 /* CCGaugeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000101 /* CCGaugeApp.swift */; };
+		CC0000000000000000000101 /* CCWidgetApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000101 /* CCWidgetApp.swift */; };
 		CC0000000000000000000102 /* StatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000102 /* StatusView.swift */; };
 		CC0000000000000000000105 /* SnapshotWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000105 /* SnapshotWatcher.swift */; };
 		CC0000000000000000000106 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000106 /* OnboardingView.swift */; };
@@ -15,8 +15,8 @@
 		CC0000000000000000000109 /* SettingsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000109 /* SettingsEditor.swift */; };
 		CC0000000000000000000108 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000108 /* Localizable.xcstrings */; };
 		CC0000000000000000000215 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000215 /* Localizable.xcstrings */; };
-		CC0000000000000000000502 /* ccgauge-export.py.template in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000502 /* ccgauge-export.py.template */; };
-		CC0000000000000000000201 /* CCGaugeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000201 /* CCGaugeWidget.swift */; };
+		CC0000000000000000000502 /* ccwidget-export.py.template in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000502 /* ccwidget-export.py.template */; };
+		CC0000000000000000000201 /* CCWidgetGauge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000201 /* CCWidgetGauge.swift */; };
 		CC0000000000000000000202 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000202 /* Provider.swift */; };
 		CC0000000000000000000203 /* MediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000203 /* MediumView.swift */; };
 		CC0000000000000000000211 /* SmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000211 /* SmallView.swift */; };
@@ -37,7 +37,7 @@
 		CC0000000000000000000312 /* SnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000302 /* SnapshotStore.swift */; };
 		CC0000000000000000000313 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000303 /* Formatters.swift */; };
 		CC0000000000000000000314 /* Thresholds.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000304 /* Thresholds.swift */; };
-		CC0000000000000000000402 /* CCGaugeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000402 /* CCGaugeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CC0000000000000000000402 /* CCWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000402 /* CCWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,7 +46,7 @@
 			containerPortal = AA0000000000000000000001 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = DD0000000000000000000002;
-			remoteInfo = CCGaugeWidget;
+			remoteInfo = CCWidgetExtension;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -57,7 +57,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				CC0000000000000000000402 /* CCGaugeWidget.appex in Embed Foundation Extensions */,
+				CC0000000000000000000402 /* CCWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -65,7 +65,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		BB0000000000000000000101 /* CCGaugeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCGaugeApp.swift; sourceTree = "<group>"; };
+		BB0000000000000000000101 /* CCWidgetApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCWidgetApp.swift; sourceTree = "<group>"; };
 		BB0000000000000000000102 /* StatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000105 /* SnapshotWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotWatcher.swift; sourceTree = "<group>"; };
 		BB0000000000000000000106 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -74,7 +74,7 @@
 		BB0000000000000000000108 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		BB0000000000000000000215 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		BB0000000000000000000103 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		BB0000000000000000000201 /* CCGaugeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCGaugeWidget.swift; sourceTree = "<group>"; };
+		BB0000000000000000000201 /* CCWidgetGauge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCWidgetGauge.swift; sourceTree = "<group>"; };
 		BB0000000000000000000202 /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
 		BB0000000000000000000203 /* MediumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediumView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000211 /* SmallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallView.swift; sourceTree = "<group>"; };
@@ -82,7 +82,7 @@
 		BB0000000000000000000213 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		BB0000000000000000000214 /* ForecastChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastChart.swift; sourceTree = "<group>"; };
 		BB0000000000000000000204 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		BB0000000000000000000205 /* CCGaugeWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CCGaugeWidget.entitlements; sourceTree = "<group>"; };
+		BB0000000000000000000205 /* CCWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CCWidgetExtension.entitlements; sourceTree = "<group>"; };
 		BB0000000000000000000301 /* Snapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Snapshot.swift; sourceTree = "<group>"; };
 		BB0000000000000000000302 /* SnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotStore.swift; sourceTree = "<group>"; };
 		BB0000000000000000000303 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
@@ -90,10 +90,10 @@
 		BB0000000000000000000305 /* Diagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diagnostics.swift; sourceTree = "<group>"; };
 		BB0000000000000000000306 /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
 		BB0000000000000000000307 /* Forecast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Forecast.swift; sourceTree = "<group>"; };
-		BB0000000000000000000401 /* CCGauge.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CCGauge.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB0000000000000000000402 /* CCGaugeWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CCGaugeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB0000000000000000000401 /* CCWidget.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CCWidget.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB0000000000000000000402 /* CCWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CCWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB0000000000000000000501 /* SPEC.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SPEC.md; sourceTree = "<group>"; };
-		BB0000000000000000000502 /* ccgauge-export.py.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = "ccgauge-export.py.template"; sourceTree = "<group>"; };
+		BB0000000000000000000502 /* ccwidget-export.py.template */ = {isa = PBXFileReference; lastKnownFileType = text; path = "ccwidget-export.py.template"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -129,8 +129,8 @@
 		AA0000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BB0000000000000000000401 /* CCGauge.app */,
-				BB0000000000000000000402 /* CCGaugeWidget.appex */,
+				BB0000000000000000000401 /* CCWidget.app */,
+				BB0000000000000000000402 /* CCWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -138,7 +138,7 @@
 		AA0000000000000000000004 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				BB0000000000000000000101 /* CCGaugeApp.swift */,
+				BB0000000000000000000101 /* CCWidgetApp.swift */,
 				BB0000000000000000000102 /* StatusView.swift */,
 				BB0000000000000000000105 /* SnapshotWatcher.swift */,
 				BB0000000000000000000106 /* OnboardingView.swift */,
@@ -153,7 +153,7 @@
 		AA0000000000000000000005 /* Widget */ = {
 			isa = PBXGroup;
 			children = (
-				BB0000000000000000000201 /* CCGaugeWidget.swift */,
+				BB0000000000000000000201 /* CCWidgetGauge.swift */,
 				BB0000000000000000000202 /* Provider.swift */,
 				BB0000000000000000000203 /* MediumView.swift */,
 				BB0000000000000000000211 /* SmallView.swift */,
@@ -162,7 +162,7 @@
 				BB0000000000000000000214 /* ForecastChart.swift */,
 				AA0000000000000000000009 /* Resources */,
 				BB0000000000000000000204 /* Info.plist */,
-				BB0000000000000000000205 /* CCGaugeWidget.entitlements */,
+				BB0000000000000000000205 /* CCWidgetExtension.entitlements */,
 			);
 			path = Widget;
 			sourceTree = "<group>";
@@ -200,7 +200,7 @@
 		AA0000000000000000000007 /* Scripts */ = {
 			isa = PBXGroup;
 			children = (
-				BB0000000000000000000502 /* ccgauge-export.py.template */,
+				BB0000000000000000000502 /* ccwidget-export.py.template */,
 			);
 			path = Scripts;
 			sourceTree = "<group>";
@@ -208,9 +208,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		DD0000000000000000000001 /* CCGauge */ = {
+		DD0000000000000000000001 /* CCWidget */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 110000000000000000000002 /* Build configuration list for PBXNativeTarget "CCGauge" */;
+			buildConfigurationList = 110000000000000000000002 /* Build configuration list for PBXNativeTarget "CCWidget" */;
 			buildPhases = (
 				EE0000000000000000000001 /* Sources */,
 				EE0000000000000000000002 /* Frameworks */,
@@ -222,14 +222,14 @@
 			dependencies = (
 				FF0000000000000000000001 /* PBXTargetDependency */,
 			);
-			name = CCGauge;
-			productName = CCGauge;
-			productReference = BB0000000000000000000401 /* CCGauge.app */;
+			name = CCWidget;
+			productName = CCWidget;
+			productReference = BB0000000000000000000401 /* CCWidget.app */;
 			productType = "com.apple.product-type.application";
 		};
-		DD0000000000000000000002 /* CCGaugeWidget */ = {
+		DD0000000000000000000002 /* CCWidgetExtension */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 110000000000000000000003 /* Build configuration list for PBXNativeTarget "CCGaugeWidget" */;
+			buildConfigurationList = 110000000000000000000003 /* Build configuration list for PBXNativeTarget "CCWidgetExtension" */;
 			buildPhases = (
 				EE0000000000000000000011 /* Sources */,
 				EE0000000000000000000012 /* Frameworks */,
@@ -239,9 +239,9 @@
 			);
 			dependencies = (
 			);
-			name = CCGaugeWidget;
-			productName = CCGaugeWidget;
-			productReference = BB0000000000000000000402 /* CCGaugeWidget.appex */;
+			name = CCWidgetExtension;
+			productName = CCWidgetExtension;
+			productReference = BB0000000000000000000402 /* CCWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -262,7 +262,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 110000000000000000000001 /* Build configuration list for PBXProject "CCGauge" */;
+			buildConfigurationList = 110000000000000000000001 /* Build configuration list for PBXProject "CCWidget" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -280,8 +280,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				DD0000000000000000000001 /* CCGauge */,
-				DD0000000000000000000002 /* CCGaugeWidget */,
+				DD0000000000000000000001 /* CCWidget */,
+				DD0000000000000000000002 /* CCWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -291,7 +291,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CC0000000000000000000502 /* ccgauge-export.py.template in Resources */,
+				CC0000000000000000000502 /* ccwidget-export.py.template in Resources */,
 				CC0000000000000000000108 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -311,7 +311,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CC0000000000000000000101 /* CCGaugeApp.swift in Sources */,
+				CC0000000000000000000101 /* CCWidgetApp.swift in Sources */,
 				CC0000000000000000000102 /* StatusView.swift in Sources */,
 				CC0000000000000000000105 /* SnapshotWatcher.swift in Sources */,
 				CC0000000000000000000106 /* OnboardingView.swift in Sources */,
@@ -331,7 +331,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CC0000000000000000000201 /* CCGaugeWidget.swift in Sources */,
+				CC0000000000000000000201 /* CCWidgetGauge.swift in Sources */,
 				CC0000000000000000000202 /* Provider.swift in Sources */,
 				CC0000000000000000000203 /* MediumView.swift in Sources */,
 				CC0000000000000000000211 /* SmallView.swift in Sources */,
@@ -353,7 +353,7 @@
 /* Begin PBXTargetDependency section */
 		FF0000000000000000000001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = DD0000000000000000000002 /* CCGaugeWidget */;
+			target = DD0000000000000000000002 /* CCWidgetExtension */;
 			targetProxy = FF0000000000000000000002 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -425,8 +425,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.illvminat.ccgauge;
-				PRODUCT_NAME = CCGauge;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.illvminat.ccwidget;
+				PRODUCT_NAME = CCWidget;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Debug;
@@ -446,8 +446,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.illvminat.ccgauge;
-				PRODUCT_NAME = CCGauge;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.illvminat.ccwidget;
+				PRODUCT_NAME = CCWidget;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
@@ -455,7 +455,7 @@
 		220000000000000000000005 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Widget/CCGaugeWidget.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Widget/CCWidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 2;
@@ -468,8 +468,8 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.illvminat.ccgauge.widget;
-				PRODUCT_NAME = CCGaugeWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.illvminat.ccwidget.widget;
+				PRODUCT_NAME = CCWidgetExtension;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -478,7 +478,7 @@
 		220000000000000000000006 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = Widget/CCGaugeWidget.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Widget/CCWidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 2;
@@ -491,8 +491,8 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MARKETING_VERSION = 0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = dev.illvminat.ccgauge.widget;
-				PRODUCT_NAME = CCGaugeWidget;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.illvminat.ccwidget.widget;
+				PRODUCT_NAME = CCWidgetExtension;
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
@@ -501,7 +501,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		110000000000000000000001 /* Build configuration list for PBXProject "CCGauge" */ = {
+		110000000000000000000001 /* Build configuration list for PBXProject "CCWidget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				220000000000000000000001 /* Debug */,
@@ -510,7 +510,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		110000000000000000000002 /* Build configuration list for PBXNativeTarget "CCGauge" */ = {
+		110000000000000000000002 /* Build configuration list for PBXNativeTarget "CCWidget" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				220000000000000000000003 /* Debug */,
@@ -519,7 +519,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		110000000000000000000003 /* Build configuration list for PBXNativeTarget "CCGaugeWidget" */ = {
+		110000000000000000000003 /* Build configuration list for PBXNativeTarget "CCWidgetExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				220000000000000000000005 /* Debug */,

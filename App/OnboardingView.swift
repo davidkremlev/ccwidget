@@ -240,10 +240,10 @@ struct OnboardingView: View {
             GroupBox {
                 VStack(alignment: .leading, spacing: 4) {
                     if let week = snapshot.limits.sevenDay {
-                        LabeledContent("Week used", value: CCGaugeFormat.percent(week.usedPercentage))
+                        LabeledContent("Week used", value: CCWidgetFormat.percent(week.usedPercentage))
                     }
                     if let used = snapshot.context?.usedPercentage {
-                        LabeledContent("Context used", value: CCGaugeFormat.percent(used))
+                        LabeledContent("Context used", value: CCWidgetFormat.percent(used))
                     }
                 }
                 .font(.callout.monospacedDigit())

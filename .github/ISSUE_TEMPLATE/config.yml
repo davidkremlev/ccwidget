@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/illVminat/ccgauge/security/advisories/new
+    url: https://github.com/illVminat/ccwidget/security/advisories/new
     about: Report privately. Do not open a public issue.
   - name: Claude Code itself
     url: https://github.com/anthropics/claude-code/issues

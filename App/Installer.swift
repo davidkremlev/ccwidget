@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Установка экспортёра в конфигурацию Claude Code. Раздел 11.
@@ -26,7 +27,7 @@ struct Installer {
         Installer(
             home: FileManager.default.homeDirectoryForCurrentUser,
             exchangeDirectory: SnapshotStore.exchangeURL,
-            templateURL: Bundle.main.url(forResource: "ccgauge-export.py", withExtension: "template")
+            templateURL: Bundle.main.url(forResource: "ccwidget-export.py", withExtension: "template")
         )
     }
 
@@ -83,9 +84,21 @@ struct Installer {
 
     var claudeDirectory: URL { home.appending(path: ".claude") }
     var settingsURL: URL { claudeDirectory.appending(path: "settings.json") }
-    var exporterURL: URL { claudeDirectory.appending(path: "ccgauge-export.py") }
+    var exporterURL: URL { claudeDirectory.appending(path: "ccwidget-export.py") }
 
     var backupNamePattern: String { "settings.json.bak-YYYYMMDD-HHMMSS" }
+
+    /// Куда записан хеш установленного экспортёра.
+    ///
+    /// Приложение кладёт исполняемый файл в автозапуск статуслайна и без
+    /// этого больше на него не смотрит: подменить его может кто угодно,
+    /// кто пишет в `~/.claude`, а интерфейс продолжал бы показывать
+    /// «настроено». Хеш не защищает от подмены — он делает её видимой.
+    var integrityURL: URL { claudeDirectory.appending(path: ".ccwidget-export.sha256") }
+
+    /// Сколько копий держать. Копия конфига — файл с чужими настройками;
+    /// копить их без предела незачем, а старые ещё и устаревают.
+    static let backupsKept = 5
 
     /// Куда на самом деле писать настройки.
     ///
@@ -121,6 +134,26 @@ struct Installer {
 
     var widgetContainerExists: Bool {
         SnapshotStore.widgetContainerExists(home: home)
+    }
+
+    /// Совпадает ли экспортёр с тем, что мы установили.
+    enum Integrity: Equatable {
+        case matches
+        case changed
+        case unknown      // хеша нет: установка была до появления проверки
+        case missing      // самого экспортёра нет
+    }
+
+    func checkIntegrity() -> Integrity {
+        guard let body = try? Data(contentsOf: exporterURL) else { return .missing }
+        guard let expected = try? String(contentsOf: integrityURL, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines), !expected.isEmpty
+        else { return .unknown }
+        return Self.digest(of: body) == expected ? .matches : .changed
+    }
+
+    static func digest(of data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
     func statusLineState() -> StatusLineState {
@@ -220,6 +253,8 @@ struct Installer {
             try FileManager.default.setAttributes(
                 [.posixPermissions: 0o755], ofItemAtPath: exporterURL.path(percentEncoded: false)
             )
+            try (Self.digest(of: Data(rendered.utf8)) + "\n")
+                .write(to: integrityURL, atomically: true, encoding: .utf8)
         } catch {
             throw Failure.writeFailed(exporterURL, error)
         }
@@ -283,10 +318,30 @@ struct Installer {
         do {
             try createClaudeDirectoryIfNeeded()
             try contents.write(to: backup, options: .atomic)
+            // settings.json может содержать переменные окружения и ключи.
+            // Копия обязана быть не доступнее оригинала.
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600], ofItemAtPath: backup.path(percentEncoded: false)
+            )
         } catch {
             throw Failure.writeFailed(backup, error)
         }
+        pruneBackups()
         return backup
+    }
+
+    /// Оставляет свежие копии, старые удаляет.
+    private func pruneBackups() {
+        let fm = FileManager.default
+        guard let names = try? fm.contentsOfDirectory(atPath: claudeDirectory.path(percentEncoded: false))
+        else { return }
+        let backups = names
+            .filter { $0.hasPrefix("settings.json.bak-") }
+            .sorted()
+        guard backups.count > Self.backupsKept else { return }
+        for name in backups.dropLast(Self.backupsKept) {
+            try? fm.removeItem(at: claudeDirectory.appending(path: name))
+        }
     }
 
     private func writeStatusLine() throws -> Bool {
@@ -320,6 +375,87 @@ struct Installer {
         return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
     }
 
+    // MARK: Удаление
+
+    /// Что удаление сделает и что останется после него.
+    struct RemovalPlan {
+        let removesStatusLine: Bool
+        let removesExporter: Bool
+        let historyLineCount: Int
+        /// Приложение и контейнер расширения средствами приложения не удалить.
+        let manualLeftovers: [String]
+    }
+
+    struct RemovalReport {
+        let statusLineRemoved: Bool
+        let exporterRemoved: Bool
+        let historyRemoved: Bool
+        let backup: URL?
+    }
+
+    func removalPlan() -> RemovalPlan {
+        let history = (try? String(contentsOf: exchangeDirectory.appending(path: "history.jsonl"),
+                                   encoding: .utf8))?
+            .split(separator: "\n", omittingEmptySubsequences: true).count ?? 0
+        return RemovalPlan(
+            removesStatusLine: statusLineState() == .ours,
+            removesExporter: FileManager.default.fileExists(
+                atPath: exporterURL.path(percentEncoded: false)),
+            historyLineCount: history,
+            manualLeftovers: [
+                "/Applications/CCWidget.app",
+                SnapshotStore.widgetContainerURL(home: home).path(percentEncoded: false),
+            ]
+        )
+    }
+
+    /// Снимает установку.
+    ///
+    /// Ключ `statusLine` удаляется точечно, а не восстанавливается из копии:
+    /// между установкой и удалением пользователь мог менять другие ключи,
+    /// и откат файла целиком отобрал бы у него эти правки. Копия остаётся
+    /// запасным вариантом, а не механизмом отката.
+    @discardableResult
+    func uninstall(removingHistory: Bool) throws -> RemovalReport {
+        var backup: URL?
+        var statusLineRemoved = false
+
+        if statusLineState() == .ours {
+            backup = try backupSettings()
+            let destination = resolvedSettingsURL
+            let original = try? String(contentsOf: destination, encoding: .utf8)
+            switch SettingsEditor.removing("statusLine", from: original) {
+            case .surgical(let edited), .rewritten(let edited):
+                do {
+                    try edited.write(to: destination, atomically: true, encoding: .utf8)
+                    statusLineRemoved = true
+                } catch {
+                    throw Failure.writeFailed(destination, error)
+                }
+            case .absent:
+                statusLineRemoved = false
+            }
+        }
+
+        let fm = FileManager.default
+        let exporterRemoved = (try? fm.removeItem(at: exporterURL)) != nil
+        try? fm.removeItem(at: integrityURL)
+
+        var historyRemoved = false
+        if removingHistory {
+            historyRemoved = (try? fm.removeItem(
+                at: exchangeDirectory.appending(path: "history.jsonl"))) != nil
+            try? fm.removeItem(at: exchangeDirectory.appending(path: "snapshot.json"))
+        }
+
+        return RemovalReport(
+            statusLineRemoved: statusLineRemoved,
+            exporterRemoved: exporterRemoved,
+            historyRemoved: historyRemoved,
+            backup: backup
+        )
+    }
+
     // MARK: Ручная установка
 
     /// Без `sed`: путь с символом `|` ломает разделитель, а с кавычкой —
@@ -327,7 +463,7 @@ struct Installer {
     func manualInstructions() -> String {
         let interpreter = findInterpreter()?.path(percentEncoded: false) ?? "/usr/bin/python3"
         return """
-        1. \(String(localized: "Copy the template to ~/.claude/ccgauge-export.py"))
+        1. \(String(localized: "Copy the template to ~/.claude/ccwidget-export.py"))
 
         2. \(String(localized: "Replace its first line with:"))
 
@@ -337,7 +473,7 @@ struct Installer {
 
         GROUP_DIR = \(Self.pythonStringLiteral(exchangeDirectory.path(percentEncoded: false)))
 
-        4. chmod +x ~/.claude/ccgauge-export.py
+        4. chmod +x ~/.claude/ccwidget-export.py
 
         5. \(String(localized: "Add this to ~/.claude/settings.json:"))
 

@@ -6,7 +6,7 @@
 ## Checks
 
 - [ ] `./Scripts/reinstall.sh` builds with no warnings
-- [ ] `./.build/ccgauge-selftest` passes
+- [ ] `./.build/ccwidget-selftest` passes
 - [ ] `SPEC.md` updated if this contradicts it
 - [ ] New user-facing strings are in the string catalogs; data uses `Text(verbatim:)`
 - [ ] Nothing user-identifying logs as `.public`

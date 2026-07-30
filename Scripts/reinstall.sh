@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Сборка и переустановка CCGauge.app для разработки.
+# Сборка и переустановка CCWidget.app для разработки.
 #
 # Последний шаг — killall chronod — обязателен. Без него демон виджетов
 # продолжает крутить прежнюю сборку расширения, и правки выглядят
@@ -11,18 +11,18 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIGURATION="${1:-Release}"
 DERIVED="$ROOT/.build/dd"
-APP="/Applications/CCGauge.app"
+APP="/Applications/CCWidget.app"
 
 echo "==> Сборка ($CONFIGURATION)"
 xcodebuild \
-    -project "$ROOT/CCGauge.xcodeproj" \
-    -scheme CCGauge \
+    -project "$ROOT/CCWidget.xcodeproj" \
+    -scheme CCWidget \
     -configuration "$CONFIGURATION" \
     -derivedDataPath "$DERIVED" \
     build \
     | grep -E "error:|warning:|BUILD" || true
 
-BUILT="$DERIVED/Build/Products/$CONFIGURATION/CCGauge.app"
+BUILT="$DERIVED/Build/Products/$CONFIGURATION/CCWidget.app"
 if [ ! -d "$BUILT" ]; then
     echo "!! Сборка не дала бандла: $BUILT" >&2
     exit 1
@@ -30,7 +30,7 @@ fi
 
 echo "==> Остановка запущенных копий"
 pkill -f "$APP" 2>/dev/null || true
-pkill -f CCGaugeWidget 2>/dev/null || true
+pkill -f CCWidgetExtension 2>/dev/null || true
 sleep 2
 
 echo "==> Установка в $APP"
@@ -50,4 +50,4 @@ echo "==> Перезапуск демона виджетов"
 killall chronod 2>/dev/null || true
 
 echo "==> Готово. Логи:"
-echo "    log stream --predicate 'subsystem == \"dev.illvminat.ccgauge\"' --level info"
+echo "    log stream --predicate 'subsystem == \"dev.illvminat.ccwidget\"' --level info"

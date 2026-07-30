@@ -3,7 +3,7 @@ import WidgetKit
 
 /// Раздел 9: шапка, три строки-полоски, подвал через разделитель.
 struct MediumView: View {
-    let entry: CCGaugeEntry
+    let entry: CCWidgetEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -69,10 +69,10 @@ struct MediumView: View {
             HStack(spacing: 6) {
                 Text("this session:")
                 if let cost = snapshot.cost?.sessionUsd {
-                    Text(verbatim: CCGaugeFormat.money(cost)).monospacedDigit()
+                    Text(verbatim: CCWidgetFormat.money(cost)).monospacedDigit()
                 }
                 if let ratio = snapshot.context?.cacheHitRatio {
-                    Text("· cache \(CCGaugeFormat.ratio(ratio))").monospacedDigit()
+                    Text("· cache \(CCWidgetFormat.ratio(ratio))").monospacedDigit()
                 }
             }
             .lineLimit(1)

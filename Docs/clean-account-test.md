@@ -22,7 +22,7 @@ On the clean account, confirm the starting state:
 
 ```sh
 ls -la ~/.claude 2>&1              # expected: No such file or directory
-ls -la ~/Library/Containers | grep ccgauge   # expected: nothing
+ls -la ~/Library/Containers | grep ccwidget   # expected: nothing
 xcode-select -p 2>&1               # note whether Command Line Tools exist
 /usr/bin/python3 -V 2>&1           # note whether this prompts to install CLT
 ```
@@ -72,8 +72,8 @@ The **Set up automatically** button must not perform an install. Confirm
 nothing was written:
 
 ```sh
-ls ~/.claude/ccgauge-export.py 2>&1                    # expected: not found
-ls -d ~/Library/Containers/dev.illvminat.ccgauge.widget 2>&1  # expected: not found
+ls ~/.claude/ccwidget-export.py 2>&1                    # expected: not found
+ls -d ~/Library/Containers/dev.illvminat.ccwidget.widget 2>&1  # expected: not found
 ```
 
 This is the step most likely to be wrong, because it depends on ordering that
@@ -93,7 +93,7 @@ numbers, not an error.
 Confirm the system created the container:
 
 ```sh
-ls -ld ~/Library/Containers/dev.illvminat.ccgauge.widget/Data
+ls -ld ~/Library/Containers/dev.illvminat.ccwidget.widget/Data
 ```
 
 **Expected:** it exists, mode `drwx------`.
@@ -125,9 +125,9 @@ Verify what landed on disk:
 
 ```sh
 ls -ld ~/.claude                       # expected: drwx------  (we created it)
-ls -l ~/.claude/ccgauge-export.py      # expected: -rwxr-xr-x
-head -1 ~/.claude/ccgauge-export.py    # expected: an absolute path, not /usr/bin/env
-grep GROUP_DIR ~/.claude/ccgauge-export.py | head -1
+ls -l ~/.claude/ccwidget-export.py      # expected: -rwxr-xr-x
+head -1 ~/.claude/ccwidget-export.py    # expected: an absolute path, not /usr/bin/env
+grep GROUP_DIR ~/.claude/ccwidget-export.py | head -1
 cat ~/.claude/settings.json
 ls ~/.claude/settings.json.bak-*
 ```
@@ -168,7 +168,7 @@ anything, and the backup restores it exactly.
 
 ## 9. Copied app, not built app
 
-Copy `/Applications/CCGauge.app` from the clean account to another machine, or
+Copy `/Applications/CCWidget.app` from the clean account to another machine, or
 zip and unzip it, then launch.
 
 **Expected:** Gatekeeper blocks it, because the app is ad-hoc signed and not

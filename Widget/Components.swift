@@ -8,9 +8,13 @@ struct GaugeMetric {
     let value: String
     let auxiliary: String?
     let level: Level
+
+    /// Для VoiceOver: доля, а не готовая строка. Иначе голос читает
+    /// «38 %» как текст, без понимания, что это процент.
+    var accessibilityValue: Text { Text(fraction, format: .percent) }
 }
 
-extension CCGaugeEntry {
+extension CCWidgetEntry {
     var isDimmed: Bool { freshness?.isDimmed ?? false }
     var hidesNumbers: Bool { freshness?.hidesNumbers ?? false }
 
@@ -21,8 +25,8 @@ extension CCGaugeEntry {
         guard !hidesNumbers, let window else { return nil }
         return GaugeMetric(
             fraction: Double(window.usedPercentage) / 100,
-            value: CCGaugeFormat.percent(window.usedPercentage),
-            auxiliary: CCGaugeFormat.countdown(window.timeUntilReset(at: date)),
+            value: CCWidgetFormat.percent(window.usedPercentage),
+            auxiliary: CCWidgetFormat.countdown(window.timeUntilReset(at: date)),
             level: window.level
         )
     }
@@ -36,8 +40,8 @@ extension CCGaugeEntry {
         else { return nil }
         return GaugeMetric(
             fraction: Double(used) / 100,
-            value: CCGaugeFormat.percent(used),
-            auxiliary: context.totalInputTokens.map(CCGaugeFormat.tokens),
+            value: CCWidgetFormat.percent(used),
+            auxiliary: context.totalInputTokens.map(CCWidgetFormat.tokens),
             level: level
         )
     }
@@ -73,7 +77,7 @@ struct Bar: View {
 /// виджет про проект X», что неверно. Теперь оно стоит рядом со строкой
 /// контекста, к которой действительно относится (раздел 13, вариант A).
 struct WidgetHeader: View {
-    let entry: CCGaugeEntry
+    let entry: CCWidgetEntry
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -91,7 +95,7 @@ struct WidgetHeader: View {
     }
 }
 
-extension CCGaugeEntry {
+extension CCWidgetEntry {
     /// Имя проекта последней отрисовавшейся сессии.
     var projectName: String? { snapshot?.project?.name }
 }
@@ -133,7 +137,7 @@ struct GaugeRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(caption)
-        .accessibilityValue(metric.map { Text(verbatim: $0.value) } ?? Text("no data"))
+        .accessibilityValue(metric?.accessibilityValue ?? Text("no data"))
     }
 
     private var tint: Color { metricTint(metric, dimmed: dimmed) }
@@ -178,7 +182,7 @@ struct DetailGaugeRow: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(caption)
-        .accessibilityValue(metric.map { Text(verbatim: $0.value) } ?? Text("no data"))
+        .accessibilityValue(metric?.accessibilityValue ?? Text("no data"))
     }
 }
 
@@ -206,11 +210,11 @@ func metricTint(_ metric: GaugeMetric?, dimmed: Bool) -> Color {
 /// Возраст снимка. Раздел 2.4: устаревшие данные обязаны выглядеть устаревшими,
 /// поэтому после часа к возрасту добавляется явное слово.
 struct AgeCaption: View {
-    let entry: CCGaugeEntry
+    let entry: CCWidgetEntry
 
     var body: some View {
         if let captured = entry.snapshot?.capturedAt {
-            let age = CCGaugeFormat.relativeAge(of: captured, at: entry.date)
+            let age = CCWidgetFormat.relativeAge(of: captured, at: entry.date)
             Group {
                 if entry.freshness?.isDimmed == true {
                     Text("outdated · \(age)")
@@ -277,11 +281,11 @@ extension MessageView {
     }
 
     /// Снимок старше суток. Раздел 2.4: вместо цифр — приглашение.
-    static func abandoned(entry: CCGaugeEntry, compact: Bool = false) -> MessageView {
+    static func abandoned(entry: CCWidgetEntry, compact: Bool = false) -> MessageView {
         MessageView(
             title: "Data is stale",
             message: "Launch Claude Code in the terminal to refresh.",
-            age: entry.snapshot.map { CCGaugeFormat.relativeAge(of: $0.capturedAt, at: entry.date) },
+            age: entry.snapshot.map { CCWidgetFormat.relativeAge(of: $0.capturedAt, at: entry.date) },
             compact: compact
         )
     }

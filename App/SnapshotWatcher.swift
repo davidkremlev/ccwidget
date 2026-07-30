@@ -75,7 +75,7 @@ final class SnapshotWatcher: ObservableObject {
         directorySource?.cancel()
         directoryDescriptor = open(store.containerURL.path, O_EVTONLY)
         guard directoryDescriptor >= 0 else {
-            ccgaugeStoreLog.error(
+            ccwidgetStoreLog.error(
                 "watcher: cannot open directory \(self.store.containerURL.path, privacy: .private)"
             )
             return
@@ -159,7 +159,7 @@ final class SnapshotWatcher: ObservableObject {
             if let lastReload, Date().timeIntervalSince(lastReload) < Self.minimumReloadInterval {
                 // Цифры новые, но бюджет беречь надо: досрочно не дёргаем,
                 // а ждём — следующая запись экспортёра нас разбудит.
-                ccgaugeStoreLog.debug("watcher: reload deferred, budget window")
+                ccwidgetStoreLog.debug("watcher: reload deferred, budget window")
                 return
             }
             lastSignature = current
@@ -170,7 +170,7 @@ final class SnapshotWatcher: ObservableObject {
         WidgetCenter.shared.reloadAllTimelines()
         lastReload = Date()
         reloadCount += 1
-        ccgaugeStoreLog.notice(
+        ccwidgetStoreLog.notice(
             "widget reload #\(self.reloadCount, privacy: .public) (\(reason, privacy: .public))"
         )
     }
@@ -193,7 +193,7 @@ final class SnapshotWatcher: ObservableObject {
         guard let snapshot = try? store.load() else { return }
         let updated = Freshness(age: snapshot.age())
         guard updated != freshness else { return }
-        ccgaugeStoreLog.notice(
+        ccwidgetStoreLog.notice(
             "freshness changed to \(String(describing: updated), privacy: .public)"
         )
         freshness = updated

@@ -29,6 +29,90 @@ enum SettingsEditor {
         return .rewritten(rewrite(original, key: key, value: value))
     }
 
+    /// Итог удаления ключа.
+    enum RemovalOutcome {
+        case surgical(String)
+        case rewritten(String)
+        case absent
+    }
+
+    /// Удаляет верхнеуровневый ключ, сохраняя форматирование остального.
+    ///
+    /// Нужна для деинсталлятора: восстанавливать `settings.json` из копии
+    /// нельзя, потому что между установкой и удалением пользователь мог
+    /// менять другие ключи, и откат файла целиком отобрал бы эти правки.
+    static func removing(_ key: String, from original: String?) -> RemovalOutcome {
+        guard let original,
+              let data = original.data(using: .utf8),
+              var object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              object[key] != nil
+        else { return .absent }
+
+        object.removeValue(forKey: key)
+
+        if let edited = surgicalRemoval(original, key: key),
+           let editedData = edited.data(using: .utf8),
+           let parsed = (try? JSONSerialization.jsonObject(with: editedData)) as? [String: Any],
+           NSDictionary(dictionary: parsed).isEqual(to: object) {
+            return .surgical(edited)
+        }
+
+        let rebuilt = (try? JSONSerialization.data(
+            withJSONObject: object,
+            options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        )).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        return .rewritten(rebuilt + "\n")
+    }
+
+    private static func surgicalRemoval(_ text: String, key: String) -> String? {
+        let chars = Array(text)
+        guard let root = topLevelBraces(chars),
+              let span = valueSpan(chars, of: key, in: root),
+              let keyStart = keyStart(chars, of: key, in: root)
+        else { return nil }
+
+        // Съедаем запятую с одной из сторон, иначе останется висячая.
+        var from = keyStart
+        var to = span.upperBound
+        var cursor = to
+        while cursor < root.close, chars[cursor].isWhitespace { cursor += 1 }
+        if cursor < root.close, chars[cursor] == "," {
+            to = cursor + 1
+        } else {
+            var back = from - 1
+            while back > root.open, chars[back].isWhitespace { back -= 1 }
+            if back > root.open, chars[back] == "," { from = back }
+        }
+        // Заодно убираем осиротевший перевод строки перед ключом.
+        var lineStart = from
+        while lineStart > root.open, chars[lineStart - 1] == " " || chars[lineStart - 1] == "\t" {
+            lineStart -= 1
+        }
+        if lineStart > root.open, chars[lineStart - 1] == "\n" { lineStart -= 1 }
+
+        return String(chars[..<lineStart]) + String(chars[to...])
+    }
+
+    private static func keyStart(
+        _ chars: [Character], of key: String, in root: (open: Int, close: Int)
+    ) -> Int? {
+        var depth = 0
+        var index = root.open
+        while index < root.close {
+            let ch = chars[index]
+            if ch == "\"" {
+                guard let end = stringEnd(chars, from: index) else { return nil }
+                if depth == 1, String(chars[(index + 1)..<end]) == key { return index }
+                index = end + 1
+                continue
+            }
+            if ch == "{" || ch == "[" { depth += 1 }
+            if ch == "}" || ch == "]" { depth -= 1 }
+            index += 1
+        }
+        return nil
+    }
+
     // MARK: Точечная правка
 
     private static func surgicalEdit(_ text: String, key: String, value: [String: Any]) -> String? {

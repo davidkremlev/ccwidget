@@ -12,7 +12,7 @@ dependencies — the project builds with what ships in Xcode.
 
 ```sh
 git clone <repository>
-cd ccgauge
+cd ccwidget
 ./Scripts/reinstall.sh
 ```
 
@@ -29,11 +29,11 @@ shows messages that no longer exist in your source.
 ```sh
 swiftc -swift-version 6 -strict-concurrency=complete -target arm64-apple-macos14.0 \
     Shared/*.swift App/Installer.swift App/SettingsEditor.swift \
-    Tools/ccgauge-selftest/main.swift -o .build/ccgauge-selftest
-./.build/ccgauge-selftest
+    Tools/ccwidget-selftest/main.swift -o .build/ccwidget-selftest
+./.build/ccwidget-selftest
 ```
 
-`ccgauge-selftest` exercises the installer and the settings editor **inside a
+`ccwidget-selftest` exercises the installer and the settings editor **inside a
 temporary directory**. It must never touch a real `~/.claude`. If you add a
 code path that reads or writes under the user's home, it takes the root as a
 parameter — see SPEC section 5.2 for why that rule exists.
@@ -41,14 +41,14 @@ parameter — see SPEC section 5.2 for why that rule exists.
 Two more tools, useful while working:
 
 ```sh
-./.build/ccgauge-dump         # print the parsed snapshot and its diagnostics
-./.build/ccgauge-screenshots  # re-shoot the README screenshots
+./.build/ccwidget-dump         # print the parsed snapshot and its diagnostics
+./.build/ccwidget-screenshots  # re-shoot the README screenshots
 ```
 
 Watching what the widget actually does:
 
 ```sh
-log stream --predicate 'subsystem == "dev.illvminat.ccgauge"' --level info
+log stream --predicate 'subsystem == "dev.illvminat.ccwidget"' --level info
 ```
 
 ## What a change should look like
@@ -85,7 +85,7 @@ log stream --predicate 'subsystem == "dev.illvminat.ccgauge"' --level info
 One maintainer, reviewing in evenings. Expect a first response within a week
 and questions rather than silent rejection. Small focused changes get merged
 faster than large ones, and a change that comes with a check in
-`ccgauge-selftest` gets merged faster still.
+`ccwidget-selftest` gets merged faster still.
 
 If you are unsure whether something is wanted, open an issue before writing
 the code. Nobody enjoys throwing away a weekend's work.

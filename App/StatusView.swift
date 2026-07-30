@@ -9,6 +9,10 @@ struct StatusView: View {
     @State private var status = "—"
     @State private var diagnostics: [ParseIssue] = []
     @StateObject private var watcher = SnapshotWatcher()
+    @State private var showsRemoval = false
+    @State private var removesHistory = false
+    @State private var removalNote: String?
+    private let installer = Installer.live()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -66,6 +70,10 @@ struct StatusView: View {
                 }
             }
 
+            // Раздел 7 отчёта: приложение кладёт исполняемый файл
+            // в автозапуск и обязано замечать его подмену.
+            integrityNote
+
             GroupBox("Watcher") {
                 Text(verbatim: watcherStatus)
                     .font(.caption.monospaced())
@@ -77,6 +85,15 @@ struct StatusView: View {
                 Button("Reload widget") {
                     WidgetCenter.shared.reloadAllTimelines()
                 }
+                Spacer()
+                Button("Remove…", role: .destructive) { showsRemoval = true }
+            }
+
+            if let removalNote {
+                Text(verbatim: removalNote)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(20)
@@ -84,6 +101,65 @@ struct StatusView: View {
         .onAppear {
             reload()
             watcher.start()
+        }
+        // Без этого источники DispatchSource переживают закрытие окна,
+        // а два дескриптора O_EVTONLY остаются открытыми навсегда.
+        .onDisappear { watcher.stop() }
+        .confirmationDialog("Remove ccwidget?", isPresented: $showsRemoval, titleVisibility: .visible) {
+            Button("Remove, keep history", role: .destructive) { runRemoval(history: false) }
+            Button("Remove and delete history", role: .destructive) { runRemoval(history: true) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(removalMessage)
+        }
+    }
+
+    @ViewBuilder
+    private var integrityNote: some View {
+        switch installer.checkIntegrity() {
+        case .changed:
+            Label("The exporter on disk differs from the one this app installed. Something else changed it.",
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+        case .missing:
+            Label("The exporter is missing. Run setup again.", systemImage: "questionmark.circle")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        case .unknown, .matches:
+            EmptyView()
+        }
+    }
+
+    /// Что именно исчезнет — до того, как пользователь подтвердит.
+    private var removalMessage: String {
+        let plan = installer.removalPlan()
+        var lines: [String] = []
+        if plan.removesStatusLine {
+            lines.append(String(localized: "The statusLine key is removed from settings.json. Other keys are untouched."))
+        }
+        if plan.removesExporter {
+            lines.append(String(localized: "~/.claude/ccwidget-export.py is deleted."))
+        }
+        if plan.historyLineCount > 0 {
+            lines.append(String(localized: "\(plan.historyLineCount) history points exist; deleting them resets the forecast."))
+        }
+        lines.append(String(localized: "These have to be removed by hand: \(plan.manualLeftovers.joined(separator: ", "))"))
+        return lines.joined(separator: "\n\n")
+    }
+
+    private func runRemoval(history: Bool) {
+        do {
+            let report = try installer.uninstall(removingHistory: history)
+            var note = [String(localized: "Removed.")]
+            if let backup = report.backup {
+                note.append(String(localized: "Settings backed up as \(backup.lastPathComponent)."))
+            }
+            removalNote = note.joined(separator: " ")
+            reload()
+        } catch {
+            removalNote = error.localizedDescription
         }
     }
 
@@ -100,12 +176,10 @@ struct StatusView: View {
     private func reload() {
         let store = SnapshotStore.default()
         containerPath = store.containerURL.path
-        // Усечение делает приложение, а не виджет: виджет только читает.
-        HistoryStore(store: store).truncateIfNeeded()
         do {
             let snapshot = try store.load()
             diagnostics = snapshot.diagnostics
-            let week = snapshot.limits.sevenDay.map { "\($0.remainingPercentage)% left" } ?? "—"
+            let week = snapshot.limits.sevenDay.map { "\($0.usedPercentage)% used" } ?? "—"
             status = """
                 captured  \(snapshot.capturedAt.formatted(date: .abbreviated, time: .standard))
                 week      \(week)

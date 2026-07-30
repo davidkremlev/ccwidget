@@ -100,7 +100,6 @@ print("")
 
 print("Проект:")
 line("имя", dash(snapshot.project?.name))
-line("путь", dash(snapshot.project?.path))
 print("")
 
 report("Пятичасовое окно", snapshot.limits.fiveHour)

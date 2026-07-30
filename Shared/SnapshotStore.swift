@@ -27,8 +27,8 @@ public struct SnapshotStore: Sendable {
     /// Обмен идёт через собственный контейнер расширения виджета — см. 2.2.
     /// App Group отвергнута: расширению в песочнице её контейнер при
     /// ad-hoc подписи не выдаётся.
-    public static let widgetBundleIdentifier = "dev.illvminat.ccgauge.widget"
-    public static let exchangeFolderName = "ccgauge"
+    public static let widgetBundleIdentifier = "dev.illvminat.ccwidget.widget"
+    public static let exchangeFolderName = "ccwidget"
 
     public let containerURL: URL
 
@@ -95,7 +95,7 @@ public struct SnapshotStore: Sendable {
 
     public static func `default`() -> SnapshotStore {
         let url = exchangeURL
-        ccgaugeStoreLog.debug(
+        ccwidgetStoreLog.debug(
             "exchange dir \(url.path, privacy: .private); sandboxed=\(isSandboxed, privacy: .public)"
         )
         return SnapshotStore(containerURL: url)
@@ -132,7 +132,7 @@ public struct SnapshotStore: Sendable {
     public static func makeDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .secondsSince1970
-        decoder.userInfo[.ccgaugeDiagnostics] = DiagnosticsCollector()
+        decoder.userInfo[.ccwidgetDiagnostics] = DiagnosticsCollector()
         return decoder
     }
 
@@ -155,10 +155,10 @@ public struct SnapshotStore: Sendable {
         } catch {
             throw SnapshotStoreError.malformed(error)
         }
-        guard snapshot.schemaVersion <= ccgaugeSupportedSchemaVersion else {
+        guard snapshot.schemaVersion <= ccwidgetSupportedSchemaVersion else {
             throw SnapshotStoreError.unsupportedSchema(
                 found: snapshot.schemaVersion,
-                supported: ccgaugeSupportedSchemaVersion
+                supported: ccwidgetSupportedSchemaVersion
             )
         }
         return snapshot

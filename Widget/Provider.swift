@@ -1,7 +1,7 @@
 import WidgetKit
 import Foundation
 
-struct CCGaugeEntry: TimelineEntry {
+struct CCWidgetEntry: TimelineEntry {
     /// Момент, на который рассчитана запись. Все производные величины —
     /// возраст снимка, обратный отсчёт до сброса — считаются от него,
     /// а не от `Date()`. Иначе таймлайн из предгенерированных записей
@@ -18,37 +18,37 @@ struct CCGaugeEntry: TimelineEntry {
     }
 }
 
-struct CCGaugeProvider: TimelineProvider {
+struct CCWidgetProvider: TimelineProvider {
     /// Шаг и длина таймлайна из раздела 2.3: тридцать записей по минуте.
     /// Обратный отсчёт тикает полчаса без единого обращения к диску.
     static let step: TimeInterval = 60
     static let count = 30
 
-    func placeholder(in context: Context) -> CCGaugeEntry {
-        CCGaugeEntry(date: Date(), snapshot: .preview, failure: nil, forecast: nil)
+    func placeholder(in context: Context) -> CCWidgetEntry {
+        CCWidgetEntry(date: Date(), snapshot: .preview, failure: nil, forecast: nil)
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (CCGaugeEntry) -> Void) {
+    func getSnapshot(in context: Context, completion: @escaping (CCWidgetEntry) -> Void) {
         if context.isPreview {
-            completion(CCGaugeEntry(date: Date(), snapshot: .preview, failure: nil, forecast: nil))
+            completion(CCWidgetEntry(date: Date(), snapshot: .preview, failure: nil, forecast: nil))
         } else {
             completion(Self.load(at: Date()))
         }
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<CCGaugeEntry>) -> Void) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<CCWidgetEntry>) -> Void) {
         completion(makeTimeline(now: Date()))
     }
 
     /// Отдельно от `getTimeline`, потому что `TimelineProviderContext`
     /// снаружи не создаётся — иначе таймлайн нечем проверить.
-    func makeTimeline(now: Date) -> Timeline<CCGaugeEntry> {
+    func makeTimeline(now: Date) -> Timeline<CCWidgetEntry> {
         let base = Self.load(at: now)
 
         // Одно чтение диска на весь таймлайн. Записи отличаются только
         // моментом, снимок во всех один и тот же.
         let entries = (0..<Self.count).map { index in
-            CCGaugeEntry(
+            CCWidgetEntry(
                 date: now.addingTimeInterval(Double(index) * Self.step),
                 snapshot: base.snapshot,
                 failure: base.failure,
@@ -62,11 +62,11 @@ struct CCGaugeProvider: TimelineProvider {
         return Timeline(entries: entries, policy: .after(last))
     }
 
-    private static func load(at date: Date) -> CCGaugeEntry {
+    private static func load(at date: Date) -> CCWidgetEntry {
         do {
             let store = SnapshotStore.default()
             let snapshot = try store.load()
-            ccgaugeWidgetLog.info(
+            ccwidgetWidgetLog.info(
                 """
                 timeline built from snapshot aged \(Int(snapshot.age(at: date)), privacy: .public)s; \
                 week=\(snapshot.limits.sevenDay?.remainingPercentage.description ?? "nil", privacy: .private)% left; \
@@ -83,16 +83,16 @@ struct CCGaugeProvider: TimelineProvider {
                     now: date
                 )
             }
-            return CCGaugeEntry(date: date, snapshot: snapshot, failure: nil, forecast: forecast)
+            return CCWidgetEntry(date: date, snapshot: snapshot, failure: nil, forecast: forecast)
         } catch let error as SnapshotStoreError {
             let access = SnapshotStore.default().describeAccess()
-            ccgaugeWidgetLog.error(
+            ccwidgetWidgetLog.error(
                 "snapshot unavailable: \(error.description, privacy: .private) | \(access, privacy: .private)"
             )
-            return CCGaugeEntry(date: date, snapshot: nil, failure: error.description, forecast: nil)
+            return CCWidgetEntry(date: date, snapshot: nil, failure: error.description, forecast: nil)
         } catch {
-            ccgaugeWidgetLog.error("snapshot unavailable: \(error.localizedDescription, privacy: .private)")
-            return CCGaugeEntry(date: date, snapshot: nil, failure: "\(error)", forecast: nil)
+            ccwidgetWidgetLog.error("snapshot unavailable: \(error.localizedDescription, privacy: .private)")
+            return CCWidgetEntry(date: date, snapshot: nil, failure: "\(error)", forecast: nil)
         }
     }
 }
@@ -105,7 +105,7 @@ extension Snapshot {
         sessionId: nil,
         claudeCodeVersion: "2.1.220",
         model: ModelInfo(id: nil, displayName: "Opus 5 (1M context)", effort: "high"),
-        project: ProjectInfo(name: "ccgauge", path: nil),
+        project: ProjectInfo(name: "ccwidget"),
         limits: Limits(
             fiveHour: LimitWindow(usedPercentage: 21, resetsAt: Date().addingTimeInterval(2 * 3600)),
             sevenDay: LimitWindow(usedPercentage: 62, resetsAt: Date().addingTimeInterval(19 * 3600))

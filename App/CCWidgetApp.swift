@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct CCGaugeApp: App {
+struct CCWidgetApp: App {
     var body: some Scene {
         Window("Gauge for Claude Code", id: "main") {
             RootView()

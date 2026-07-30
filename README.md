@@ -1,4 +1,4 @@
-# ccgauge — Gauge for Claude Code
+# ccwidget — Gauge for Claude Code
 
 A macOS desktop widget showing how much of your Claude subscription you have
 spent, how full the context window is, and when the weekly quota runs out.
@@ -27,7 +27,7 @@ Everything else on this page assumes `claude` runs in your terminal.
 </details>
 
 Screenshots are real data from a working session, not mock-ups. Re-shoot them
-with `./.build/ccgauge-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"`.
+with `./.build/ccwidget-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"`.
 
 ---
 
@@ -93,36 +93,72 @@ than that is a bug — please [open an issue](../../issues).
 
 ## Installing
 
-Not published yet. Build from source:
+There are no releases yet — no signed build, no Homebrew formula. The only
+way to run this today is to build it, which means **Xcode 16 or later**.
 
 ```sh
-git clone <this repository>
-cd ccgauge
+git clone https://github.com/illVminat/ccwidget.git
+cd ccwidget
 ./Scripts/reinstall.sh
 ```
 
-The script builds, installs to `/Applications`, and restarts the widget
-daemon. Then:
+`reinstall.sh` is a **development script, not an installer.** It removes
+`/Applications/CCWidget.app` if present, copies a fresh build over it, and
+restarts `chronod` — the system daemon behind every widget on your Mac. The
+restart is unavoidable (see Development below) and harmless: the system brings
+it straight back and all widgets redraw. Read the script before running it;
+it is forty lines.
+
+Then, in this order:
 
 1. **Add the widget to your desktop first** — right-click the desktop, choose
    *Edit Widgets*, find *Gauge for Claude Code*. This step cannot be skipped:
    the exchange directory is created by the system when the widget extension
    first runs, and the app deliberately refuses to create it itself.
 2. Open the app and press **Set up automatically.** It writes the exporter to
-   `~/.claude/ccgauge-export.py` and adds one `statusLine` key to
-   `~/.claude/settings.json`. Only that key changes — indentation and key
-   order are preserved, and a timestamped copy is saved next to the file
-   first. If you already have a status line configured, it is shown to you
-   before anything is replaced.
+   `~/.claude/ccwidget-export.py` and adds one `statusLine` key to
+   `~/.claude/settings.json`. A timestamped copy of your settings is saved
+   first, and an existing status line is shown to you before it is replaced.
+   Normally only that one key changes and your indentation and key order
+   survive; if the file cannot be patched in place — malformed JSON, comments
+   — it is rebuilt instead, and the app tells you so rather than hiding it.
 3. Send any message in Claude Code. The first numbers appear within seconds.
 
 Prefer not to let an app edit your config? The setup screen has **Show manual
-instructions** with the exact commands.
+instructions** with the exact lines to paste.
+
+**On a build you did not compile yourself** — a copy from someone else, or a
+future release — macOS will refuse to open it. The app is ad-hoc signed and
+not notarized, so Gatekeeper treats it as untrusted. A locally built app opens
+without complaint. This is the main thing standing between the project and a
+real release; see SPEC.md section 14.
+
+## Removing it
+
+Either way undoes the same things.
+
+In the app: **Remove…**, then choose whether to keep the collected history.
+
+Or without the app:
+
+```sh
+./Scripts/uninstall.sh            # keep history
+./Scripts/uninstall.sh --purge    # remove history, container and the app
+./Scripts/uninstall.sh --dry-run  # show what would happen, change nothing
+```
+
+Removal deletes the `statusLine` key rather than restoring your old
+`settings.json` wholesale — you may have changed other keys since installing,
+and rolling the file back would take those edits away from you. A backup is
+still written first.
+
+The app bundle and the extension's container are not removed unless you pass
+`--purge`, and the widget itself has to be dragged off the desktop by hand.
 
 ## How it works
 
 ```
-Claude Code ──status line JSON──▶ ccgauge-export.py ──▶ snapshot.json
+Claude Code ──status line JSON──▶ ccwidget-export.py ──▶ snapshot.json
                                                         history.jsonl
                                                              │
                                               widget extension container
@@ -131,8 +167,17 @@ Claude Code ──status line JSON──▶ ccgauge-export.py ──▶ snapshot
 ```
 
 The exporter runs on every status line redraw, writes atomically, and always
-exits 0 — a broken exporter must never break your prompt. It prints nothing:
-your status line stays empty and the widget is the only consumer.
+exits 0 — a broken exporter must never break your prompt. It prints nothing,
+which means **your status line goes blank**: this project takes the line over
+rather than sharing it. Composing with an existing status line is planned but
+not written.
+
+**How fast the widget updates depends on whether the app window is open.**
+With it open, a watcher notices new data and refreshes the widget within a
+minute. With it closed — the normal case after setup — nothing pushes updates,
+and WidgetKit comes back on its own roughly every half hour. The numbers are
+never wrong, only older than they could be, and the widget always says how old
+they are. A proper background agent is version 1.1.
 
 **Everything happens on your machine.** There is no network code in this
 project: nothing is uploaded, no telemetry is collected, and no account is
@@ -150,19 +195,38 @@ builds from source was not acceptable. The trade-offs are written up in
 
 ## Development
 
+The console tools are not built by `reinstall.sh` — build them when you need
+them:
+
 ```sh
-./Scripts/reinstall.sh        # build, install, restart the widget daemon
-./.build/ccgauge-dump         # print the parsed snapshot
-./.build/ccgauge-selftest     # installer and settings-editor checks
-./.build/ccgauge-screenshots  # re-shoot the README screenshots
+# checks for the installer and the settings editor, in a temp directory
+swiftc -swift-version 6 -strict-concurrency=complete -target arm64-apple-macos14.0 \
+    Shared/*.swift App/Installer.swift App/SettingsEditor.swift \
+    Tools/ccwidget-selftest/main.swift -o .build/ccwidget-selftest && ./.build/ccwidget-selftest
+
+# print the parsed snapshot and its parse diagnostics
+swiftc -swift-version 6 -target arm64-apple-macos14.0 \
+    Shared/Snapshot.swift Shared/SnapshotStore.swift Shared/Formatters.swift \
+    Shared/Diagnostics.swift Tools/ccwidget-dump/main.swift -o .build/ccwidget-dump
+```
+
+The same commands run in CI on every push, so if they stop working the build
+goes red rather than the README going stale.
+
+Watching what the widget actually does:
+
+```sh
+log stream --predicate 'subsystem == "dev.illvminat.ccwidget"' --level info
 ```
 
 `killall chronod` at the end of the install script is not optional: the widget
 daemon survives bundle replacement and otherwise keeps running your previous
 build, which looks exactly like your changes not applying.
 
-[SPEC.md](SPEC.md) is the design document and is kept current — it records the
-failures too, which is usually where the reasoning lives.
+[CONTRIBUTING.md](CONTRIBUTING.md) has the rest. [SPEC.md](SPEC.md) is the
+design document and is kept current — it records the failures too, which is
+usually where the reasoning lives. It is written in Russian; translating it is
+on the list.
 
 ## Not affiliated with Anthropic
 

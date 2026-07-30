@@ -23,7 +23,7 @@ func check(_ name: String, _ condition: Bool, _ detail: @autoclosure () -> Strin
 @MainActor
 func sandbox() -> URL {
     let root = URL(filePath: NSTemporaryDirectory())
-        .appending(path: "ccgauge-selftest-\(UUID().uuidString)")
+        .appending(path: "ccwidget-selftest-\(UUID().uuidString)")
     try! FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
     return root
 }
@@ -39,7 +39,7 @@ func makeContainer(in home: URL) {
 
 @MainActor
 func makeTemplate(in root: URL) -> URL {
-    let url = root.appending(path: "ccgauge-export.py.template")
+    let url = root.appending(path: "ccwidget-export.py.template")
     try! "#!/usr/bin/env python3\nGROUP_DIR = \"__GROUP_DIR__\"\n".write(to: url, atomically: true, encoding: .utf8)
     return url
 }
@@ -353,6 +353,91 @@ do {
     check("внедрение не создало новых строк",
           rendered.components(separatedBy: "\n").count == 3,
           "строк: \(rendered.components(separatedBy: "\n").count)")
+}
+
+// MARK: - Удаление
+
+print("\nУдаление")
+
+do {
+    let home = sandbox()
+    let template = makeTemplate(in: home)
+    makeContainer(in: home)
+    write("""
+    {
+      "theme": "dark",
+      "permissions": {
+        "defaultMode": "auto"
+      },
+      "language": "Russian"
+    }
+    """, to: home)
+
+    let inst = installer(home: home, template: template)
+    _ = try! inst.install()
+    check("после установки статуслайн наш", inst.statusLineState() == .ours)
+    check("хеш записан", FileManager.default.fileExists(
+        atPath: inst.integrityURL.path(percentEncoded: false)))
+    check("целостность сходится", inst.checkIntegrity() == .matches)
+
+    // Подмена экспортёра посторонним должна быть замечена.
+    try! "#!/bin/sh\necho hacked\n".write(to: inst.exporterURL, atomically: true, encoding: .utf8)
+    check("подмена экспортёра замечена", inst.checkIntegrity() == .changed)
+    _ = try! inst.install()
+    check("переустановка чинит целостность", inst.checkIntegrity() == .matches)
+
+    let plan = inst.removalPlan()
+    check("план удаления видит наш статуслайн", plan.removesStatusLine)
+    check("план удаления видит экспортёр", plan.removesExporter)
+
+    let report = try! inst.uninstall(removingHistory: false)
+    check("ключ statusLine удалён", report.statusLineRemoved)
+    check("экспортёр удалён", !FileManager.default.fileExists(
+        atPath: inst.exporterURL.path(percentEncoded: false)))
+    check("хеш удалён", !FileManager.default.fileExists(
+        atPath: inst.integrityURL.path(percentEncoded: false)))
+    check("статуслайн больше не наш", inst.statusLineState() == .absent)
+
+    let text = settings(home)
+    check("соседние ключи целы после удаления",
+          text.contains("\"theme\": \"dark\"") && text.contains("\"language\": \"Russian\"")
+          && text.contains("\"defaultMode\": \"auto\""))
+    check("форматирование соседей сохранено", text.contains("  \"language\": \"Russian\""))
+    check("файл остался валидным JSON",
+          (try? JSONSerialization.jsonObject(with: Data(text.utf8))) != nil)
+    check("висячей запятой нет", !text.contains(",\n}") && !text.contains(", }"))
+    check("копия при удалении сделана", report.backup != nil)
+    if let backup = report.backup {
+        let mode = (try! FileManager.default.attributesOfItem(
+            atPath: backup.path(percentEncoded: false))[.posixPermissions] as! NSNumber).intValue
+        check("копия закрыта правами 0600", mode == 0o600, "права \(String(mode, radix: 8))")
+    }
+}
+
+do {
+    // Чужой статуслайн удаление трогать не должно.
+    let home = sandbox()
+    let template = makeTemplate(in: home)
+    makeContainer(in: home)
+    write(#"{"statusLine":{"type":"command","command":"/чужой.sh"}}"#, to: home)
+    let inst = installer(home: home, template: template)
+    _ = try? inst.uninstall(removingHistory: false)
+    check("чужой статуслайн не тронут", settings(home).contains("/чужой.sh"))
+}
+
+do {
+    // Ротация копий.
+    let home = sandbox()
+    let template = makeTemplate(in: home)
+    makeContainer(in: home)
+    write("{}", to: home)
+    let inst = installer(home: home, template: template)
+    for _ in 0..<8 { _ = try? inst.install() }
+    let names = (try! FileManager.default.contentsOfDirectory(
+        atPath: inst.claudeDirectory.path(percentEncoded: false)))
+        .filter { $0.hasPrefix("settings.json.bak-") }
+    check("копий не больше пяти", names.count <= Installer.backupsKept,
+          "найдено \(names.count)")
 }
 
 print("\n\(failures == 0 ? "всё сошлось" : "провалов: \(failures)")")

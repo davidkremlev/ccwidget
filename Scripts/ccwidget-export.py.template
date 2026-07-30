@@ -11,7 +11,9 @@ GROUP_DIR = "__GROUP_DIR__"
 # и валил расширение виджета при чтении.
 MAX_INPUT = 1 << 20
 
-MIN_INTERVAL = 600  # см. раздел 7: дедупликация истории
+MIN_INTERVAL = 600   # см. раздел 7: дедупликация истории
+MAX_HISTORY = 2000   # раздел 7: предел строк истории
+KEEP_HISTORY = 1000  # сколько оставить при усечении
 
 
 def is_regular_or_absent(path):
@@ -54,6 +56,30 @@ def open_append(path):
     except OSError:
         return None
     return os.fdopen(fd, "a")
+
+
+def truncate_history(path):
+    """Усечение по разделу 7.
+
+    Живёт здесь, а не в приложении: экспортёр выполняется при каждой
+    перерисовке, а окно приложения пользователь может не открыть ни разу,
+    и тогда предел не соблюдался бы никогда.
+    """
+    try:
+        with open(path, "rb") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return
+    if len(lines) <= MAX_HISTORY:
+        return
+    tail = lines[-KEEP_HISTORY:]
+    tmp = path + ".tmp"
+    handle = open_new(tmp)
+    if handle is None:
+        return
+    with handle as f:
+        f.write(b"\n".join(tail).decode("utf-8", "replace") + "\n")
+    os.replace(tmp, path)
 
 
 def last_history_entry(path):
@@ -185,6 +211,7 @@ def main():
                 return
             with handle as f:
                 f.write(json.dumps(entry) + "\n")
+            truncate_history(hist)
 
 
 try:

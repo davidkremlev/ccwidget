@@ -2,7 +2,7 @@ import Foundation
 
 /// Версия схемы, которую понимает этот код.
 /// Снимок с большей версией считается непригодным — рисовать по нему нельзя.
-public let ccgaugeSupportedSchemaVersion = 1
+public let ccwidgetSupportedSchemaVersion = 1
 
 public struct Snapshot: Codable, Sendable {
     public let schemaVersion: Int
@@ -65,7 +65,7 @@ public struct Snapshot: Codable, Sendable {
             ?? Limits(fiveHour: nil, sevenDay: nil)
 
         // Читается последним, когда вложенные разборы уже отчитались.
-        diagnostics = decoder.ccgaugeDiagnostics?.issues ?? []
+        diagnostics = decoder.ccwidgetDiagnostics?.issues ?? []
     }
 
     /// Возраст снимка на момент `now`.
@@ -82,7 +82,9 @@ public struct ModelInfo: Codable, Sendable {
 
 public struct ProjectInfo: Codable, Sendable {
     public let name: String?
-    public let path: String?
+    // Полного пути здесь нет намеренно — см. раздел 4. Экспортёр его
+    // не пишет, и поля в модели тоже нет: поле, всегда равное nil,
+    // заставляет думать, что где-то оно всё-таки заполняется.
 }
 
 public struct Limits: Codable, Sendable {

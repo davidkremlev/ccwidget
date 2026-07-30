@@ -142,7 +142,7 @@ struct ForecastBlock: View {
         case .notEnoughData: Text("Not enough data for a forecast yet")
         case .flat:          Text("Usage is flat — no forecast")
         case .lastsUntilReset: Text("Lasts until reset")
-        case .runsOut(let date): Text("Runs out \(CCGaugeFormat.resetMoment(date))")
+        case .runsOut(let date): Text("Runs out \(CCWidgetFormat.resetMoment(date))")
         }
     }
 

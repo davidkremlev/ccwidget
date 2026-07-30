@@ -1,9 +1,9 @@
 import SwiftUI
 import WidgetKit
 
-struct CCGaugeEntryView: View {
+struct CCWidgetEntryView: View {
     @Environment(\.widgetFamily) private var family
-    let entry: CCGaugeEntry
+    let entry: CCWidgetEntry
 
     var body: some View {
         switch family {
@@ -14,12 +14,12 @@ struct CCGaugeEntryView: View {
     }
 }
 
-struct CCGaugeWidget: Widget {
-    let kind = "dev.illvminat.ccgauge.widget"
+struct CCWidgetExtension: Widget {
+    let kind = "dev.illvminat.ccwidget.widget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: CCGaugeProvider()) { entry in
-            CCGaugeEntryView(entry: entry)
+        StaticConfiguration(kind: kind, provider: CCWidgetProvider()) { entry in
+            CCWidgetEntryView(entry: entry)
                 .padding(14)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
@@ -33,8 +33,8 @@ struct CCGaugeWidget: Widget {
 }
 
 @main
-struct CCGaugeWidgetBundle: WidgetBundle {
+struct CCWidgetBundle: WidgetBundle {
     var body: some Widget {
-        CCGaugeWidget()
+        CCWidgetExtension()
     }
 }

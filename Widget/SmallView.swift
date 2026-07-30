@@ -3,7 +3,12 @@ import WidgetKit
 
 /// Раздел 9: только недельный лимит. На 158×158 читается ровно одно число.
 struct SmallView: View {
-    let entry: CCGaugeEntry
+    let entry: CCWidgetEntry
+
+    /// 34pt по разделу 9, но масштабируется вместе с системным шрифтом.
+    /// Жёсткий размер выключал Dynamic Type совсем: подписи вокруг росли,
+    /// а цифра нет, и макет разъезжался.
+    @ScaledMetric(relativeTo: .largeTitle) private var valueSize: CGFloat = 34
 
     private var window: LimitWindow? { entry.snapshot?.limits.sevenDay }
     private var metric: GaugeMetric? { entry.limitMetric(window) }
@@ -23,7 +28,7 @@ struct SmallView: View {
                 Spacer(minLength: 0)
             } else {
                 Text(verbatim: metric?.value ?? "—")
-                    .font(.system(size: 34, weight: .medium))
+                    .font(.system(size: valueSize, weight: .medium))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -36,7 +41,7 @@ struct SmallView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Week used")
-        .accessibilityValue(metric.map { Text(verbatim: $0.value) } ?? Text("no data"))
+        .accessibilityValue(metric?.accessibilityValue ?? Text("no data"))
     }
 
     private var header: some View {
@@ -59,7 +64,7 @@ struct SmallView: View {
             } else if entry.hidesNumbers {
                 Text("Launch Claude Code")
             } else if let window {
-                Text("used · resets \(CCGaugeFormat.resetMoment(window.resetsAt))")
+                Text("used · resets \(CCWidgetFormat.resetMoment(window.resetsAt))")
             } else {
                 Text("waiting for limits")
             }

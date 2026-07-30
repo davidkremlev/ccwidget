@@ -43,7 +43,7 @@ public struct HistoryStore: Sendable {
             guard let data = line.data(using: .utf8) else { skipped += 1; continue }
             guard let raw = try? JSONDecoder().decode(RawEntry.self, from: data) else {
                 skipped += 1
-                ccgaugeParseLog.error(
+                ccwidgetParseLog.error(
                     "history line dropped; raw=\(line.prefix(120), privacy: .private)"
                 )
                 continue
@@ -58,7 +58,7 @@ public struct HistoryStore: Sendable {
         }
 
         if skipped > 0 {
-            ccgaugeParseLog.error("history: \(skipped, privacy: .public) line(s) unreadable")
+            ccwidgetParseLog.error("history: \(skipped, privacy: .public) line(s) unreadable")
         }
         return entries.sorted { $0.time < $1.time }
     }
@@ -80,10 +80,10 @@ public struct HistoryStore: Sendable {
         do {
             guard try writeExclusively(kept, to: tmp) else { return 0 }
             _ = try FileManager.default.replaceItemAt(url, withItemAt: tmp)
-            ccgaugeStoreLog.notice("history truncated, dropped \(removed, privacy: .public) line(s)")
+            ccwidgetStoreLog.notice("history truncated, dropped \(removed, privacy: .public) line(s)")
             return removed
         } catch {
-            ccgaugeStoreLog.error("history truncation failed: \(error.localizedDescription, privacy: .private)")
+            ccwidgetStoreLog.error("history truncation failed: \(error.localizedDescription, privacy: .private)")
             try? FileManager.default.removeItem(at: tmp)
             return 0
         }
@@ -98,7 +98,7 @@ public struct HistoryStore: Sendable {
             Darwin.open(pointer, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
         }
         guard descriptor >= 0 else {
-            ccgaugeStoreLog.error("history truncation: refusing to write through a link")
+            ccwidgetStoreLog.error("history truncation: refusing to write through a link")
             return false
         }
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)

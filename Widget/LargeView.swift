@@ -4,7 +4,7 @@ import WidgetKit
 /// Раздел 9: всё из среднего размера, но развёрнуто — у каждой полоски
 /// своя подпись с моментом сброса, блок прогноза и расширенный подвал.
 struct LargeView: View {
-    let entry: CCGaugeEntry
+    let entry: CCWidgetEntry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -66,12 +66,12 @@ struct LargeView: View {
 
     private func limitDetail(_ window: LimitWindow?) -> String? {
         guard !entry.hidesNumbers, let window else { return nil }
-        let left = CCGaugeFormat.percent(window.remainingPercentage)
-        let moment = CCGaugeFormat.resetMoment(window.resetsAt)
-        let until = CCGaugeFormat.countdown(window.timeUntilReset(at: entry.date))
-        // Крупная цифра — расход; остаток остаётся здесь, подписанным словом,
-        // чтобы полярность нельзя было спутать.
-        return String(localized: "\(left) left · resets \(moment) · \(until)")
+        let moment = CCWidgetFormat.resetMoment(window.resetsAt)
+        let until = CCWidgetFormat.countdown(window.timeUntilReset(at: entry.date))
+        // Остатка здесь нет намеренно. Раздел 8 запрещает две полярности
+        // в одном столбце, а «35% left» под «Week used 65%» — ровно они,
+        // одна под другой: сверяющий с панелью Usage хватал не то число.
+        return String(localized: "resets \(moment) · \(until)")
     }
 
     // MARK: Подробности
@@ -89,16 +89,16 @@ struct LargeView: View {
             .font(.caption2)
             .foregroundStyle(.secondary)
 
-            detailLine("Cost", snapshot.cost?.sessionUsd.map(CCGaugeFormat.money))
+            detailLine("Cost", snapshot.cost?.sessionUsd.map(CCWidgetFormat.money))
             detailLine("Tokens", tokensLine(snapshot.context))
-            detailLine("Cache", snapshot.context?.cacheHitRatio.map(CCGaugeFormat.ratio))
+            detailLine("Cache", snapshot.context?.cacheHitRatio.map(CCWidgetFormat.ratio))
         }
     }
 
     private func tokensLine(_ context: ContextInfo?) -> String? {
         guard let used = context?.totalInputTokens else { return nil }
-        guard let size = context?.windowSize else { return CCGaugeFormat.tokensExact(used) }
-        return "\(CCGaugeFormat.tokensExact(used)) / \(CCGaugeFormat.tokensExact(size))"
+        guard let size = context?.windowSize else { return CCWidgetFormat.tokensExact(used) }
+        return "\(CCWidgetFormat.tokensExact(used)) / \(CCWidgetFormat.tokensExact(size))"
     }
 
     private func detailLine(_ caption: LocalizedStringKey, _ value: String?) -> some View {
