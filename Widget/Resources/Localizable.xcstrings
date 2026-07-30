@@ -246,37 +246,37 @@
         }
       }
     },
-    "Forecast": {
+    "Estimate": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Prognose"
+            "value": "Schätzung"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Previsión"
+            "value": "Estimación"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "予測"
+            "value": "推定"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Прогноз"
+            "value": "Оценка"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "预测"
+            "value": "估算"
           }
         }
       }
@@ -491,72 +491,107 @@
         }
       }
     },
-    "Not enough data for a forecast yet": {
+    "Not enough data yet": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Noch zu wenig Daten für eine Prognose"
+            "value": "Noch zu wenig Daten"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aún no hay datos suficientes para una previsión"
+            "value": "Aún no hay datos suficientes"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "予測に十分なデータがありません"
+            "value": "データがまだ足りません"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Данных для прогноза пока мало"
+            "value": "Данных пока мало"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "数据尚不足以预测"
+            "value": "数据尚不足"
           }
         }
       }
     },
-    "Runs out %@": {
+    "Rate only — too little history for a date": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aufgebraucht %@"
+            "value": "Nur Tempo — zu wenig Verlauf für ein Datum"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se agota %@"
+            "value": "Solo ritmo: historial insuficiente para una fecha"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ に尽きます"
+            "value": "ペースのみ — 日付を出すには履歴が不足"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Кончится %@"
+            "value": "Только темп — истории мало, чтобы назвать дату"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ 用尽"
+            "value": "仅速率 — 历史不足以给出日期"
+          }
+        }
+      }
+    },
+    "Runs out ~%@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufgebraucht ~%@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se agota ~%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "~%@ に尽きます"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кончится ~%@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "~%@ 用尽"
           }
         }
       }
@@ -666,37 +701,37 @@
         }
       }
     },
-    "Usage is flat — no forecast": {
+    "Usage is flat": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verbrauch steht — keine Prognose"
+            "value": "Verbrauch steht"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El consumo está parado: sin previsión"
+            "value": "El consumo está parado"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用量が横ばい — 予測なし"
+            "value": "使用量は横ばい"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Расход стоит — прогноза нет"
+            "value": "Расход стоит"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "用量持平 — 无预测"
+            "value": "用量持平"
           }
         }
       }
@@ -732,6 +767,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "本周已用"
+          }
+        }
+      }
+    },
+    "based on %@ of data": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "basierend auf %@ Daten"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "basado en %@ de datos"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 分のデータに基づく"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "по %@ наблюдений"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "基于 %@ 的数据"
           }
         }
       }

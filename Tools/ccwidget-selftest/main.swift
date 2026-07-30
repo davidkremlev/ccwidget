@@ -440,5 +440,142 @@ do {
           "найдено \(names.count)")
 }
 
+// MARK: - Оценка расхода
+
+print("\nForecast")
+
+@MainActor
+func series(
+    count: Int, stepMinutes: Double, from start: Int, per step: Double,
+    resets: Date, now: Date, noise: (Int) -> Double = { _ in 0 }
+) -> [HistoryEntry] {
+    (0..<count).map { i in
+        HistoryEntry(
+            time: now.addingTimeInterval(-Double(count - 1 - i) * stepMinutes * 60),
+            sevenDayUsed: Int((Double(start) + step * Double(i) + noise(i)).rounded()),
+            resetsAt: resets
+        )
+    }
+}
+
+@MainActor
+func describe(_ o: Forecast.Outcome) -> String {
+    switch o {
+    case .notEnoughData: return "notEnoughData"
+    case .flat: return "flat"
+    case .rateOnly: return "rateOnly"
+    case .lastsUntilReset: return "lastsUntilReset"
+    case .runsOut: return "runsOut"
+    }
+}
+
+let now = Date()
+
+do {
+    // Идеальная прямая на четырёх часах: R² должен быть единицей.
+    let resets = now.addingTimeInterval(20 * 3600)
+    let window = LimitWindow(usedPercentage: 60, resetsAt: resets)
+    let f = Forecast.make(history: series(count: 25, stepMinutes: 10, from: 20, per: 1.6,
+                                          resets: resets, now: now), window: window, now: now)
+    check("идеальная линия даёт R² около единицы", (f.fitQuality ?? 0) > 0.99,
+          "R² = \(f.fitQuality ?? -1)")
+    check("на достаточной базе дата называется", describe(f.outcome) == "runsOut",
+          "получено \(describe(f.outcome))")
+    check("пунктир рисуется", f.showsProjection)
+}
+
+do {
+    // Меньше десяти точек — считать нечего, какой бы ни была база.
+    let resets = now.addingTimeInterval(20 * 3600)
+    let window = LimitWindow(usedPercentage: 60, resetsAt: resets)
+    let f = Forecast.make(history: series(count: 9, stepMinutes: 30, from: 20, per: 4,
+                                          resets: resets, now: now), window: window, now: now)
+    check("девять точек отбраковываются", describe(f.outcome) == "notEnoughData")
+}
+
+do {
+    // База меньше двух часов — отбраковка по разбросу.
+    let resets = now.addingTimeInterval(20 * 3600)
+    let window = LimitWindow(usedPercentage: 60, resetsAt: resets)
+    let f = Forecast.make(history: series(count: 20, stepMinutes: 5, from: 20, per: 2,
+                                          resets: resets, now: now), window: window, now: now)
+    check("база в полтора часа отбраковывается", describe(f.outcome) == "notEnoughData",
+          "база \(Int(f.observationSpan / 60)) мин, получено \(describe(f.outcome))")
+}
+
+do {
+    // Шум, который линия не описывает: R² ниже порога.
+    let resets = now.addingTimeInterval(20 * 3600)
+    let window = LimitWindow(usedPercentage: 60, resetsAt: resets)
+    let saw: (Int) -> Double = { i in i % 2 == 0 ? -18 : 18 }
+    let f = Forecast.make(history: series(count: 30, stepMinutes: 10, from: 30, per: 0.2,
+                                          resets: resets, now: now, noise: saw),
+                          window: window, now: now)
+    check("линия, не описывающая данные, отбраковывается по R²",
+          describe(f.outcome) == "notEnoughData", "R² = \(f.fitQuality ?? -1)")
+}
+
+do {
+    // Главный случай: сразу после сброса недели. База два часа,
+    // до сброса почти семь суток — дату называть нельзя, темп можно.
+    let resets = now.addingTimeInterval(6.9 * 24 * 3600)
+    let window = LimitWindow(usedPercentage: 3, resetsAt: resets)
+    let f = Forecast.make(history: series(count: 13, stepMinutes: 10, from: 1, per: 0.15,
+                                          resets: resets, now: now), window: window, now: now)
+    check("после сброса недели — темп без даты", describe(f.outcome) == "rateOnly",
+          "получено \(describe(f.outcome))")
+    check("темп при этом есть", f.hasRate)
+    check("пунктир не рисуется", !f.showsProjection)
+    check("темп положительный", (f.percentPerHour ?? 0) > 0)
+}
+
+do {
+    // База выросла до суток — горизонта хватает на всю неделю.
+    let resets = now.addingTimeInterval(6 * 24 * 3600)
+    let window = LimitWindow(usedPercentage: 10, resetsAt: resets)
+    let f = Forecast.make(history: series(count: 40, stepMinutes: 40, from: 1, per: 0.22,
+                                          resets: resets, now: now), window: window, now: now)
+    check("на суточной базе горизонт покрывает неделю",
+          describe(f.outcome) != "rateOnly", "получено \(describe(f.outcome))")
+}
+
+do {
+    // Плато: наклон не положительный.
+    let resets = now.addingTimeInterval(20 * 3600)
+    let window = LimitWindow(usedPercentage: 55, resetsAt: resets)
+    let f = Forecast.make(history: series(count: 20, stepMinutes: 15, from: 55, per: 0,
+                                          resets: resets, now: now), window: window, now: now)
+    check("плато распознано", describe(f.outcome) == "flat")
+    check("на плато темпа не показываем", !f.hasRate)
+}
+
+do {
+    // Точки чужого окна отфильтровываются целиком.
+    let resets = now.addingTimeInterval(20 * 3600)
+    let window = LimitWindow(usedPercentage: 60, resetsAt: resets)
+    let other = series(count: 30, stepMinutes: 10, from: 20, per: 1.5,
+                       resets: resets.addingTimeInterval(-604800), now: now)
+    let f = Forecast.make(history: other, window: window, now: now)
+    check("точки прошлого окна отброшены", f.points.isEmpty)
+    check("и оценки по ним нет", describe(f.outcome) == "notEnoughData")
+}
+
+do {
+    // Расход быстрый, исчерпание близко — дата в пределах горизонта.
+    let resets = now.addingTimeInterval(5 * 24 * 3600)
+    let window = LimitWindow(usedPercentage: 80, resetsAt: resets)
+    let f = Forecast.make(history: series(count: 15, stepMinutes: 20, from: 60, per: 1.4,
+                                          resets: resets, now: now), window: window, now: now)
+    check("близкое исчерпание называется датой", describe(f.outcome) == "runsOut",
+          "получено \(describe(f.outcome))")
+    if case .runsOut(let date) = f.outcome {
+        check("дата не в прошлом", date >= now)
+        let horizon = date.timeIntervalSince(now)
+        check("дата в пределах десяти длин базы",
+              horizon <= f.observationSpan * Forecast.horizonMultiplier + 60,
+              "горизонт \(Int(horizon / 3600)) ч при базе \(Int(f.observationSpan / 3600)) ч")
+    }
+}
+
 print("\n\(failures == 0 ? "всё сошлось" : "провалов: \(failures)")")
 exit(failures == 0 ? 0 : 1)

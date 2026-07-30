@@ -22,7 +22,7 @@ struct ForecastChart: View {
                     history.stroke(tint, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
                 }
 
-                if let projection = projectionPath(in: size) {
+                if forecast.showsProjection, let projection = projectionPath(in: size) {
                     projection.stroke(
                         tint,
                         style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [3, 3])
@@ -89,7 +89,7 @@ struct ForecastChart: View {
         switch forecast.outcome {
         case .runsOut: return .red
         case .lastsUntilReset: return .yellow
-        case .flat, .notEnoughData: return .secondary
+        case .rateOnly, .flat, .notEnoughData: return .secondary
         }
     }
 }
@@ -103,10 +103,12 @@ struct ForecastBlock: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("Forecast")
+                // «Estimate», не «Forecast»: слово должно обещать ровно
+                // столько, сколько метод даёт.
+                Text("Estimate")
                     .font(.caption.weight(.medium))
                 Spacer(minLength: 4)
-                if let rate = forecast.percentPerHour, rate > 0 {
+                if forecast.hasRate, let rate = forecast.percentPerHour {
                     Text(verbatim: rateCaption(rate))
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
@@ -139,10 +141,18 @@ struct ForecastBlock: View {
     @ViewBuilder
     private var caption: some View {
         switch forecast.outcome {
-        case .notEnoughData: Text("Not enough data for a forecast yet")
-        case .flat:          Text("Usage is flat — no forecast")
-        case .lastsUntilReset: Text("Lasts until reset")
-        case .runsOut(let date): Text("Runs out \(CCWidgetFormat.resetMoment(date))")
+        case .notEnoughData:
+            Text("Not enough data yet")
+        case .flat:
+            Text("Usage is flat")
+        case .rateOnly:
+            // Темп без даты. Скорость измерена, горизонт до неё не дотянулся.
+            Text("Rate only — too little history for a date")
+        case .lastsUntilReset:
+            Text("Lasts until reset")
+        case .runsOut(let date):
+            // Тильда обязательна: это оценка, а не расписание.
+            Text("Runs out ~\(CCWidgetFormat.resetMoment(date))")
         }
     }
 
@@ -150,7 +160,7 @@ struct ForecastBlock: View {
         switch forecast.outcome {
         case .runsOut: return .red
         case .lastsUntilReset: return .yellow
-        case .flat, .notEnoughData: return .secondary
+        case .rateOnly, .flat, .notEnoughData: return .secondary
         }
     }
 }
