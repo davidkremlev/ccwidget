@@ -7,7 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet.
+### Changed
+
+- **Renamed from ccgauge to ccwidget.** The old name was already taken by a
+  live project in the same niche — a Claude Code usage dashboard published on
+  npm — and a Homebrew formula under that name would have collided with it in
+  search and in people's heads. Bundle identifiers, the exchange directory,
+  the Swift type prefix and the project file all moved with it. Anyone who
+  installed an earlier build should remove `/Applications/CCGauge.app` by
+  hand: a bundle under the old name keeps its own widget registration and
+  reports the new exporter as a stranger's.
+
+- **The forecast is now an estimate, and says so.** It could state a date
+  from thirty minutes of history, extrapolating three hundred times further
+  than its own base. Thresholds are ten points, a two-hour base, weighted R²
+  of at least 0.7, and a horizon no further than ten base lengths — which
+  binds "lasts until reset" too, since that is a claim about the future in
+  exactly the same way a date is.
+
+  Because that leaves seventeen hours of silence after a weekly reset, there
+  is a third state: **rate without a date.** Speed is a measurement and is
+  honest at any base length; the date waits for the horizon. The block is
+  labelled *Estimate*, the date carries a tilde, and the length of the base is
+  printed underneath.
+
+- **The whole interface is localized.** Twenty-five strings in the app were
+  still hardcoded English while their neighbours came from the catalogs, so a
+  single screen could mix two languages.
+
+### Added
+
+- **Removal.** A button in the app and `Scripts/uninstall.sh` as the fallback
+  for when the app will not open. The `statusLine` key is deleted surgically
+  rather than restored from a backup — other keys may have changed since
+  installing, and rolling the file back would take those edits away. History
+  is kept unless you ask for it to go.
+
+- **Integrity checking.** The app records a hash of the exporter it installs
+  and compares it on launch. It puts an executable file in the status line's
+  path and used to never look at it again; the hash does not prevent
+  tampering, it makes tampering visible.
+
+### Fixed
+
+- History truncation moved into the exporter. It lived in the app window,
+  which a user may never open, so the two-thousand-line limit was never
+  actually enforced.
+- `SnapshotWatcher` is stopped when the window closes instead of leaking two
+  file descriptors.
+- Settings backups are written `0600` and pruned to the five most recent.
+- No more `35% left` printed under `Week used 65%` — two polarities in one
+  column was exactly what the design document forbids.
+- The small size scales with Dynamic Type instead of a hardcoded 34pt, and
+  VoiceOver reads percentages as percentages.
 
 ## [0.2.0-dev] — 2026-07-29
 
