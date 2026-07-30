@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Known gaps
+
+- **Screenshots were taken right after a weekly reset**, so the Estimate block
+  reads *Not enough data yet* — the fit quality is below threshold that soon
+  after the counter drops. The behaviour is correct and the wording is honest,
+  but it shows the project's one distinctive feature at its least convincing.
+  Re-shoot once a couple of days of history have accumulated and the estimate
+  reports a rate with a date:
+  `./.build/ccwidget-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"`
+- **Code comments and SPEC.md are in Russian.** Comments are being translated;
+  the specification follows later.
+
 ### Changed
 
 - **Renamed from ccgauge to ccwidget.** The old name was already taken by a

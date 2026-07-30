@@ -130,8 +130,15 @@ struct ForecastBlock: View {
         }
     }
 
+    /// При «данных мало» график не рисуется вовсе.
+    ///
+    /// Ось растянута до сброса — это может быть шесть дней вперёд, — и пара
+    /// точек занимает считанные проценты ширины. Получается обрубок слева,
+    /// неотличимый от артефакта отрисовки: он не сообщает ничего, но выглядит
+    /// поломкой. Подписи «Not enough data yet» достаточно.
     private var hasChart: Bool {
-        forecast.points.count >= 2
+        if case .notEnoughData = forecast.outcome { return false }
+        return forecast.points.count >= 2
     }
 
     private func rateCaption(_ rate: Double) -> String {

@@ -11,29 +11,14 @@ import WidgetKit
 /// Полоски переиспользуют `GaugeRow` из расширения как есть: окно должно
 /// выглядеть увеличенным виджетом, и совпадение цифр видно без чтения.
 struct StatusView: View {
-    @State private var snapshot: Snapshot?
-    @State private var diagnostics: [ParseIssue] = []
-    @State private var integrity: Installer.Integrity = .unknown
-    @State private var showsDetails = false
-    @State private var notice: String?
+    /// Источник состояния приходит снаружи — раздел 5.2. Внутри типа
+    /// нет ни одной ветки «а если это снимок экрана».
+    @StateObject private var model: StatusModel
+    @State private var showsDetails: Bool
     @State private var showsRemoval = false
-    @StateObject private var watcher = SnapshotWatcher()
 
-    private let installer = Installer.live()
-    /// Картинки рисуются в подставленном состоянии и не должны его
-    /// перечитывать с диска при появлении.
-    private let isSample: Bool
-
-    /// Обычная точка входа.
-    init() { isSample = false }
-
-    /// Только для снятия картинок: окно рисуется в заданном состоянии,
-    /// не дожидаясь `onAppear`. Тот же приём внедрения, что в разделе 5.2 —
-    /// состояние приходит снаружи, а не добывается изнутри.
-    init(sampleSnapshot: Snapshot?, sampleIntegrity: Installer.Integrity, expanded: Bool = false) {
-        isSample = true
-        _snapshot = State(initialValue: sampleSnapshot)
-        _integrity = State(initialValue: sampleIntegrity)
+    init(model: StatusModel = StatusModel(), expanded: Bool = false) {
+        _model = StateObject(wrappedValue: model)
         _showsDetails = State(initialValue: expanded)
     }
 
@@ -41,11 +26,12 @@ struct StatusView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            if integrity == .changed {
+            if model.integrity == .changed {
                 tamperBanner
             }
 
-            if let snapshot, state == .working || state == .outdated || state == .abandoned {
+            if let snapshot = model.snapshot,
+               state == .working || state == .outdated || state == .abandoned {
                 rows(snapshot)
                 quietLine(snapshot)
             } else {
@@ -61,18 +47,14 @@ struct StatusView: View {
         }
         .padding(20)
         .frame(width: 340)
-        .onAppear {
-            guard !isSample else { return }
-            reload()
-            watcher.start()
-        }
-        .onDisappear { watcher.stop() }
+        .onAppear { model.start() }
+        .onDisappear { model.stop() }
         .confirmationDialog("Remove ccwidget?", isPresented: $showsRemoval, titleVisibility: .visible) {
-            Button("Remove, keep history", role: .destructive) { runRemoval(history: false) }
-            Button("Remove and delete history", role: .destructive) { runRemoval(history: true) }
+            Button("Remove, keep history", role: .destructive) { model.uninstall(removingHistory: false) }
+            Button("Remove and delete history", role: .destructive) { model.uninstall(removingHistory: true) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(removalMessage)
+            Text(model.removalMessage)
         }
     }
 
@@ -83,11 +65,9 @@ struct StatusView: View {
     }
 
     private var state: WindowState {
-        if !isSample {
-            if !installer.widgetContainerExists { return .needsWidget }
-            if installer.statusLineState() != .ours { return .needsSetup }
-        }
-        guard let snapshot else { return .waiting }
+        if !model.containerExists { return .needsWidget }
+        if !model.statusLineIsOurs { return .needsSetup }
+        guard let snapshot = model.snapshot else { return .waiting }
         switch Freshness(age: snapshot.age()) {
         case .fresh, .recent: return .working
         case .stale: return .outdated
@@ -119,7 +99,7 @@ struct StatusView: View {
     /// Несовпадение хеша поднимает метку независимо от свежести данных:
     /// подменённый экспортёр важнее того, насколько свеж снимок.
     private var badgeText: LocalizedStringKey {
-        if integrity == .changed { return "Check needed" }
+        if model.integrity == .changed { return "Check needed" }
         switch state {
         case .needsWidget, .needsSetup: return "Setup needed"
         case .waiting: return "Waiting"
@@ -129,7 +109,7 @@ struct StatusView: View {
     }
 
     private var badgeColor: Color {
-        if integrity == .changed { return .yellow }
+        if model.integrity == .changed { return .yellow }
         switch state {
         case .working: return .green
         case .waiting: return .secondary
@@ -153,7 +133,7 @@ struct StatusView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Button("Reinstall the exporter") { runInstall() }
+                Button("Reinstall the exporter") { model.install() }
                     .controlSize(.small)
                     .padding(.top, 2)
             }
@@ -210,7 +190,7 @@ struct StatusView: View {
                 Text("Add the widget to your desktop first. Right-click the desktop, choose Edit Widgets, then come back.")
             case .needsSetup:
                 Text("The status line is not pointing at this app yet, so nothing is being written.")
-                Button("Set up…") { runInstall() }
+                Button("Set up…") { model.install() }
             case .waiting:
                 HStack(alignment: .top, spacing: 8) {
                     ProgressView().controlSize(.small)
@@ -246,7 +226,7 @@ struct StatusView: View {
 
             Button("Remove…", role: .destructive) { showsRemoval = true }
                 .controlSize(.small)
-            Button("Refresh") { reload() }
+            Button("Refresh") { model.refresh() }
                 .controlSize(.small)
         }
         .font(.callout)
@@ -257,8 +237,8 @@ struct StatusView: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 6) {
             detailRow("Exporter", exporterDescription)
-            detailRow("Watcher", watcherDescription)
-            if let snapshot {
+            detailRow("Watcher", model.watcherSummary)
+            if let snapshot = model.snapshot {
                 detailRow("Snapshot", snapshotDescription(snapshot))
                 detailRow("Claude Code", snapshot.claudeCodeVersion ?? "—")
             }
@@ -272,12 +252,12 @@ struct StatusView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if !diagnostics.isEmpty {
+            if !model.diagnostics.isEmpty {
                 Divider()
-                Label("\(diagnostics.count) field(s) dropped while parsing",
+                Label("\(model.diagnostics.count) field(s) dropped while parsing",
                       systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                ForEach(diagnostics, id: \.field) { issue in
+                ForEach(model.diagnostics, id: \.field) { issue in
                     Text(verbatim: issue.summary)
                         .font(.caption2.monospaced())
                         .textSelection(.enabled)
@@ -291,7 +271,7 @@ struct StatusView: View {
             .controlSize(.small)
             .padding(.top, 2)
 
-            if let notice {
+            if let notice = model.notice {
                 Text(verbatim: notice)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -313,7 +293,7 @@ struct StatusView: View {
     }
 
     private var exporterDescription: String {
-        switch integrity {
+        switch model.integrity {
         case .matches: return String(localized: "matches the installed copy")
         case .changed: return String(localized: "modified since installation")
         case .unknown: return String(localized: "installed before checking existed")
@@ -321,14 +301,6 @@ struct StatusView: View {
         }
     }
 
-    private var watcherDescription: String {
-        guard watcher.isRunning else { return String(localized: "stopped") }
-        guard let last = watcher.lastReload else {
-            return String(localized: "running · no reloads yet")
-        }
-        let moment = last.formatted(date: .omitted, time: .shortened)
-        return String(localized: "running · \(watcher.reloadCount) reloads · last \(moment)")
-    }
 
     private func snapshotDescription(_ snapshot: Snapshot) -> String {
         let moment = snapshot.capturedAt.formatted(date: .omitted, time: .standard)
@@ -336,56 +308,7 @@ struct StatusView: View {
         return "\(moment) · \(session)"
     }
 
-    // MARK: Действия
 
-    private func reload() {
-        snapshot = try? SnapshotStore.default().load()
-        diagnostics = snapshot?.diagnostics ?? []
-        integrity = installer.checkIntegrity()
-    }
 
-    private func runInstall() {
-        do {
-            let report = try installer.install()
-            notice = report.backup.map {
-                String(localized: "Settings backed up as \($0.lastPathComponent).")
-            }
-            reload()
-        } catch {
-            notice = error.localizedDescription
-            showsDetails = true
-        }
-    }
 
-    private var removalMessage: String {
-        let plan = installer.removalPlan()
-        var lines: [String] = []
-        if plan.removesStatusLine {
-            lines.append(String(localized: "The statusLine key is removed from settings.json. Other keys are untouched."))
-        }
-        if plan.removesExporter {
-            lines.append(String(localized: "~/.claude/ccwidget-export.py is deleted."))
-        }
-        if plan.historyLineCount > 0 {
-            lines.append(String(localized: "\(plan.historyLineCount) history points exist; deleting them resets the forecast."))
-        }
-        lines.append(String(localized: "These have to be removed by hand: \(plan.manualLeftovers.joined(separator: ", "))"))
-        return lines.joined(separator: "\n\n")
-    }
-
-    private func runRemoval(history: Bool) {
-        do {
-            let report = try installer.uninstall(removingHistory: history)
-            var parts = [String(localized: "Removed.")]
-            if let backup = report.backup {
-                parts.append(String(localized: "Settings backed up as \(backup.lastPathComponent)."))
-            }
-            notice = parts.joined(separator: " ")
-            showsDetails = true
-            reload()
-        } catch {
-            notice = error.localizedDescription
-            showsDetails = true
-        }
-    }
 }
