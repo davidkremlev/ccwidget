@@ -152,6 +152,41 @@ struct DiagnosticsTests {
         #expect(issue.rawValue == rendered, "\(literal) → \(issue.rawValue ?? "nil")")
     }
 
+    /// The six shapes by name. The check above proves each one reaches the
+    /// log with the right rendering; this one proves each is a case somebody
+    /// asks for, which is the rule about enum cases in CLAUDE.md applied to a
+    /// type whose cases are otherwise only ever produced by accident.
+    @Test("Every JSON shape decodes to its own case")
+    func jsonValueCasesAreDistinct() throws {
+        func value(_ literal: String) throws -> JSONValue {
+            try JSONDecoder().decode(JSONValue.self, from: Data(literal.utf8))
+        }
+
+        guard case .null = try value("null") else {
+            Issue.record("null did not decode to .null"); return
+        }
+        guard case .bool(let flag) = try value("true") else {
+            Issue.record("true did not decode to .bool"); return
+        }
+        #expect(flag)
+        guard case .number(let number) = try value("42.5") else {
+            Issue.record("42.5 did not decode to .number"); return
+        }
+        #expect(number == 42.5)
+        guard case .string(let text) = try value("\"hi\"") else {
+            Issue.record("a string did not decode to .string"); return
+        }
+        #expect(text == "hi")
+        guard case .array(let items) = try value("[1, null]") else {
+            Issue.record("an array did not decode to .array"); return
+        }
+        #expect(items.count == 2)
+        guard case .object(let fields) = try value(#"{"a":1}"#) else {
+            Issue.record("an object did not decode to .object"); return
+        }
+        #expect(fields.keys.sorted() == ["a"])
+    }
+
     /// The string shape, from the other direction: a field declared as an
     /// object that receives a string.
     @Test("A string in the wrong place is rendered as a string")

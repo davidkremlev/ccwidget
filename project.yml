@@ -130,6 +130,11 @@ targets:
       - path: App/SettingsEditor.swift
       - path: App/SnapshotWatcher.swift
       - path: App/StatusModel.swift
+      # The polarity rule from section 8 — the bar and the number beside it
+      # describe the same quantity — lives in these two and is checkable
+      # without rendering anything.
+      - path: Widget/Provider.swift
+      - path: Widget/Components.swift
       # The exporter is checked by running it, so the checks need the same
       # template the app ships — not a copy that can drift away from it.
       - path: Scripts/ccwidget-export.py.template
