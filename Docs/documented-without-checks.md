@@ -70,7 +70,7 @@ figure.
 **G2. Which branch computes the exchange path** — `SPEC` 2.2.
 Both branches are covered separately: the parameterised `exchangeURL(home:)`
 in `Tests/`, and the sandboxed behaviour observed on the live extension. The
-選択 itself — the `isSandboxed` predicate — is not, because it is derived from
+choice itself — the `isSandboxed` predicate — is not, because it is derived from
 the process environment and the test bundle does not run sandboxed. Faking the
 predicate would check the fake: the branch would be chosen by something other
 than what chooses it in production.
