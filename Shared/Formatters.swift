@@ -21,8 +21,13 @@ public enum CCWidgetFormat {
 
     /// Reset moment: "Wed 3:00". Weekday without a date — a reset is never
     /// far away.
-    public static func resetMoment(_ date: Date) -> String {
-        date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
+    ///
+    /// The locale is a parameter for the same reason the rate's is: a view
+    /// that renders against `.environment(\.locale, …)` and formats against
+    /// the process locale disagrees with itself, and a baseline taken on one
+    /// machine then fails on another.
+    public static func resetMoment(_ date: Date, locale: Locale = .autoupdatingCurrent) -> String {
+        date.formatted(.dateTime.weekday(.abbreviated).hour().minute().locale(locale))
     }
 
     public static func percent(_ value: Int) -> String {

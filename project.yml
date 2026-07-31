@@ -75,6 +75,9 @@ targets:
       # rest of Widget/ is not.
       - path: Widget/Provider.swift
       - path: Widget/Components.swift
+      # Tier 3: the estimate chart is the one thing whose correctness is a
+      # shape rather than a string, so it is checked against pictures.
+      - path: Widget/ForecastChart.swift
       - path: Scripts/ccwidget-export.py.template
         buildPhase: resources
     dependencies:
@@ -124,7 +127,12 @@ targets:
     type: bundle.unit-test
     platform: macOS
     sources:
+      # Baselines and fixtures are read from disk through #filePath, not from
+      # the bundle: a baseline the checks compare against has to be the file in
+      # the repository, and copying it into the bundle would mean comparing the
+      # build's output with itself.
       - path: Tests
+        excludes: [Baselines, Fixtures]
       - path: Shared
       - path: App/Installer.swift
       - path: App/SettingsEditor.swift
@@ -136,6 +144,9 @@ targets:
       # without rendering anything.
       - path: Widget/Provider.swift
       - path: Widget/Components.swift
+      # Tier 3: the estimate chart is the one thing whose correctness is a
+      # shape rather than a string, so it is checked against pictures.
+      - path: Widget/ForecastChart.swift
       # The exporter is checked by running it, so the checks need the same
       # template the app ships — not a copy that can drift away from it.
       - path: Scripts/ccwidget-export.py.template

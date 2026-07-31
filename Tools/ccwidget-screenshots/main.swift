@@ -45,16 +45,42 @@ let typeSize: DynamicTypeSize = {
     }
 }()
 
-let store = SnapshotStore.default()
+/// Optional `--fixture <directory>`: a `snapshot.json` and a `history.jsonl`
+/// committed to the repository, plus a fixed moment to render them at.
+///
+/// Live data is the default and stays the default for the README, whose
+/// screenshots claim to be real. Baselines cannot use it: two runs six seconds
+/// apart differ by a third of a percent of the pixels, because the countdown
+/// ticks and the age moves. That is not a macOS problem and no tolerance
+/// solves it — the fixture removes it.
+let fixture: URL? = {
+    guard let index = arguments.firstIndex(of: "--fixture"), index + 1 < arguments.count
+    else { return nil }
+    return URL(filePath: arguments[index + 1])
+}()
+
+/// The moment everything is rendered at. Fixed alongside the fixture, because
+/// a snapshot with a frozen capture time and a moving "now" is exactly as
+/// unreproducible as live data.
+let now: Date = {
+    guard let index = arguments.firstIndex(of: "--now"), index + 1 < arguments.count,
+          let seconds = TimeInterval(arguments[index + 1])
+    else { return fixture == nil ? Date() : Date(timeIntervalSince1970: 1_700_000_000) }
+    return Date(timeIntervalSince1970: seconds)
+}()
+
+let store = fixture.map { SnapshotStore(containerURL: $0) } ?? SnapshotStore.default()
 let snapshot = try? store.load()
 let history = HistoryStore(store: store).load()
-let now = Date()
 let week = snapshot?.limits.sevenDay
 let forecast = week.map { Forecast.make(history: history, window: $0, now: now) }
 let entry = CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: forecast)
 
 guard snapshot != nil else {
-    FileHandle.standardError.write(Data("no snapshot yet — run Claude Code first\n".utf8))
+    let message = fixture == nil
+        ? "no snapshot yet — run Claude Code first\n"
+        : "the fixture has no readable snapshot.json\n"
+    FileHandle.standardError.write(Data(message.utf8))
     exit(1)
 }
 

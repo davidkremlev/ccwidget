@@ -48,6 +48,11 @@ jobs:
 
     env:
       DEVELOPER_DIR: ${{ matrix.developer_dir }}
+      # Image baselines were taken with one renderer, and whether ImageRenderer
+      # agrees across macOS versions is still unmeasured — the job that answers
+      # it is step zero of Docs/rendering-checks.md. Until then the minimum
+      # runner skips them rather than failing for a reason that is not a defect.
+      CCWIDGET_SKIP_IMAGE_BASELINES: ${{ matrix.primary && '0' || '1' }}
 
     steps:
       - uses: actions/checkout@v4

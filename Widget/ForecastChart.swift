@@ -101,6 +101,13 @@ struct ForecastBlock: View {
     let forecast: Forecast
     let window: LimitWindow
 
+    /// `.formatted()` reaches for the process locale, which the environment's
+    /// locale is not obliged to match — and a baseline rendered on a Russian
+    /// machine then says "0,4" where an American one says "0.4". Taking it
+    /// from the environment is both the SwiftUI-native source and the one a
+    /// check can set.
+    @Environment(\.locale) private var locale
+
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -146,7 +153,7 @@ struct ForecastBlock: View {
     /// hour is not "h" in most of the six languages, and a caption that is
     /// half translated reads worse than one that is not translated at all.
     private func rateCaption(_ rate: Double) -> String {
-        let number = rate.formatted(.number.precision(.fractionLength(1)))
+        let number = rate.formatted(.number.precision(.fractionLength(1)).locale(locale))
         return String(localized: "\(number) %/h",
                       comment: "Usage rate: a number followed by percent per hour")
     }
@@ -166,7 +173,7 @@ struct ForecastBlock: View {
             Text("Lasts until reset")
         case .runsOut(let date):
             // The tilde is mandatory: this is an estimate, not a timetable.
-            Text("Runs out ~\(CCWidgetFormat.resetMoment(date))")
+            Text("Runs out ~\(CCWidgetFormat.resetMoment(date, locale: locale))")
         }
     }
 

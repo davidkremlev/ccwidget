@@ -212,7 +212,7 @@ Defect #3, the inverted polarity, is better still: *the bar's fraction and the
 number beside it describe the same quantity* is a plain unit test on
 `GaugeMetric`, no rendering involved.
 
-### 3. A handful of image baselines — for defect class #1 only
+### 3. A handful of image baselines — for defect class #1 only — **built**
 
 Where a picture is genuinely the only witness: the estimate chart's geometry.
 Five outcomes, one size, one appearance, one language. **Five images, on the
@@ -221,6 +221,32 @@ primary macOS version only.**
 That is the whole of it. Not 36, not 96. The chart is the one thing here whose
 correctness lives in shape rather than in text, and a stub where a line should
 be is invisible to every other kind of check.
+
+`Tests/ChartBaselineTests.swift`, baselines in `Tests/Baselines/chart-*.png`.
+Three things had to be true before a single byte could be compared, and none of
+them was:
+
+- **The tool had to become deterministic.** `--fixture` and `--now` were added
+  to the screenshot tool, with a snapshot and a history committed under
+  `Tests/Fixtures/`. Two runs three seconds apart are now byte-for-byte
+  identical across all six images; before, four of the six differed.
+- **The suite had to be serialized.** Rendering the same view twice gave
+  different bytes while the suites ran in parallel, though the same renderer in
+  a plain executable is stable across processes. Whatever the shared state is,
+  a baseline suite cannot race against one.
+- **Two formatters had to take a locale.** `ForecastBlock` renders against the
+  environment's locale and formatted against the process locale, so a baseline
+  taken here said "0,4 %/h" and "Ср 08:01" where an American machine would say
+  "0.4" and "Wed 8:01 AM". A view that disagrees with itself about locale is a
+  defect in its own right; the baseline only made it visible.
+
+And the first run found something the analysis had not predicted: rendering
+`ForecastChart` directly bypasses `ForecastBlock`, which is where the decision
+*not* to draw the chart lives. The initial "not enough data" baseline was
+therefore a picture of the very stub this tier exists to prevent — of a view
+the product never displays. Rendering the block instead is the fix, and it is
+the reason the tier is worth having: a text check would have agreed with itself
+all the way.
 
 ### Where the boundary sits
 
