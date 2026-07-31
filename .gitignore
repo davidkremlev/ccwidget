@@ -16,6 +16,10 @@ DerivedData/
 # build product like any other. Run `xcodegen generate` after cloning.
 *.xcodeproj/
 
+# Points sourcekit-lsp at this machine's DerivedData, so it cannot be shared.
+# CONTRIBUTING has the one command that regenerates it.
+buildServer.json
+
 # Xcode's per-user state.
 xcuserdata/
 *.xcuserstate

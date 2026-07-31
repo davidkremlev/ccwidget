@@ -24,21 +24,37 @@ The script generates the project, builds Release, installs to `/Applications`,
 launches the app once so the system registers the widget extension, and
 restarts `chronod`.
 
+**That last step is not decoration.** The widget daemon keeps the previous
+build of an extension loaded across a bundle replacement. Skip the restart and
+your changes appear not to apply — the widget renders old code and the log
+shows messages that no longer exist in your source.
+
 To open the project in Xcode, generate it first:
 
 ```sh
 xcodegen generate && open CCWidget.xcodeproj
 ```
 
+**Editing outside Xcode?** Point sourcekit-lsp at the project once, or every
+diagnostic you see will be wrong:
+
+```sh
+brew install xcode-build-server
+xcode-build-server config -project CCWidget.xcodeproj -scheme CCWidget
+```
+
+Without it the language server type-checks each file on its own, with no idea
+that the rest of the target exists. `ForecastChart.swift` alone reports ten
+errors — `Cannot find type 'Forecast' in scope` and friends — for code that
+compiles cleanly. That is worse than no diagnostics at all: a wall of false
+errors is a wall you learn to scroll past, and a real one arrives in the same
+colour. The generated `buildServer.json` names this machine's DerivedData, so
+it is gitignored rather than committed.
+
 **Adding or moving a file means editing `project.yml`,** not clicking in
 Xcode. Anything you add through the Xcode UI lands in a generated file and
 disappears on the next generate. The build settings live in `project.yml`
 too, with the reasoning next to them.
-
-**That last step is not decoration.** The widget daemon keeps the previous
-build of an extension loaded across a bundle replacement. Skip the restart and
-your changes appear not to apply — the widget renders old code and the log
-shows messages that no longer exist in your source.
 
 ## Running the checks
 
@@ -96,8 +112,10 @@ log stream --predicate 'subsystem == "dev.illvminat.ccwidget"' --level info
   the reason, the constraint, or the failure that motivated the change.
 - **Keep SPEC.md current.** It is the design document, not a historical
   artifact. If your change contradicts it, update it in the same commit.
-- **No new dependencies** without discussing it first. Part of the point is
-  that this thing builds from a clean clone with nothing installed.
+- **No new dependencies in the app** without discussing it first. Nothing is
+  linked that does not ship with Xcode, and that is worth keeping. Build-time
+  tools are a separate question — XcodeGen is one, and it was still a
+  deliberate decision rather than a convenience.
 - **Swift 6, complete concurrency, zero warnings.** The build is warning-free
   today; keep it that way.
 - **User-facing strings go through the string catalogs** in `App/Resources`
