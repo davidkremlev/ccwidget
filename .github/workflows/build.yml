@@ -13,10 +13,36 @@ concurrency:
 
 jobs:
   build:
-    name: Build and check
-    # Widget extensions need a real macOS toolchain; there is no Linux path.
-    runs-on: macos-15
-    timeout-minutes: 20
+    # Both ends of the supported range. The minimum in README and project.yml
+    # was an assumption until this job existed: nothing had ever compiled, let
+    # alone run, against macOS 14.
+    #
+    # What this proves and what it does not. On the 14 runner the checks
+    # execute against the real 14 runtime, so an API that is unavailable there
+    # fails here rather than on a user's machine. It says nothing about the
+    # widget: WidgetKit needs a desktop and a logged-in session, and the views
+    # have no coverage at all (see the coverage summary). The widget has only
+    # ever been run by hand, on macOS 26.
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            label: macOS 14 (minimum supported)
+            # 15.4 is the default on this image and predates Swift 6.
+            developer_dir: /Applications/Xcode_16.2.app/Contents/Developer
+            primary: false
+          - os: macos-latest
+            label: macOS 26 (current)
+            developer_dir: ""
+            primary: true
+
+    env:
+      DEVELOPER_DIR: ${{ matrix.developer_dir }}
 
     steps:
       - uses: actions/checkout@v4
@@ -75,6 +101,19 @@ jobs:
               || { echo "::error::missing localization: $lang"; exit 1; }
           done
 
+      - name: Check the deployment target is what we claim
+        run: |
+          # The claim in README is a number in project.yml, and a number in a
+          # config file is exactly the kind of thing that drifts silently.
+          APP=.build/dd/Build/Products/Release/CCWidget.app
+          FOUND=$(vtool -show-build "$APP/Contents/MacOS/CCWidget" \
+                  | awk '/minos/ { print $2; exit }')
+          if [ "$FOUND" != "14.0" ]; then
+            echo "::error::built binary requires macOS $FOUND, but the documented minimum is 14.0"
+            exit 1
+          fi
+          echo "minimum macOS in the built binary: $FOUND"
+
       - name: Run the checks
         run: |
           set -o pipefail
@@ -89,6 +128,7 @@ jobs:
           grep -q "TEST SUCCEEDED" test.log
 
       - name: Report coverage
+        if: matrix.primary
         run: |
           # No threshold here on purpose. A number nobody agreed to is a
           # number that gets lowered the first time it is inconvenient; the
@@ -110,6 +150,29 @@ jobs:
             Shared/Snapshot.swift Shared/SnapshotStore.swift \
             Shared/Formatters.swift Shared/Diagnostics.swift \
             Tools/ccwidget-dump/main.swift -o .build/ccwidget-dump
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.os }}
+          path: |
+            build.log
+            test.log
+            coverage.txt
+          retention-days: 7
+          if-no-files-found: ignore
+
+  source:
+    # Checks about the source itself. They do not depend on a macOS version,
+    # so running them twice would only double the time it takes to learn the
+    # same thing.
+    name: Source checks
+    runs-on: macos-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Check the exporter is valid Python
         run: |
@@ -144,14 +207,27 @@ jobs:
             exit 1
           fi
 
-      - name: Upload logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logs
-          path: |
-            build.log
-            test.log
-            coverage.txt
-          retention-days: 7
-          if-no-files-found: ignore
+      - name: Check every catalog key is reachable from the code
+        run: |
+          # A key nobody can reach is text that gets translated into six
+          # languages and shown to no one. Seven of them had accumulated
+          # before this check existed.
+          python3 - <<'PY'
+          import json, pathlib, sys
+          source = "".join(p.read_text()
+                           for d in ("App", "Widget")
+                           for p in pathlib.Path(d).rglob("*.swift"))
+          dead = []
+          for catalog in pathlib.Path(".").rglob("Localizable.xcstrings"):
+              for key in json.loads(catalog.read_text())["strings"]:
+                  # Look for the literal run before the first format specifier;
+                  # anything after it is assembled at runtime.
+                  stem = key.split("%")[0].strip()
+                  if len(stem) >= 8 and stem not in source:
+                      dead.append(f"{catalog}: {key}")
+          if dead:
+              print("::error::localization keys not referenced anywhere in the code")
+              print("\n".join(dead))
+              sys.exit(1)
+          print("every catalog key is reachable")
+          PY

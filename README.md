@@ -58,10 +58,21 @@ With several sessions open, those three values flicker between them, which is
 why the widget labels them: the project name sits next to the context row, and
 the footer says `this session`.
 
-The large size adds a forecast: least-squares regression over the current
-week's history, weighted towards recent usage. It refuses to guess — fewer
-than five data points, less than thirty minutes of spread, or flat usage and
-it shows a dash instead of a number. A wrong forecast is worse than none.
+The large size adds an estimate of when the weekly quota runs out:
+least-squares regression over the current week's history, weighted towards
+recent usage. It is built to refuse rather than to guess, and it has three
+answers instead of two:
+
+- **A date** — but only when there are at least ten points spanning at least
+  two hours, the line fits them (R² ≥ 0.7), and the date lands within ten
+  times the span the points cover. Extrapolating a day of usage across a week
+  is arithmetic, not knowledge.
+- **A rate with no date** — "~0.7 %/h". Right after the weekly reset the
+  reset is nearly seven days out and no honest date can be named for about
+  seventeen hours, but the pace is already measurable, and silence for
+  seventeen hours reads as broken.
+- **Nothing** — too few points, too short a span, or a line that does not
+  describe the data. A wrong estimate is worse than none.
 
 ## Trusting the numbers
 
@@ -90,6 +101,14 @@ than that is a bug — please [open an issue](../../issues).
 - macOS 14 or later (desktop widgets arrived there)
 - Claude Code, terminal version, used at least once
 - A Claude subscription that reports rate limits
+
+**What "macOS 14 or later" is worth.** CI builds the app and runs the checks
+on macOS 14 and on macOS 26, so the code compiles and its logic runs on both.
+That is the whole of it. The widget itself — WidgetKit, the timeline, the
+three sizes on a real desktop — has only ever been run by hand, on macOS 26.
+There is no automated way to put a widget on a desktop, and the view code has
+no test coverage at all. If you are on 14 or 15 and something looks wrong,
+that is worth an issue: you would be the first to look.
 
 ## Installing
 
