@@ -1,7 +1,6 @@
 import Foundation
 
 public enum SnapshotStoreError: Error, CustomStringConvertible {
-    case containerUnavailable
     case fileMissing(URL)
     case unreadable(URL, Error)
     case malformed(Error)
@@ -9,8 +8,6 @@ public enum SnapshotStoreError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .containerUnavailable:
-            return "The exchange directory is unavailable"
         case .fileMissing(let url):
             return "Snapshot not found: \(url.path)"
         case .unreadable(let url, let error):

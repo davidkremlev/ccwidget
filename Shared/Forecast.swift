@@ -159,7 +159,19 @@ public struct Forecast: Sendable {
         let secondsTo100 = (100 - intercept) / slope
         let exhaustion = origin.addingTimeInterval(max(secondsTo100, 0))
 
-        // 8. The horizon. Beyond ten base lengths nothing can be asserted —
+        // 8. Which comes first, and can we say so?
+        //
+        //    Two questions, and they used to be one. The old code asked only
+        //    whether the exhaustion date fell inside the horizon, and named it
+        //    when it did — without ever comparing it to the reset. So a quota
+        //    that comfortably outlived its window was reported, in red, as
+        //    running out on a date fifteen hours after the counter drops back
+        //    to zero. Observed live at 11 % used with the reset 140 hours away
+        //    and exhaustion extrapolating to 156.
+        //
+        //    The order comes first because it decides *what* is being claimed.
+        //    The horizon comes second because it decides whether that claim is
+        //    supported: beyond ten base lengths nothing can be asserted —
         //    neither an exhaustion date nor that the quota lasts to the reset.
         //    The second is every bit as much an extrapolation as the first.
         let maxHorizon = span * horizonMultiplier
@@ -167,14 +179,14 @@ public struct Forecast: Sendable {
         let toReset = window.resetsAt.timeIntervalSince(last.time)
 
         let outcome: Outcome
-        if toExhaustion <= maxHorizon {
-            outcome = .runsOut(at: max(exhaustion, now))
-        } else if toReset <= maxHorizon {
-            // Exhaustion is beyond the horizon while the reset is inside it,
-            // so the reset comes first — a claim the base does support.
-            outcome = .lastsUntilReset
+        if exhaustion < window.resetsAt {
+            // The quota runs out inside this window.
+            outcome = toExhaustion <= maxHorizon ? .runsOut(at: max(exhaustion, now)) : .rateOnly
         } else {
-            outcome = .rateOnly
+            // The reset arrives first and takes the counter back to zero, so
+            // there is no date to name — only the fact that the window is
+            // survived, and only if the reset itself is close enough to claim.
+            outcome = toReset <= maxHorizon ? .lastsUntilReset : .rateOnly
         }
 
         return Forecast(outcome: outcome, points: points, slope: slope,

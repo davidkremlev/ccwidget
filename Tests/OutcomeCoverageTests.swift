@@ -1,0 +1,262 @@
+import Foundation
+import Testing
+
+/// Every case of every enum, produced on purpose.
+///
+/// A case that no check expects is wrong forever by construction: there is
+/// nothing to notice when the branch that should produce it stops producing
+/// it. That is exactly how `.runsOut` came to be named for quotas that
+/// survive their window — `.lastsUntilReset` existed in the type and in a
+/// switch, and no check ever asked for it.
+///
+/// So this suite is organised by *result* rather than by scenario. The
+/// scenarios live with their subjects; what lives here is the guarantee that
+/// none of the results is unreachable.
+@Suite("Every enum case is produced")
+struct OutcomeCoverageTests {
+
+    // MARK: Installer.Integrity
+
+    @Test("matches, after a clean install")
+    func integrityMatches() throws {
+        let home = sandbox()
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        makeContainer(in: home)
+        write("{}", to: home)
+        _ = try inst.install()
+        #expect(inst.checkIntegrity() == .matches)
+    }
+
+    @Test("changed, when something rewrote the exporter")
+    func integrityChanged() throws {
+        let home = sandbox()
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        makeContainer(in: home)
+        write("{}", to: home)
+        _ = try inst.install()
+        try "#!/bin/sh\necho hacked\n".write(to: inst.exporterURL, atomically: true, encoding: .utf8)
+        #expect(inst.checkIntegrity() == .changed)
+    }
+
+    /// Installed by a build that predates the hash. Not an error and not
+    /// tampering — the interface has to be able to say so rather than pick
+    /// one of the two.
+    @Test("unknown, when the exporter is there but no hash is")
+    func integrityUnknown() throws {
+        let home = sandbox()
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        makeContainer(in: home)
+        write("{}", to: home)
+        _ = try inst.install()
+        try FileManager.default.removeItem(at: inst.integrityURL)
+        #expect(inst.checkIntegrity() == .unknown)
+    }
+
+    @Test("missing, when the exporter is gone")
+    func integrityMissing() {
+        let home = sandbox()
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        #expect(inst.checkIntegrity() == .missing)
+    }
+
+    // MARK: Installer.Failure
+
+    /// `Installer.Failure` carries a `URL` and an `Error`, so it is not
+    /// `Equatable` and `#expect(throws:)` cannot take a value. Matching the
+    /// case by hand also states the property more exactly: it is the case
+    /// that matters, not the payload.
+    private func failure(from body: () throws -> Void) -> Installer.Failure? {
+        do { try body(); return nil } catch { return error as? Installer.Failure }
+    }
+
+    /// The existing installer checks assert only that *something* was thrown.
+    /// Which failure it is decides what the user is told, and telling someone
+    /// to add a widget when the real problem is a missing interpreter wastes
+    /// their afternoon.
+    @Test("widgetContainerMissing, before the widget has ever run")
+    func failureContainerMissing() {
+        let home = sandbox()
+        write("{}", to: home)
+        let thrown = failure {
+            _ = try installer(home: home, template: makeTemplate(in: home)).install()
+        }
+        guard case .widgetContainerMissing? = thrown else {
+            Issue.record("expected widgetContainerMissing, got \(String(describing: thrown))")
+            return
+        }
+    }
+
+    @Test("templateMissing, when the app bundle has no template")
+    func failureTemplateMissing() {
+        let home = sandbox()
+        makeContainer(in: home)
+        write("{}", to: home)
+        let thrown = failure {
+            _ = try Installer(home: home,
+                              exchangeDirectory: SnapshotStore.exchangeURL(home: home),
+                              templateURL: nil).install()
+        }
+        guard case .templateMissing? = thrown else {
+            Issue.record("expected templateMissing, got \(String(describing: thrown))")
+            return
+        }
+    }
+
+    /// On a clean macOS `/usr/bin/python3` exists and is a stub that offers to
+    /// install the Command Line Tools instead of running. Every candidate
+    /// failing is therefore a real state, not a hypothetical one.
+    @Test("pythonMissing, when no candidate interpreter runs")
+    func failurePythonMissing() {
+        let home = sandbox()
+        makeContainer(in: home)
+        write("{}", to: home)
+        var inst = installer(home: home, template: makeTemplate(in: home))
+        inst.interpreterCandidates = [
+            URL(filePath: "/nonexistent/python3"),
+            URL(filePath: "/usr/bin/false"),
+        ]
+        let thrown = failure { _ = try inst.install() }
+        guard case .pythonMissing? = thrown else {
+            Issue.record("expected pythonMissing, got \(String(describing: thrown))")
+            return
+        }
+    }
+
+    @Test("writeFailed, when the destination cannot be written")
+    func failureWriteFailed() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        write("{}", to: home)
+        // A directory where the exporter should go: the write cannot succeed
+        // and cannot be mistaken for anything else.
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        try FileManager.default.createDirectory(at: inst.exporterURL,
+                                                withIntermediateDirectories: true)
+        let thrown = failure { _ = try inst.install() }
+        guard case .writeFailed(let url, _)? = thrown else {
+            Issue.record("expected writeFailed, got \(String(describing: thrown))")
+            return
+        }
+        #expect(url == inst.exporterURL, "the failure names the file it could not write")
+    }
+
+    // MARK: SettingsEditor.RemovalOutcome
+
+    @Test("surgical, when the key can be cut out cleanly")
+    func removalSurgical() {
+        let original = """
+        {
+          "theme": "dark",
+          "statusLine": { "type": "command", "command": "/x.py" },
+          "language": "Russian"
+        }
+        """
+        guard case .surgical(let edited) = SettingsEditor.removing("statusLine", from: original) else {
+            Issue.record("expected a surgical removal")
+            return
+        }
+        #expect(!edited.contains("statusLine"))
+        #expect(edited.contains("  \"language\": \"Russian\""), "formatting survives")
+    }
+
+    /// A file the surgical path cannot handle still has to lose the key —
+    /// with the user told that the rest of the file was rebuilt.
+    ///
+    /// The key here is spelled with an escape: `\u004C` is `L`, so a JSON
+    /// parser reads the name as `statusLine` while a search through the text
+    /// for `"statusLine"` finds nothing. Contrived to write by hand, entirely
+    /// ordinary from a generator that escapes on output — and exactly the
+    /// shape the surgical path must refuse rather than guess at.
+    @Test("rewritten, when the surgical path cannot be trusted")
+    func removalRewritten() {
+        let original = #"{"status\u004Cine":{"type":"command"},"theme":"dark"}"#
+        switch SettingsEditor.removing("statusLine", from: original) {
+        case .rewritten(let text):
+            #expect(!text.contains("statusLine") && !text.contains("u004C"))
+            #expect(text.contains("dark"), "the neighbours survive the rebuild")
+        case .surgical:
+            Issue.record("an escaped key name was cut textually; that cut cannot be trusted")
+        case .absent:
+            Issue.record("the key was there, spelled with an escape")
+        }
+    }
+
+    @Test("absent, when there is no such key")
+    func removalAbsent() {
+        guard case .absent = SettingsEditor.removing("statusLine", from: #"{"theme":"dark"}"#) else {
+            Issue.record("expected .absent")
+            return
+        }
+    }
+
+    // MARK: SnapshotStoreError
+
+    private func store(_ body: String?) -> SnapshotStore {
+        let dir = sandbox().appending(path: "exchange")
+        try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        if let body {
+            try! body.write(to: dir.appending(path: "snapshot.json"),
+                            atomically: true, encoding: .utf8)
+        }
+        return SnapshotStore(containerURL: dir)
+    }
+
+    @Test("fileMissing, before anything has been written")
+    func errorFileMissing() {
+        var thrown: Error?
+        do { _ = try store(nil).load() } catch { thrown = error }
+        guard case .fileMissing? = thrown as? SnapshotStoreError else {
+            Issue.record("expected fileMissing, got \(String(describing: thrown))")
+            return
+        }
+    }
+
+    @Test("malformed, when the JSON does not parse")
+    func errorMalformed() {
+        var thrown: Error?
+        do { _ = try store("{ not json").load() } catch { thrown = error }
+        guard case .malformed? = thrown as? SnapshotStoreError else {
+            Issue.record("expected malformed, got \(String(describing: thrown))")
+            return
+        }
+    }
+
+    /// A newer schema is refused rather than guessed at: drawing from fields
+    /// whose meaning may have changed is worse than drawing a dash.
+    @Test("unsupportedSchema, when the exporter is newer than the widget")
+    func errorUnsupportedSchema() {
+        let future = ccwidgetSupportedSchemaVersion + 1
+        var thrown: Error?
+        do {
+            _ = try store(#"{"schemaVersion":\#(future),"capturedAt":0,"limits":{}}"#).load()
+        } catch { thrown = error }
+
+        guard case .unsupportedSchema(let found, let supported)? = thrown as? SnapshotStoreError else {
+            Issue.record("expected unsupportedSchema, got \(String(describing: thrown))")
+            return
+        }
+        #expect(found == future)
+        #expect(supported == ccwidgetSupportedSchemaVersion)
+    }
+
+    /// A file that exists and cannot be read is a different problem from one
+    /// that is not there, and the log has to be able to tell them apart —
+    /// "permission denied" and "no such file" look identical otherwise.
+    @Test("unreadable, when the file exists but cannot be opened")
+    func errorUnreadable() throws {
+        let dir = sandbox().appending(path: "exchange")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appending(path: "snapshot.json")
+        try "{}".write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: url.path)
+
+        var thrown: Error?
+        do { _ = try SnapshotStore(containerURL: dir).load() } catch { thrown = error }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+
+        guard case .unreadable? = thrown as? SnapshotStoreError else {
+            Issue.record("expected unreadable, got \(String(describing: thrown))")
+            return
+        }
+    }
+}

@@ -146,4 +146,181 @@ struct ForecastTests {
         #expect(date.timeIntervalSince(now) <= f.observationSpan * Forecast.horizonMultiplier + 60,
                 "the date is within ten base lengths")
     }
+
+    // MARK: The verdict, not the arithmetic
+
+    /// The defect these were written for. Observed live: 11 % of the week
+    /// used, the reset 140 hours away, consumption extrapolating to 100 % in
+    /// 156 hours — and the widget saying, in red, "runs out ~Thu 22:40",
+    /// fifteen hours after the counter resets itself to zero.
+    ///
+    /// Eighteen checks on this file missed it because all eighteen tested the
+    /// arithmetic. The verdict is a separate claim, and this is where it is
+    /// made.
+    @Test("A quota that survives the reset is never reported as running out")
+    func exhaustionAfterResetLastsUntilReset() {
+        let now = Date()
+        // Six days to the reset, a day-wide base, and a rate that reaches
+        // 100 % well after the reset but well inside the horizon.
+        let resets = now.addingTimeInterval(140 * 3600)
+        let window = LimitWindow(usedPercentage: 11, resetsAt: resets)
+        let f = Forecast.make(history: series(count: 40, stepMinutes: 40, from: 1, per: 0.25,
+                                              resets: resets, now: now), window: window, now: now)
+
+        let exhaustion = try! #require(f.exhaustionAt)
+        #expect(exhaustion > resets,
+                "the fixture is wrong: exhaustion must fall after the reset")
+        #expect(exhaustion.timeIntervalSince(now) <= f.observationSpan * Forecast.horizonMultiplier,
+                "the fixture is wrong: exhaustion must be inside the horizon")
+
+        #expect(describe(f.outcome) == "lastsUntilReset",
+                "got \(describe(f.outcome)) for a quota that outlives its window")
+        #expect(f.showsProjection, "lastsUntilReset draws the dashed line")
+        #expect(f.hasRate, "lastsUntilReset shows a rate")
+    }
+
+    /// The other half of the same boundary: exhaustion before the reset is a
+    /// date, and it must not be swallowed by the reset comparison.
+    @Test("A quota that does not survive the reset is reported as running out")
+    func exhaustionBeforeResetRunsOut() {
+        let now = Date()
+        let resets = now.addingTimeInterval(120 * 3600)
+        let window = LimitWindow(usedPercentage: 80, resetsAt: resets)
+        let f = Forecast.make(history: series(count: 15, stepMinutes: 20, from: 60, per: 1.4,
+                                              resets: resets, now: now), window: window, now: now)
+
+        let exhaustion = try! #require(f.exhaustionAt)
+        #expect(exhaustion < resets, "the fixture is wrong: exhaustion must precede the reset")
+        #expect(describe(f.outcome) == "runsOut", "got \(describe(f.outcome))")
+    }
+
+    /// What the user can do in their head must not contradict what the widget
+    /// says. Both numbers are on screen — the percentage in its row, the rate
+    /// under the chart — so anyone can divide one by the other. If that
+    /// arithmetic says the quota lasts and the widget says it runs out, the
+    /// estimate has spent its credibility, whatever the regression thinks.
+    ///
+    /// Stated as a direction rather than a tolerance: the two need not agree
+    /// to the hour, because the row shows the latest raw sample while the
+    /// estimate uses the fitted line, and forcing them to agree exactly would
+    /// let one noisy sample move the date. They must not disagree about
+    /// whether there is a problem.
+    @Test("The napkin arithmetic and the verdict never disagree",
+          arguments: [10, 25, 40, 55, 70, 85])
+    func rateAndVerdictAgree(used: Int) {
+        let now = Date()
+        let resets = now.addingTimeInterval(100 * 3600)
+        let window = LimitWindow(usedPercentage: used, resetsAt: resets)
+        let f = Forecast.make(history: series(count: 30, stepMinutes: 30, from: used - 8,
+                                              per: 0.3, resets: resets, now: now),
+                              window: window, now: now)
+
+        guard let rate = f.percentPerHour, rate > 0 else { return }
+        let hoursByHand = Double(100 - used) / rate
+        let hoursToReset = resets.timeIntervalSince(now) / 3600
+
+        if hoursByHand > hoursToReset {
+            #expect(describe(f.outcome) != "runsOut",
+                    "by hand the quota lasts \(Int(hoursByHand)) h against \(Int(hoursToReset)) h to the reset, but the widget names a date")
+        }
+    }
+
+    /// "The slope is not positive" covers falling as well as level. A value
+    /// that goes down — a corrected reading, or a window that reset between
+    /// two writes — must not extrapolate to a date in the past.
+    @Test("A falling series is flat, not a date behind us")
+    func fallingSeriesIsFlat() {
+        let now = Date()
+        let resets = now.addingTimeInterval(20 * 3600)
+        let window = LimitWindow(usedPercentage: 40, resetsAt: resets)
+        let f = Forecast.make(history: series(count: 20, stepMinutes: 15, from: 60, per: -1,
+                                              resets: resets, now: now), window: window, now: now)
+        #expect(describe(f.outcome) == "flat", "got \(describe(f.outcome))")
+        #expect(!f.hasRate, "a falling series has no rate worth showing")
+        #expect(f.exhaustionAt == nil, "and no exhaustion date")
+    }
+
+    // MARK: What survives a refusal
+
+    /// The dump tool exists to say *why* the estimate refused, and it cannot
+    /// if the numbers behind the refusal are thrown away. Without this,
+    /// "not enough data" and "the line does not fit" are the same message.
+    @Test("A rejected fit keeps its slope and its R²")
+    func rejectedFitKeepsItsNumbers() {
+        let now = Date()
+        let resets = now.addingTimeInterval(20 * 3600)
+        let window = LimitWindow(usedPercentage: 60, resetsAt: resets)
+        let saw: (Int) -> Double = { i in i % 2 == 0 ? -18 : 18 }
+        let f = Forecast.make(history: series(count: 30, stepMinutes: 10, from: 30, per: 0.2,
+                                              resets: resets, now: now, noise: saw),
+                              window: window, now: now)
+
+        #expect(describe(f.outcome) == "notEnoughData")
+        #expect(f.slope != nil, "the slope is kept so the refusal can be explained")
+        #expect(f.fitQuality != nil, "and so is R²")
+        #expect((f.fitQuality ?? 1) < Forecast.minimumFitQuality,
+                "R² = \(f.fitQuality ?? -1)")
+    }
+
+    /// Kept but not shown. `.rateOnly` means the horizon does not support a
+    /// date, not that none was computed — and the distinction is what lets
+    /// the diagnostics say which of the two happened.
+    @Test("A rate-only estimate still carries the date it will not name")
+    func rateOnlyKeepsItsExhaustion() {
+        let now = Date()
+        let resets = now.addingTimeInterval(6.9 * 24 * 3600)
+        let window = LimitWindow(usedPercentage: 3, resetsAt: resets)
+        let f = Forecast.make(history: series(count: 13, stepMinutes: 10, from: 1, per: 0.15,
+                                              resets: resets, now: now), window: window, now: now)
+        #expect(describe(f.outcome) == "rateOnly")
+        #expect(f.exhaustionAt != nil, "the date was computed, only withheld")
+    }
+
+    // MARK: Recency weighting
+
+    /// The weighting could be deleted outright and every other check here
+    /// would still pass — which means it could already have stopped working
+    /// and nothing would say so.
+    ///
+    /// Two series with the same endpoints and different middles: one that
+    /// raced early and slowed down, one that idled and then accelerated. An
+    /// unweighted fit gives them the same slope. A fit that weights recent
+    /// points more heavily must call the accelerating one faster.
+    @Test("Recent points weigh more than old ones")
+    func recencyWeightingChangesTheSlope() {
+        let now = Date()
+        let resets = now.addingTimeInterval(40 * 3600)
+        let window = LimitWindow(usedPercentage: 60, resetsAt: resets)
+        let count = 25
+        let step = 60.0   // minutes — a day of base, comparable to the half-life
+
+        func made(_ shape: (Int) -> Int) -> [HistoryEntry] {
+            (0..<count).map { i in
+                HistoryEntry(
+                    time: now.addingTimeInterval(-Double(count - 1 - i) * step * 60),
+                    sevenDayUsed: shape(i),
+                    resetsAt: resets)
+            }
+        }
+
+        // Both run from 20 % to 60 %. The first spends its budget early, the
+        // second late.
+        let earlyRush = made { i in
+            let t = Double(i) / Double(count - 1)
+            return 20 + Int((40 * sqrt(t)).rounded())
+        }
+        let lateRush = made { i in
+            let t = Double(i) / Double(count - 1)
+            return 20 + Int((40 * t * t).rounded())
+        }
+
+        let a = Forecast.make(history: earlyRush, window: window, now: now)
+        let b = Forecast.make(history: lateRush, window: window, now: now)
+
+        let slopeEarly = try! #require(a.percentPerHour)
+        let slopeLate = try! #require(b.percentPerHour)
+
+        #expect(slopeLate > slopeEarly,
+                "the accelerating series must read faster: \(slopeLate) vs \(slopeEarly)")
+    }
 }
