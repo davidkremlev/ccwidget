@@ -128,6 +128,8 @@ targets:
       - path: Shared
       - path: App/Installer.swift
       - path: App/SettingsEditor.swift
+      - path: App/SnapshotWatcher.swift
+      - path: App/StatusModel.swift
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

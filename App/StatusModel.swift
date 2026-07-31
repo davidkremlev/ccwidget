@@ -5,9 +5,13 @@ import SwiftUI
 ///
 /// Section 5.2 requires injecting a dependency rather than switching behaviour
 /// on a flag inside the type. Same rule here, applied to state instead of
-/// paths: the live model reads the disk and owns the watcher, while the one
-/// used for screenshots returns what it was given and starts nothing. The
-/// window cannot tell them apart — it has no "if this is a screenshot" branch.
+/// paths: the live model follows the watcher and owns it, while the one used
+/// for screenshots returns what it was given and starts nothing. The window
+/// cannot tell them apart — it has no "if this is a screenshot" branch.
+///
+/// The model does not read the snapshot itself. The watcher already reads it
+/// on every change, and a second reader would only add a second answer to a
+/// question that has one.
 @MainActor
 class StatusModel: ObservableObject {
     @Published fileprivate(set) var snapshot: Snapshot?
@@ -18,6 +22,9 @@ class StatusModel: ObservableObject {
     /// A ready-made line about the watcher: the window need not know where
     /// it came from.
     @Published fileprivate(set) var watcherSummary = ""
+    /// The moment the window should treat as "now" when it renders an age.
+    /// It advances on the watcher's tick, which reads nothing.
+    @Published fileprivate(set) var now = Date()
     /// The outcome of the last action — install, remove, or a failure.
     @Published var notice: String?
 
@@ -34,45 +41,59 @@ class StatusModel: ObservableObject {
     // MARK: Lifecycle
 
     func start() {
-        watcher.start()
-        refresh()
-        // The watcher is a separate object with its own publications, and
-        // the window subscribes to the model, so bring them across.
+        // Subscribe before starting: the watcher publishes its first read from
+        // inside start(), and a subscriber attached afterwards would sit on an
+        // empty window until the next write — which, if Claude Code is idle,
+        // may be hours.
         observation = Task { @MainActor [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(2))
-                self?.updateWatcherSummary()
+            guard let watcher = self?.watcher else { return }
+            for await state in watcher.$state.values {
+                guard let self else { return }
+                self.adopt(state)
             }
         }
+        watcher.start()
+        refreshInstallState()
     }
 
     func stop() {
         observation?.cancel()
         observation = nil
         watcher.stop()
-        updateWatcherSummary()
+        adopt(watcher.state)
     }
 
+    /// The Refresh button. A manual duplicate of what the watcher does on its
+    /// own — kept because the install state has no file to watch, and because
+    /// a button that visibly does something is worth more than an explanation
+    /// of why it is unnecessary.
     func refresh() {
-        snapshot = try? SnapshotStore.default().load()
-        diagnostics = snapshot?.diagnostics ?? []
+        watcher.handleChange(reason: "manual refresh", force: false)
+        refreshInstallState()
+    }
+
+    private func refreshInstallState() {
         integrity = installer.checkIntegrity()
         containerExists = installer.widgetContainerExists
         statusLineIsOurs = installer.statusLineState() == .ours
-        updateWatcherSummary()
     }
 
-    private func updateWatcherSummary() {
-        guard watcher.isRunning else {
-            watcherSummary = String(localized: "stopped")
-            return
+    private func adopt(_ state: WatcherState) {
+        snapshot = state.snapshot
+        diagnostics = state.snapshot?.diagnostics ?? []
+        now = state.now
+        watcherSummary = summarize(state)
+    }
+
+    private func summarize(_ state: WatcherState) -> String {
+        guard state.isRunning else {
+            return String(localized: "stopped")
         }
-        guard let last = watcher.lastReload else {
-            watcherSummary = String(localized: "running · no reloads yet")
-            return
+        guard let last = state.lastReload else {
+            return String(localized: "running · no reloads yet")
         }
         let moment = last.formatted(date: .omitted, time: .shortened)
-        watcherSummary = String(localized: "running · \(watcher.reloadCount) reloads · last \(moment)")
+        return String(localized: "running · \(state.reloadCount) reloads · last \(moment)")
     }
 
     // MARK: Actions

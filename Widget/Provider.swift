@@ -70,9 +70,9 @@ struct CCWidgetProvider: TimelineProvider {
             ccwidgetWidgetLog.info(
                 """
                 timeline built from snapshot aged \(Int(snapshot.age(at: date)), privacy: .public)s; \
-                week=\(snapshot.limits.sevenDay?.remainingPercentage.description ?? "nil", privacy: .private)% left; \
-                session=\(snapshot.limits.fiveHour?.remainingPercentage.description ?? "nil", privacy: .private)% left; \
-                context=\(snapshot.context?.usedPercentage?.description ?? "nil", privacy: .private)%; \
+                week=\(snapshot.limits.sevenDay?.usedPercentage.description ?? "nil", privacy: .private)% used; \
+                fiveHour=\(snapshot.limits.fiveHour?.usedPercentage.description ?? "nil", privacy: .private)% used; \
+                context=\(snapshot.context?.usedPercentage?.description ?? "nil", privacy: .private)% used; \
                 issues=\(snapshot.diagnostics.count, privacy: .public)
                 """
             )

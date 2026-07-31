@@ -69,7 +69,10 @@ struct StatusView: View {
         if !model.containerExists { return .needsWidget }
         if !model.statusLineIsOurs { return .needsSetup }
         guard let snapshot = model.snapshot else { return .waiting }
-        switch Freshness(age: snapshot.age()) {
+        // `model.now` rather than the wall clock: the age has to advance on the
+        // watcher's tick, so that going stale is something the window notices
+        // rather than something the next redraw happens to reveal.
+        switch Freshness(age: snapshot.age(at: model.now)) {
         case .fresh, .recent: return .working
         case .stale: return .outdated
         case .abandoned: return .abandoned
@@ -166,7 +169,7 @@ struct StatusView: View {
     /// snapshot is.
     @ViewBuilder
     private func quietLine(_ snapshot: Snapshot) -> some View {
-        let age = CCWidgetFormat.relativeAge(of: snapshot.capturedAt)
+        let age = CCWidgetFormat.relativeAge(of: snapshot.capturedAt, at: model.now)
         Group {
             if let week = snapshot.limits.sevenDay {
                 Text("Week resets \(CCWidgetFormat.resetMoment(week.resetsAt)) · updated \(age)")
