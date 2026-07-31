@@ -473,9 +473,15 @@ CCWidget/
 ├── Scripts/
 │   ├── ccwidget-export.py.template   # __GROUP_DIR__ подставляется при установке
 │   └── reinstall.sh                 # сборка, установка, перезапуск chronod
+├── Tests/                        # проверки на swift-testing, отдельная цель
+│   ├── Sandbox.swift              # подставной корень, общий для всех наборов
+│   ├── SettingsEditorTests.swift
+│   ├── InstallerTests.swift
+│   ├── SecurityTests.swift
+│   ├── RemovalTests.swift
+│   └── ForecastTests.swift
 ├── Tools/                        # утилиты разработки, в бандл не входят
 │   ├── ccwidget-dump/             # печать разобранного снимка
-│   ├── ccwidget-selftest/         # проверки установщика в подставном каталоге
 │   └── ccwidget-screenshots/      # пересъёмка картинок для README
 ├── Docs/
 │   └── screenshots/              # картинки README, снимаются утилитой
@@ -507,7 +513,7 @@ CCWidget/
 
 Второй случай важнее первого. Установщик, который сам решает, где дом, **невозможно проверить, не тронув чужие файлы**, — а установщик правит конфигурацию Claude Code и обязан быть покрыт проверками плотнее всего остального.
 
-Как это выглядит: `Installer` — структура с полями `home`, `exchangeDirectory` и `templateURL`; боевые значения собирает `Installer.live()`. `SnapshotStore` даёт пару `exchangeURL(home:)` и `widgetContainerExists(home:)` рядом с беспараметрическими версиями. Проверки в `Tools/ccwidget-selftest` работают во временном каталоге и настоящего `~/.claude` не касаются.
+Как это выглядит: `Installer` — структура с полями `home`, `exchangeDirectory` и `templateURL`; боевые значения собирает `Installer.live()`. `SnapshotStore` даёт пару `exchangeURL(home:)` и `widgetContainerExists(home:)` рядом с беспараметрическими версиями. Проверки в `Tests/` работают во временном каталоге и настоящего `~/.claude` не касаются.
 
 **Правило шире путей: внедряется любая зависимость, а не переключается флаг.** Окно приложения сначала получило булев `isSample` и второй инициализатор, чтобы рисоваться для снимков экрана в заданном состоянии. Это тот же дефект в другом обличье: тип сам решает, как себя вести, и его поведение нельзя задать снаружи, не изменив его код.
 

@@ -75,16 +75,18 @@ jobs:
               || { echo "::error::missing localization: $lang"; exit 1; }
           done
 
-      - name: Build the self-test
+      - name: Run the checks
         run: |
-          swiftc -swift-version 6 -strict-concurrency=complete \
-            -target arm64-apple-macos14.0 \
-            Shared/*.swift App/Installer.swift App/SettingsEditor.swift \
-            Tools/ccwidget-selftest/main.swift \
-            -o .build/ccwidget-selftest
-
-      - name: Run the self-test
-        run: ./.build/ccwidget-selftest
+          set -o pipefail
+          xcodebuild \
+            -project CCWidget.xcodeproj \
+            -scheme CCWidget \
+            -configuration Debug \
+            -derivedDataPath .build/dd \
+            -enableCodeCoverage YES \
+            test \
+            | tee test.log | grep -E "error:|✘|Test run|TEST" || true
+          grep -q "TEST SUCCEEDED" test.log
 
       - name: Build the console tools
         run: |

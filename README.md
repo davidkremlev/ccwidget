@@ -201,11 +201,6 @@ The console tools are not built by `reinstall.sh` — build them when you need
 them:
 
 ```sh
-# checks for the installer and the settings editor, in a temp directory
-swiftc -swift-version 6 -strict-concurrency=complete -target arm64-apple-macos14.0 \
-    Shared/*.swift App/Installer.swift App/SettingsEditor.swift \
-    Tools/ccwidget-selftest/main.swift -o .build/ccwidget-selftest && ./.build/ccwidget-selftest
-
 # print the parsed snapshot and its parse diagnostics
 swiftc -swift-version 6 -target arm64-apple-macos14.0 \
     Shared/Snapshot.swift Shared/SnapshotStore.swift Shared/Formatters.swift \

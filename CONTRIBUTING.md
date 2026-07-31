@@ -43,16 +43,26 @@ shows messages that no longer exist in your source.
 ## Running the checks
 
 ```sh
-swiftc -swift-version 6 -strict-concurrency=complete -target arm64-apple-macos14.0 \
-    Shared/*.swift App/Installer.swift App/SettingsEditor.swift \
-    Tools/ccwidget-selftest/main.swift -o .build/ccwidget-selftest
-./.build/ccwidget-selftest
+xcodebuild -project CCWidget.xcodeproj -scheme CCWidget test
 ```
 
-`ccwidget-selftest` exercises the installer and the settings editor **inside a
-temporary directory**. It must never touch a real `~/.claude`. If you add a
-code path that reads or writes under the user's home, it takes the root as a
-parameter — see SPEC section 5.2 for why that rule exists.
+The checks live in `Tests/`, use swift-testing, and are grouped by area:
+settings editing, installing, security, removal, and the estimate. They build
+into their own target and do not launch the app — nothing they check needs it
+running.
+
+Every one of them works **inside a temporary directory**. They must never
+touch a real `~/.claude`. If you add a code path that reads or writes under
+the user's home, it takes the root as a parameter — see SPEC section 5.2 for
+why that rule exists, and `Tests/Sandbox.swift` for the stand-in root they all
+share.
+
+A check earns its place by testing the property, not a symptom of it. The one
+that matters most here is in `SecurityTests`: an early version asked whether
+the generated Python literal contained backslashes, which is a symptom, and it
+would have passed the escaped slashes that actually broke the exporter. Asking
+whether the literal parses back into the original path is the property, and it
+caught the bug.
 
 Two more tools, useful while working:
 
@@ -100,8 +110,8 @@ log stream --predicate 'subsystem == "dev.illvminat.ccwidget"' --level info
 
 One maintainer, reviewing in evenings. Expect a first response within a week
 and questions rather than silent rejection. Small focused changes get merged
-faster than large ones, and a change that comes with a check in
-`ccwidget-selftest` gets merged faster still.
+faster than large ones, and a change that comes with a check in `Tests/` gets
+merged faster still.
 
 If you are unsure whether something is wanted, open an issue before writing
 the code. Nobody enjoys throwing away a weekend's work.

@@ -6,7 +6,7 @@
 ## Checks
 
 - [ ] `./Scripts/reinstall.sh` builds with no warnings
-- [ ] `./.build/ccwidget-selftest` passes
+- [ ] `xcodebuild -project CCWidget.xcodeproj -scheme CCWidget test` passes
 - [ ] `SPEC.md` updated if this contradicts it
 - [ ] New user-facing strings are in the string catalogs; data uses `Text(verbatim:)`
 - [ ] Nothing user-identifying logs as `.public`

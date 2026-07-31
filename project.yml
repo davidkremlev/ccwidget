@@ -115,6 +115,25 @@ targets:
           - "@executable_path/../Frameworks"
           - "@executable_path/../../../../Frameworks"
 
+  # The checks compile the sources they exercise straight into the test
+  # bundle instead of hosting the app. A hosted test bundle would have to
+  # launch CCWidget.app, which embeds a widget extension and opens a window —
+  # a GUI session's worth of machinery to check that a JSON key is edited in
+  # place. Nothing here needs the app running.
+  CCWidgetTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+      - path: Shared
+      - path: App/Installer.swift
+      - path: App/SettingsEditor.swift
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: dev.illvminat.ccwidget.tests
+        PRODUCT_NAME: CCWidgetTests
+
 schemes:
 
   CCWidget:
@@ -122,7 +141,17 @@ schemes:
       targets:
         CCWidget: all
         CCWidgetExtension: all
+        CCWidgetTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      coverageTargets:
+        - CCWidget
+        - CCWidgetExtension
+        - CCWidgetTests
+      targets:
+        - CCWidgetTests
     archive:
       config: Release
