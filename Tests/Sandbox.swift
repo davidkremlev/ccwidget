@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 // Everything the checks touch lives inside a stand-in home directory: the root
 // arrives as a parameter (section 5.2), so the real ~/.claude takes no part and
@@ -67,6 +68,38 @@ func posixMode(of url: URL) -> Int {
 
 func parseJSON(_ text: String) -> [String: Any]? {
     (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any]
+}
+
+/// What this process wrote to the system log while `body` ran.
+///
+/// "Soft parsing must be loud" is the project's central rule, and until now
+/// every check of it asked only whether the value came back nil — which is the
+/// quiet half. `OSLogStore` scoped to our own process makes the loud half
+/// checkable: the message really was emitted, not merely intended.
+///
+/// **Presence only.** Log delivery is asynchronous, so waiting for a message
+/// that is not coming is indistinguishable from waiting too briefly. Absence
+/// is asserted through the `diagnostics` array instead, which is synchronous
+/// and exact.
+///
+/// Values interpolated as `.private` come back redacted, as they should — the
+/// checks look at the public part of the message.
+func logMessages(subsystem: String = "dev.illvminat.ccwidget",
+                 matching fragment: String,
+                 during body: () -> Void) throws -> [String] {
+    let store = try OSLogStore(scope: .currentProcessIdentifier)
+    let start = store.position(date: Date().addingTimeInterval(-1))
+    body()
+
+    let deadline = ContinuousClock.now + .seconds(3)
+    while true {
+        let found = try store.getEntries(at: start)
+            .compactMap { $0 as? OSLogEntryLog }
+            .filter { $0.subsystem == subsystem && $0.composedMessage.contains(fragment) }
+            .map(\.composedMessage)
+        if !found.isEmpty || ContinuousClock.now >= deadline { return found }
+        Thread.sleep(forTimeInterval: 0.05)
+    }
 }
 
 // Reaching into the outcome as an optional keeps each check a statement about
