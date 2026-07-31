@@ -96,6 +96,27 @@ models"** is the weekly window.
 A one-percent difference is fine: the exporter rounds fractional values. More
 than that is a bug — please [open an issue](../../issues).
 
+## Languages
+
+The interface is in English, German, Spanish, Japanese, Russian and Simplified
+Chinese, and follows your system language.
+
+> **Four of those six have never been read by a native speaker.** German,
+> Spanish, Japanese and Simplified Chinese are one developer's best effort with
+> a dictionary and a careful ear. English and Russian are first-language work.
+>
+> The row captions were already rewritten once, after reading them aloud caught
+> translations that were word-for-word correct and that nobody says — German
+> `Woche genutzt` and Spanish `Semana usada` both meant "a week that was used".
+> There are almost certainly more of those.
+>
+> **If you read one of the four, corrections are the single most welcome
+> contribution to this project right now.** One line in an issue is enough — no
+> pull request needed, no need to know Swift, and the string catalogs are plain
+> JSON if you would rather edit them directly. See
+> [`Docs/localization-review.md`](Docs/localization-review.md) for the exact
+> strings and what each one is for.
+
 ## Requirements
 
 - macOS 14 or later (desktop widgets arrived there)

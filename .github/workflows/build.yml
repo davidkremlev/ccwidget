@@ -31,6 +31,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # SPEC section 5: the documented minimum may never be lower than
+          # what CI checks. This image is unsupported from 2 November 2026 —
+          # on that date the minimum rises to whatever image still exists,
+          # here and in project.yml and README together. That decision is
+          # already made; only the edit is outstanding.
           - os: macos-14
             label: macOS 14 (minimum supported)
             # 15.4 is the default on this image and predates Swift 6.

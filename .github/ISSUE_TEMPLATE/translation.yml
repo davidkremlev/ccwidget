@@ -1,0 +1,48 @@
+name: Translation correction
+description: A string reads wrong in your language
+title: "[l10n] "
+labels: ["localization", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. German, Spanish, Japanese and Simplified Chinese have had no
+        native review, so corrections are genuinely the most useful thing
+        anyone can send right now.
+
+        One line is enough. You do not need to know Swift, and you do not need
+        to open a pull request. Every string is listed in
+        [`Docs/localization-review.md`](../blob/main/Docs/localization-review.md).
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - German (de)
+        - Spanish (es)
+        - Japanese (ja)
+        - Simplified Chinese (zh-Hans)
+        - Russian (ru)
+        - English (en)
+    validations:
+      required: true
+
+  - type: textarea
+    id: corrections
+    attributes:
+      label: What should it say?
+      description: The key, what it says now, and what it should say. Several at once are welcome.
+      placeholder: |
+        "Week used" → currently "Diese Woche verbraucht", better as "…"
+        "Context used" → currently "Kontext belegt", better as "…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why (optional)
+      description: >
+        Only if it is not obvious. "Nobody says it that way" is a complete
+        reason and needs no elaboration.
