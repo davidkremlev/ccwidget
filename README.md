@@ -154,6 +154,15 @@ not notarized, so Gatekeeper treats it as untrusted. A locally built app opens
 without complaint. This is the main thing standing between the project and a
 real release; see SPEC.md section 14.
 
+Checked rather than assumed, by quarantining a copy the way a download would
+be. The dialog says *"'CCWidget.app' Not Opened — Apple could not verify
+'CCWidget.app' is free of malware that may harm your Mac or compromise your
+privacy"*, and it offers **Move to Trash** or **Done** — there is no "Open
+Anyway" in it. On current macOS that button lives in **System Settings →
+Privacy & Security**, below the message about the blocked app, and appears
+only after you have tried to open it once. Worth knowing before you conclude
+the app is broken.
+
 ## Removing it
 
 Either way undoes the same things.

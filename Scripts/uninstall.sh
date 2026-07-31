@@ -75,14 +75,22 @@ fi
 if [ "$REMOVE_KEY" -eq 1 ]; then
     STAMP=$(date +%Y%m%d-%H%M%S)
     BACKUP="$CLAUDE_DIR/settings.json.bak-$STAMP"
-    echo "==> Settings backup: $(basename "$BACKUP")"
-    if [ "$DRY" -eq 0 ]; then
+    # The prefix is not decoration. A dry run that announces "Settings backup:
+    # settings.json.bak-…" in the same words as a real one is telling the user
+    # a file exists that does not, and the whole point of --dry-run is to be
+    # believed.
+    if [ "$DRY" -eq 1 ]; then
+        echo "==> [dry run] Settings backup would be: $(basename "$BACKUP")"
+    else
+        echo "==> Settings backup: $(basename "$BACKUP")"
         cp "$(python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$SETTINGS")" "$BACKUP"
         chmod 600 "$BACKUP"
     fi
 
-    echo "==> Removing the statusLine key"
-    if [ "$DRY" -eq 0 ]; then
+    if [ "$DRY" -eq 1 ]; then
+        echo "==> [dry run] The statusLine key would be removed"
+    else
+        echo "==> Removing the statusLine key"
         python3 - "$SETTINGS" <<'PY'
 import json, os, sys
 

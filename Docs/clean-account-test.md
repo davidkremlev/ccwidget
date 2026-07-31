@@ -16,6 +16,26 @@ is a finding worth reporting.
 
 ---
 
+## Already checked from the developer's account
+
+These are done. They are listed so nobody spends a clean account on them
+again — but read the caveat on each, because none of them is the same thing
+as a real first-run.
+
+| Step | What was actually checked | What that does not cover |
+|---|---|---|
+| 1 | A fresh `git clone` into an empty directory, `xcodegen generate`, Release build: succeeded with no warnings | Xcode absent entirely; XcodeGen absent |
+| 3 | Install refuses without the extension's container, and does not create the container itself — an automated check, in a stand-in home | The real system-created container, and the ordering as a person meets it |
+| 6 | Exporter written `0755` with an absolute interpreter path, placeholder substituted, `statusLine` added surgically, neighbouring keys and their indentation intact, backup written `0600` — automated checks, in a stand-in home | A real `~/.claude`, a real `settings.json` someone else wrote |
+| 9 | A copy was quarantined the way a download is, and launched: Gatekeeper blocked it. Wording recorded below | Whether a genuinely downloaded copy behaves identically |
+| 10 | `uninstall.sh --dry-run` and a real run against a stand-in home: key removed, neighbours and formatting intact, backup `0600`, exporter deleted | Removal on an account where the widget is really registered |
+
+Nothing above touched a real `~/.claude`: every automated check takes the home
+directory as a parameter (SPEC section 5.2), which is a rule this project has
+because ignoring it once overwrote a live config.
+
+---
+
 ## Before you start
 
 On the clean account, confirm the starting state:
@@ -172,19 +192,52 @@ Copy `/Applications/CCWidget.app` from the clean account to another machine, or
 zip and unzip it, then launch.
 
 **Expected:** Gatekeeper blocks it, because the app is ad-hoc signed and not
-notarized. **Note the exact wording of the dialog** — that dialog is what
-every user who downloads a release will see, and the README currently says
-nothing about it.
+notarized.
+
+**Already observed** on macOS 26, on a copy carrying a quarantine attribute
+written by hand to imitate a download. `spctl -a` reports `rejected`. The
+dialog reads:
+
+> **"CCWidget.app" Not Opened**
+> Apple could not verify "CCWidget.app" is free of malware that may harm your
+> Mac or compromise your privacy.
+
+The buttons are **Move to Trash** and **Done**. There is no "Open Anyway" in
+the dialog — on this version of macOS it appears in System Settings →
+Privacy & Security only after the first refused launch. That is now in the
+README.
+
+**Still worth doing on a clean account:** whether a copy that arrives through
+a browser, AirDrop or a zip from someone else behaves the same, and whether
+the System Settings route actually lets the app through.
 
 ---
 
 ## 10. Removal
 
-There is no supported removal path yet — this step is here to measure how bad
-that is. Try to undo the installation using only what the project documents.
+There are two paths now: **Remove…** in the app, and `./Scripts/uninstall.sh`
+for when the app will not launch or is already gone.
 
-Record: what you had to do by hand, what you could not find, and whether
-`settings.json` ended up back the way it started.
+```sh
+./Scripts/uninstall.sh --dry-run   # show what would happen, change nothing
+./Scripts/uninstall.sh             # undo the install, keep the history
+./Scripts/uninstall.sh --purge     # remove the history, the container and the app
+```
+
+**Expected:** the `statusLine` key disappears from `settings.json` while every
+other key keeps its value, its position and its indentation; a timestamped
+backup is written `0600` beside it; the exporter and its hash are deleted. The
+app bundle, the container and the widget on the desktop are left alone unless
+you pass `--purge`, and the closing message names each of them.
+
+**Do not expect the file to be restored from the backup.** Removal deletes one
+key on purpose: other keys may have changed since installing, and rolling the
+whole file back would take those edits away.
+
+Both paths were checked against a stand-in home directory. What a clean
+account adds is the part that cannot be faked — whether the widget really
+disappears from the desktop, and what the app does when its own container is
+gone underneath it.
 
 ---
 
@@ -193,8 +246,10 @@ Record: what you had to do by hand, what you could not find, and whether
 - Steps 1–8 behave as described, with no crash and no silent failure.
 - Nothing is written before step 6.
 - The numbers in step 7 match the Usage panel.
-- Steps 9 and 10 produce written notes rather than a pass or a fail; both are
-  known gaps, and the point is to learn exactly how they look to a stranger.
+- Step 9 produces written notes rather than a pass or a fail: the block is
+  expected, and the point is to learn exactly how it looks to a stranger.
+- Step 10 leaves `settings.json` with every key except `statusLine` exactly as
+  it was, and a backup beside it.
 
 ## What to send back
 
