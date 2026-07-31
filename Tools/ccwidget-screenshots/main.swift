@@ -87,6 +87,32 @@ guard snapshot != nil else {
 /// Corner radius of desktop widgets on macOS.
 let cornerRadius: CGFloat = 20
 
+/// Pinned, not taken from the screen.
+///
+/// `ImageRenderer` defaults its scale to the main display's, and this machine
+/// has two: a built-in Retina panel at 2× and an external monitor at 1×. The
+/// same command would then produce images of different sizes depending on
+/// which display happened to be primary, and on a cloned repository depending
+/// on the hardware.
+///
+/// Measured rather than assumed: the renderer also propagates this value into
+/// the view's `\.displayScale`, so pinning it here pins everything that scales
+/// — hairlines, capsule edges, text hinting. A probe rendering
+/// `\.displayScale` as text reads 2.0 on a 1× main display.
+let renderScale: CGFloat = 2
+
+/// Also pinned. The renderer produced sRGB on a monitor whose own profile is
+/// anything but, which suggests it always does — but "suggests" is not a
+/// guarantee, and a wide-gamut panel is exactly the sort of thing that would
+/// prove it wrong on somebody else's desk.
+@MainActor
+func encodePNG(_ renderer: ImageRenderer<some View>) -> Data? {
+    guard let cgImage = renderer.cgImage else { return nil }
+    let rep = NSBitmapImageRep(cgImage: cgImage)
+    let srgb = rep.converting(to: .sRGB, renderingIntent: .default) ?? rep
+    return srgb.representation(using: .png, properties: [:])
+}
+
 @MainActor
 func shoot(_ name: String, _ size: CGSize, _ scheme: ColorScheme, @ViewBuilder _ content: () -> some View) {
     let body = content()
@@ -100,12 +126,9 @@ func shoot(_ name: String, _ size: CGSize, _ scheme: ColorScheme, @ViewBuilder _
         .padding(12)
 
     let renderer = ImageRenderer(content: body)
-    renderer.scale = 2
+    renderer.scale = renderScale
     renderer.isOpaque = false
-    guard let image = renderer.nsImage,
-          let tiff = image.tiffRepresentation,
-          let rep = NSBitmapImageRep(data: tiff),
-          let png = rep.representation(using: .png, properties: [:]) else {
+    guard let png = encodePNG(renderer) else {
         FileHandle.standardError.write(Data("could not render \(name)\n".utf8))
         return
     }

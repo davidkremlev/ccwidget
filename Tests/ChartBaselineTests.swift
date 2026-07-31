@@ -41,6 +41,22 @@ struct ChartBaselineTests {
     /// how tall that comes out is part of what is being checked.
     private static let width: CGFloat = 310
 
+    /// Padding around the block, so the baseline is not flush to the edge.
+    private static let inset: CGFloat = 8
+
+    /// Pinned, not taken from the screen.
+    ///
+    /// `ImageRenderer` defaults its scale to the main display's, and a machine
+    /// with a Retina panel and an external monitor has two different ones. The
+    /// baselines would then depend on which display was primary when they were
+    /// taken — and on the hardware of whoever cloned the repository.
+    ///
+    /// Measured rather than assumed: the renderer propagates this value into
+    /// the view's `\.displayScale`, so pinning it pins everything that scales.
+    /// Rendering a probe that draws its own `\.displayScale` gives 2.0 on a 1×
+    /// main display.
+    private static let scale: CGFloat = 2
+
     // MARK: The five outcomes
 
     private func series(
@@ -108,19 +124,23 @@ struct ChartBaselineTests {
         let view = ForecastBlock(forecast: forecast, window: window)
             .frame(width: Self.width)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(8)
+            .padding(Self.inset)
             .background(Color.white)
             .environment(\.colorScheme, .light)
             .environment(\.locale, Locale(identifier: "en_US_POSIX"))
 
         let renderer = ImageRenderer(content: view)
-        renderer.scale = 2
+        renderer.scale = Self.scale
         renderer.isOpaque = true
-        guard let image = renderer.nsImage,
-              let tiff = image.tiffRepresentation,
-              let rep = NSBitmapImageRep(data: tiff)
-        else { return nil }
-        return rep.representation(using: .png, properties: [:])
+
+        // sRGB explicitly. The renderer produced sRGB on a monitor whose own
+        // profile is anything but, which suggests it always does — but a
+        // wide-gamut panel is exactly what would prove that wrong on somebody
+        // else's desk, and a baseline is not the place to find out.
+        guard let cgImage = renderer.cgImage else { return nil }
+        let rep = NSBitmapImageRep(cgImage: cgImage)
+        let srgb = rep.converting(to: .sRGB, renderingIntent: .default) ?? rep
+        return srgb.representation(using: .png, properties: [:])
     }
 
     @Test("The chart matches its baseline in every outcome",
@@ -144,6 +164,30 @@ struct ChartBaselineTests {
         }
         #expect(produced == existing,
                 "chart-\(name).png differs; compare it with the .actual beside it")
+    }
+
+    /// The pinning itself, held by the committed files rather than by the code
+    /// that wrote them.
+    ///
+    /// Without this a future edit could drop `renderer.scale` — it looks like
+    /// a default, and the checks would keep passing on whichever machine
+    /// regenerated the baselines — and the images would silently start
+    /// depending on which monitor was primary. The rule from CLAUDE.md
+    /// applies: a value that cannot be read back stays wrong longest.
+    @Test("Every baseline is at the pinned scale and in sRGB",
+          arguments: ["not-enough-data", "flat", "rate-only", "lasts-until-reset", "runs-out"])
+    func baselinesArePinned(name: String) throws {
+        guard !Self.skipped else { return }
+
+        let url = Self.baselines.appending(path: "chart-\(name).png")
+        let data = try Data(contentsOf: url)
+        let rep = try #require(NSBitmapImageRep(data: data))
+
+        let expectedWidth = Int((Self.width + 2 * Self.inset) * Self.scale)
+        #expect(rep.pixelsWide == expectedWidth,
+                "\(name): \(rep.pixelsWide) px wide, expected \(expectedWidth) at \(Self.scale)×")
+        #expect(rep.colorSpace.localizedName?.contains("sRGB") == true,
+                "\(name): colour space is \(rep.colorSpace.localizedName ?? "unknown")")
     }
 
     /// The outcomes have to be the ones they claim to be, or five images would
