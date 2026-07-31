@@ -41,9 +41,8 @@ struct SmallView: View {
                 caption
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Week used")
-        .accessibilityValue(metric?.accessibilityValue ?? Text("no data"))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(gaugeAnnouncement("Week used", metric))
     }
 
     private var header: some View {

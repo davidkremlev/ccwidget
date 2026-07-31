@@ -18,6 +18,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `./.build/ccwidget-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"`
 - **Code comments and SPEC.md are in Russian.** Comments are being translated;
   the specification follows later.
+- **Larger text has no effect anywhere in this app.** macOS offers no route to
+  it: the accessibility *Text size* pane lists only applications that have
+  opted in, and this one is not among them, while SwiftUI's semantic fonts on
+  macOS do not scale with `dynamicTypeSize` the way they do on iOS. Rendered
+  at `accessibility5` the three widget sizes come out byte for byte identical
+  to the default — `./.build/ccwidget-screenshots out --type-size
+  accessibility5` will show you. Someone who needs bigger text has nothing to
+  turn on. Finding and adopting whatever macOS actually wants here is open
+  work, not a decision that has been made.
+- **The four non-Russian localizations have had no native review.** German,
+  Spanish, Japanese and Simplified Chinese are one developer's best judgement.
+  The row captions were rewritten once already after reading them aloud caught
+  word-for-word translations that nobody says.
+
+### Fixed
+
+- **VoiceOver read the gauge rows backwards.** Each row carried its caption as
+  the accessibility label and its percentage as the accessibility value, and
+  VoiceOver announces a static element's value before its label — so the three
+  rows came out as "30 %, five-hour used", "10 %, week used", "44 %, context
+  used". Three bare numbers arriving before the things they measure is exactly
+  the wrong order for someone who cannot glance back at the previous line. The
+  caption and the value are now composed into one label, in reading order.
+- **The Details disclosure announced itself as empty** — "Details, empty,
+  button" — because the chevron beside the word contributed an unlabelled
+  image, and it never said whether the section was open. It now reads
+  "Details, collapsed" or "Details, expanded".
+- **Detail rows were two unrelated items.** VoiceOver read "Exporter" and
+  "matches the installed copy" separately, and the second means nothing on its
+  own. They are one item now.
+
+All three were found by running VoiceOver and listening, not by reading the
+modifier lists, and confirmed the same way afterwards.
 
 ### Changed
 

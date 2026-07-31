@@ -221,11 +221,26 @@ struct StatusView: View {
                 HStack(spacing: 4) {
                     Image(systemName: showsDetails ? "chevron.down" : "chevron.right")
                         .font(.caption2)
+                        // The chevron carries no meaning a listener can use,
+                        // and VoiceOver announced it: "Details, empty, button".
+                        .accessibilityHidden(true)
                     Text("Details")
                 }
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
+            // Whether the section is open is the whole point of the control,
+            // and the chevron says it only to people who can see it. Folded
+            // into the label rather than left as an accessibility value for
+            // the same reason as the gauge rows: a value is announced before
+            // the label, so a separate value would say "collapsed, Details".
+            .accessibilityElement()
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(
+                Text("Details") + Text(verbatim: ", ")
+                + Text(showsDetails ? "expanded" : "collapsed")
+            )
+            .accessibilityAction { withAnimation(.easeInOut(duration: 0.15)) { showsDetails.toggle() } }
 
             Spacer()
 
@@ -295,6 +310,10 @@ struct StatusView: View {
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        // One item, not two. Left apart, VoiceOver read "Exporter" and
+        // "matches the installed copy" as unrelated items, and the second
+        // means nothing on its own.
+        .accessibilityElement(children: .combine)
     }
 
     private var exporterDescription: String {

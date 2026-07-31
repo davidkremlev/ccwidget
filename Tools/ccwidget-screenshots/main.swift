@@ -14,8 +14,36 @@ import AppKit
 // dates follow the system region (section 10). Without -AppleLocale the shots
 // come out with localized durations under English captions.
 
-let outDir = URL(filePath: CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "Docs/screenshots")
+let arguments = CommandLine.arguments
+let outDir = URL(filePath: arguments.count > 1 && !arguments[1].hasPrefix("-")
+                 ? arguments[1] : "Docs/screenshots")
 try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+
+/// Optional `--type-size <name>`, e.g. `--type-size accessibility3`.
+///
+/// macOS has no system-wide setting that would do this for us. Its
+/// accessibility "Text size" applies only to applications listed in that
+/// pane — Apple's own, plus whatever has opted in — so a third-party app and
+/// its widget cannot be checked by turning a switch on. Rendering at the size
+/// is the only way to find out whether the layout survives it.
+let typeSize: DynamicTypeSize = {
+    guard let index = arguments.firstIndex(of: "--type-size"),
+          index + 1 < arguments.count else { return .large }
+    switch arguments[index + 1] {
+    case "xSmall": return .xSmall
+    case "small": return .small
+    case "large": return .large
+    case "xLarge": return .xLarge
+    case "xxLarge": return .xxLarge
+    case "xxxLarge": return .xxxLarge
+    case "accessibility1": return .accessibility1
+    case "accessibility2": return .accessibility2
+    case "accessibility3": return .accessibility3
+    case "accessibility4": return .accessibility4
+    case "accessibility5": return .accessibility5
+    default: return .large
+    }
+}()
 
 let store = SnapshotStore.default()
 let snapshot = try? store.load()
@@ -41,6 +69,7 @@ func shoot(_ name: String, _ size: CGSize, _ scheme: ColorScheme, @ViewBuilder _
         .background(scheme == .dark ? Color(white: 0.14) : Color.white)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .environment(\.colorScheme, scheme)
+        .environment(\.dynamicTypeSize, typeSize)
         // Margin around it: a rounded corner must not touch the image edge.
         .padding(12)
 

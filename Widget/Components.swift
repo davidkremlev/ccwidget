@@ -14,6 +14,21 @@ struct GaugeMetric {
     var accessibilityValue: Text { Text(fraction, format: .percent) }
 }
 
+/// What VoiceOver should say for one gauge row, in one piece.
+///
+/// A row used to carry its caption as the accessibility label and its
+/// percentage as the accessibility value. Heard, that came out backwards —
+/// "30 %, five-hour used" — because VoiceOver reads a static element's value
+/// before its label. Three rows in a row meant three bare numbers arriving
+/// before the things they measured, which is exactly the wrong order for
+/// someone who cannot glance back at the previous line.
+///
+/// Composing a single label is the only way to fix the order rather than hope
+/// for it. Verified by listening, not by reading the modifier list.
+func gaugeAnnouncement(_ caption: LocalizedStringKey, _ metric: GaugeMetric?) -> Text {
+    Text(caption) + Text(verbatim: ", ") + (metric?.accessibilityValue ?? Text("no data"))
+}
+
 extension CCWidgetEntry {
     var isDimmed: Bool { freshness?.isDimmed ?? false }
     var hidesNumbers: Bool { freshness?.hidesNumbers ?? false }
@@ -135,9 +150,8 @@ struct GaugeRow: View {
                     .layoutPriority(2)
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(caption)
-        .accessibilityValue(metric?.accessibilityValue ?? Text("no data"))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(gaugeAnnouncement(caption, metric))
     }
 
     private var tint: Color { metricTint(metric, dimmed: dimmed) }
@@ -180,9 +194,8 @@ struct DetailGaugeRow: View {
                     .minimumScaleFactor(0.8)
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(caption)
-        .accessibilityValue(metric?.accessibilityValue ?? Text("no data"))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(gaugeAnnouncement(caption, metric))
     }
 }
 
