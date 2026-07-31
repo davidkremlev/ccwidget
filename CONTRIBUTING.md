@@ -63,9 +63,17 @@ xcodebuild -project CCWidget.xcodeproj -scheme CCWidget test
 ```
 
 The checks live in `Tests/`, use swift-testing, and are grouped by area:
-settings editing, installing, security, removal, and the estimate. They build
-into their own target and do not launch the app — nothing they check needs it
-running.
+settings editing, installing, security, removal, the estimate, parsing, the
+history and the exporter. They build into their own target and do not launch
+the app — nothing they check needs it running.
+
+**The exporter is checked by running it.** `ExporterTests` installs the real
+template through the real installer and feeds the result to a subprocess:
+empty input, garbage, a megabyte, a payload with every optional field missing,
+a symlink planted where the temporary file goes. Section 3 lists seven
+guarantees for that script and every one of them is about behaviour, which is
+why `py_compile` used to be the only check and proved nothing beyond the file
+being syntactically Python.
 
 Every one of them works **inside a temporary directory**. They must never
 touch a real `~/.claude`. If you add a code path that reads or writes under

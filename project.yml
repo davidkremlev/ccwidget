@@ -130,6 +130,10 @@ targets:
       - path: App/SettingsEditor.swift
       - path: App/SnapshotWatcher.swift
       - path: App/StatusModel.swift
+      # The exporter is checked by running it, so the checks need the same
+      # template the app ships — not a copy that can drift away from it.
+      - path: Scripts/ccwidget-export.py.template
+        buildPhase: resources
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES

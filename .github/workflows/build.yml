@@ -179,21 +179,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check the exporter is valid Python
-        run: |
-          # The template is not runnable as-is, so render it the way the
-          # installer does before compiling it.
-          python3 - <<'PY'
-          import json, pathlib, py_compile, tempfile
-          body = pathlib.Path("Scripts/ccwidget-export.py.template").read_text()
-          body = body.replace('"__GROUP_DIR__"', json.dumps("/tmp/ccwidget-ci"))
-          with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as f:
-              f.write(body)
-              path = f.name
-          py_compile.compile(path, doraise=True)
-          print("exporter compiles")
-          PY
-
       - name: Check nothing user-identifying is logged as public
         run: |
           # SPEC 6.1: paths, project names and raw values are .private.
