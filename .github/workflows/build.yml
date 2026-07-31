@@ -88,6 +88,21 @@ jobs:
             | tee test.log | grep -E "error:|✘|Test run|TEST" || true
           grep -q "TEST SUCCEEDED" test.log
 
+      - name: Report coverage
+        run: |
+          # No threshold here on purpose. A number nobody agreed to is a
+          # number that gets lowered the first time it is inconvenient; the
+          # figure and the list of untouched files go in the job summary so
+          # the decision is made deliberately rather than by a default.
+          ./Scripts/coverage.sh --no-run | tee coverage.txt
+          {
+            echo '## Coverage'
+            echo
+            echo '```'
+            cat coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build the console tools
         run: |
           swiftc -swift-version 6 -strict-concurrency=complete \
@@ -129,10 +144,14 @@ jobs:
             exit 1
           fi
 
-      - name: Upload build log
+      - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-log
-          path: build.log
+          name: logs
+          path: |
+            build.log
+            test.log
+            coverage.txt
           retention-days: 7
+          if-no-files-found: ignore

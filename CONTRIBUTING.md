@@ -57,6 +57,18 @@ the user's home, it takes the root as a parameter — see SPEC section 5.2 for
 why that rule exists, and `Tests/Sandbox.swift` for the stand-in root they all
 share.
 
+Coverage, the same way CI measures it:
+
+```sh
+./Scripts/coverage.sh
+```
+
+It counts production code only and counts each file once — `Shared/` is
+compiled into three targets, so the raw `xccov` report lists it three times.
+There is no threshold: the figure and the list of files no check has ever
+executed go in the CI job summary, and what to do about them is a decision,
+not a default.
+
 A check earns its place by testing the property, not a symptom of it. The one
 that matters most here is in `SecurityTests`: an early version asked whether
 the generated Python literal contained backslashes, which is a symptom, and it
