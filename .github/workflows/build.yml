@@ -27,6 +27,20 @@ jobs:
           xcodebuild -version
           swift --version
 
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: |
+          xcodegen generate
+          # A committed .xcodeproj would shadow the generated one and quietly
+          # go stale. Catch it here rather than when someone's new file fails
+          # to compile for everyone else.
+          if git ls-files --error-unmatch CCWidget.xcodeproj >/dev/null 2>&1; then
+            echo "::error::CCWidget.xcodeproj is committed; it is generated from project.yml"
+            exit 1
+          fi
+
       - name: Build Release
         run: |
           set -o pipefail

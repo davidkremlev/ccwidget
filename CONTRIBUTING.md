@@ -7,17 +7,33 @@ including the attempts that failed.
 
 ## Building
 
-Requirements: macOS 14 or later, Xcode 16 or later. No package manager, no
-dependencies — the project builds with what ships in Xcode.
+Requirements: macOS 14 or later, Xcode 16 or later, and
+[XcodeGen](https://github.com/yonaskolb/XcodeGen). The app itself has no
+dependencies — nothing is linked that does not ship with Xcode — but the
+`.xcodeproj` is generated rather than committed, and XcodeGen is what
+generates it.
 
 ```sh
+brew install xcodegen
 git clone <repository>
 cd ccwidget
 ./Scripts/reinstall.sh
 ```
 
-The script builds Release, installs to `/Applications`, launches the app once
-so the system registers the widget extension, and restarts `chronod`.
+The script generates the project, builds Release, installs to `/Applications`,
+launches the app once so the system registers the widget extension, and
+restarts `chronod`.
+
+To open the project in Xcode, generate it first:
+
+```sh
+xcodegen generate && open CCWidget.xcodeproj
+```
+
+**Adding or moving a file means editing `project.yml`,** not clicking in
+Xcode. Anything you add through the Xcode UI lands in a generated file and
+disappears on the next generate. The build settings live in `project.yml`
+too, with the reasoning next to them.
 
 **That last step is not decoration.** The widget daemon keeps the previous
 build of an extension loaded across a bundle replacement. Skip the restart and

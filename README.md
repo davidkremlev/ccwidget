@@ -94,20 +94,22 @@ than that is a bug — please [open an issue](../../issues).
 ## Installing
 
 There are no releases yet — no signed build, no Homebrew formula. The only
-way to run this today is to build it, which means **Xcode 16 or later**.
+way to run this today is to build it, which means **Xcode 16 or later** and
+**XcodeGen**, which generates the Xcode project from `project.yml`.
 
 ```sh
+brew install xcodegen
 git clone https://github.com/illVminat/ccwidget.git
 cd ccwidget
 ./Scripts/reinstall.sh
 ```
 
-`reinstall.sh` is a **development script, not an installer.** It removes
-`/Applications/CCWidget.app` if present, copies a fresh build over it, and
-restarts `chronod` — the system daemon behind every widget on your Mac. The
-restart is unavoidable (see Development below) and harmless: the system brings
-it straight back and all widgets redraw. Read the script before running it;
-it is forty lines.
+`reinstall.sh` is a **development script, not an installer.** It generates the
+project, removes `/Applications/CCWidget.app` if present, copies a fresh build
+over it, and restarts `chronod` — the system daemon behind every widget on your
+Mac. The restart is unavoidable (see Development below) and harmless: the
+system brings it straight back and all widgets redraw. Read the script before
+running it; it is sixty lines.
 
 Then, in this order:
 

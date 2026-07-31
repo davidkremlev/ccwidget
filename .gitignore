@@ -12,10 +12,11 @@ DerivedData/
 *.hmap
 *.moved-aside
 
+# The Xcode project is generated from project.yml by XcodeGen, so it is a
+# build product like any other. Run `xcodegen generate` after cloning.
+*.xcodeproj/
+
 # Xcode's per-user state.
-# project.pbxproj itself belongs in the repository: without it the project
-# builds for nobody. Only what Xcode writes for one particular person is
-# excluded.
 xcuserdata/
 *.xcuserstate
 *.xcscmblueprint

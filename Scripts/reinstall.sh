@@ -13,6 +13,18 @@ CONFIGURATION="${1:-Release}"
 DERIVED="$ROOT/.build/dd"
 APP="/Applications/CCWidget.app"
 
+# The Xcode project is generated from project.yml and is not in the repository,
+# so regenerate it every time rather than only when it is missing: a file added
+# to the tree since the last run would otherwise be silently left out of the
+# build, and the symptom — code that does not seem to apply — looks exactly
+# like the chronod problem below.
+echo "==> Generating the Xcode project"
+if ! command -v xcodegen >/dev/null 2>&1; then
+    echo "!! xcodegen is not installed: brew install xcodegen" >&2
+    exit 1
+fi
+(cd "$ROOT" && xcodegen generate --quiet)
+
 echo "==> Building ($CONFIGURATION)"
 xcodebuild \
     -project "$ROOT/CCWidget.xcodeproj" \
