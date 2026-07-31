@@ -9,9 +9,16 @@ struct GaugeMetric {
     let auxiliary: String?
     let level: Level
 
-    /// For VoiceOver: the fraction, not a pre-formatted string. Otherwise
-    /// the voice reads "38 %" as text, with no idea it is a percentage.
-    var accessibilityValue: Text { Text(fraction, format: .percent) }
+    /// For VoiceOver: the fraction put through a percentage format, not the
+    /// already-formatted `value`. Otherwise the voice reads "38 %" as text,
+    /// with no idea it is a percentage.
+    /// The locale is a parameter because a baseline has to be reproducible:
+    /// the same run on a Russian machine and an American one must produce the
+    /// same file, or the check fails for the wrong reason. Production takes
+    /// the default, which is the reader's own locale.
+    func spokenValue(locale: Locale = .autoupdatingCurrent) -> String {
+        fraction.formatted(.percent.locale(locale))
+    }
 }
 
 /// What VoiceOver should say for one gauge row, in one piece.
@@ -25,8 +32,22 @@ struct GaugeMetric {
 ///
 /// Composing a single label is the only way to fix the order rather than hope
 /// for it. Verified by listening, not by reading the modifier list.
-func gaugeAnnouncement(_ caption: LocalizedStringKey, _ metric: GaugeMetric?) -> Text {
-    Text(caption) + Text(verbatim: ", ") + (metric?.accessibilityValue ?? Text("no data"))
+///
+/// A `String` rather than a `Text` so that the spoken form is a value the code
+/// can look at. A `Text` cannot be read back — which is why the order was
+/// wrong for as long as it was, and why the check that now holds it is a text
+/// baseline rather than a rendering.
+func gaugeAnnouncement(_ caption: LocalizedStringResource,
+                       _ metric: GaugeMetric?,
+                       locale: Locale = .autoupdatingCurrent) -> String {
+    var resource = caption
+    resource.locale = locale
+    var missing = LocalizedStringResource("no data")
+    missing.locale = locale
+
+    let name = String(localized: resource)
+    let value = metric?.spokenValue(locale: locale) ?? String(localized: missing)
+    return "\(name), \(value)"
 }
 
 extension CCWidgetEntry {
@@ -118,7 +139,7 @@ extension CCWidgetEntry {
 // MARK: - Compact row (medium size)
 
 struct GaugeRow: View {
-    let caption: LocalizedStringKey
+    let caption: LocalizedStringResource
     /// `nil` means no data: a dash instead of digits and an empty bar.
     let metric: GaugeMetric?
     let dimmed: Bool
@@ -160,7 +181,7 @@ struct GaugeRow: View {
 // MARK: - Detailed row (large size)
 
 struct DetailGaugeRow: View {
-    let caption: LocalizedStringKey
+    let caption: LocalizedStringResource
     let metric: GaugeMetric?
     let detail: String?
     let dimmed: Bool

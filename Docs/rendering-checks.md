@@ -164,7 +164,7 @@ three-line footer must both be rejected — and the whole set was verified
 against a realistic regression: lengthening the German caption to
 `In dieser Woche bereits verbraucht` fails two checks.
 
-### 2. Accessibility-tree snapshots — for defect class #4 and much of #3
+### 2. Accessibility snapshots — for defect class #4 and much of #3 — **built**
 
 Snapshot what VoiceOver would say, as text, per size and per language:
 
@@ -178,6 +178,35 @@ Text diffs are reviewable in a pull request, stable across OS versions, and
 tiny. This is the highest-value snapshot testing available here, and it is not
 image testing at all. The defect it would have caught — value announced before
 label — took a real VoiceOver pass to find and cost an hour.
+
+`Tests/AnnouncementTests.swift`, with the baseline in
+`Tests/Baselines/announcements.txt`: five states, twelve announcements, one
+file a reviewer reads. The locale is pinned to `en_US_POSIX`, because a
+baseline that differs between two correct machines is a baseline nobody
+trusts.
+
+**One correction to the plan.** It cannot read the platform accessibility
+tree. SwiftUI builds that lazily, only when an assistive client attaches: an
+`NSHostingView` in a test process reports `AXGroup` and no children at all —
+measured, not assumed. So the baseline holds the strings the views compose,
+and the bridge from a composed label to what VoiceOver actually says stays a
+manual check. That bridge was verified by listening, and the wording and order
+— which is where the defect was — are now held automatically.
+
+Making that possible changed production code: the announcement is a `String`
+rather than a `Text`, because a `Text` cannot be read back. That is most of
+why the order was wrong for as long as it was.
+
+Verified against a regression rather than assumed: swapping the composition
+back to value-first fails both the baseline and the property check beside it.
+
+The same tier closed the two view-state enums. `WindowState` and
+`OnboardingStep` moved out of their views into `App/WindowState.swift` — the
+first is a decision about what the state of the world means, taken from four
+values the model already publishes, and the second was four assignments
+scattered through a four-hundred-line view. Neither is view code, and while
+they were private to views, five and three of their cases respectively were
+unreachable by any check.
 
 Defect #3, the inverted polarity, is better still: *the bar's fraction and the
 number beside it describe the same quantity* is a plain unit test on

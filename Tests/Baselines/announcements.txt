@@ -1,0 +1,23 @@
+── normal data
+5-hour   5-hour used, 21%
+week     Week used, 9%
+context  Context used, 63%
+
+── a limit the source has not sent yet
+5-hour   5-hour used, no data
+week     Week used, 9%
+
+── no snapshot at all
+5-hour   5-hour used, no data
+context  Context used, no data
+
+── a snapshot old enough to be abandoned
+5-hour   5-hour used, no data
+week     Week used, no data
+context  Context used, no data
+
+── the boundaries
+  0 %    5-hour used, 0%
+ 50 %    5-hour used, 50%
+ 81 %    5-hour used, 81%
+100 %    5-hour used, 100%

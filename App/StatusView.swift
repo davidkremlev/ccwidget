@@ -31,8 +31,7 @@ struct StatusView: View {
                 tamperBanner
             }
 
-            if let snapshot = model.snapshot,
-               state == .working || state == .outdated || state == .abandoned {
+            if let snapshot = model.snapshot, state.showsData {
                 rows(snapshot)
                 quietLine(snapshot)
             } else {
@@ -61,22 +60,15 @@ struct StatusView: View {
 
     // MARK: State
 
-    private enum WindowState {
-        case needsWidget, needsSetup, waiting, working, outdated, abandoned
-    }
-
+    /// Lives in `WindowState` rather than here. `model.now` rather than the
+    /// wall clock: the age has to advance on the watcher's tick, so that going
+    /// stale is something the window notices rather than something the next
+    /// redraw happens to reveal.
     private var state: WindowState {
-        if !model.containerExists { return .needsWidget }
-        if !model.statusLineIsOurs { return .needsSetup }
-        guard let snapshot = model.snapshot else { return .waiting }
-        // `model.now` rather than the wall clock: the age has to advance on the
-        // watcher's tick, so that going stale is something the window notices
-        // rather than something the next redraw happens to reveal.
-        switch Freshness(age: snapshot.age(at: model.now)) {
-        case .fresh, .recent: return .working
-        case .stale: return .outdated
-        case .abandoned: return .abandoned
-        }
+        WindowState(containerExists: model.containerExists,
+                    statusLineIsOurs: model.statusLineIsOurs,
+                    snapshot: model.snapshot,
+                    now: model.now)
     }
 
     // MARK: Header

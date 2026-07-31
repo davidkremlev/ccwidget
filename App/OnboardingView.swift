@@ -7,14 +7,7 @@ import WidgetKit
 /// adds a line to the Claude Code config. This screen exists precisely so
 /// that step cannot be missed and cannot be done wrong.
 struct OnboardingView: View {
-    enum Step {
-        case checkClaudeCode
-        case install
-        case waitingForData
-        case ready
-    }
-
-    @State private var step: Step = .checkClaudeCode
+    @State private var step: OnboardingStep = .checkClaudeCode
     @State private var failure: String?
     @State private var backupPath: String?
     @State private var wasSurgical = true
@@ -82,8 +75,7 @@ struct OnboardingView: View {
     }
 
     private func advanceFromCheck() {
-        guard step == .checkClaudeCode, installer.isClaudeCodePresent else { return }
-        step = .install
+        step = step.afterCheckingClaudeCode(present: installer.isClaudeCodePresent)
     }
 
     // MARK: Step 2 — installation
@@ -179,7 +171,7 @@ struct OnboardingView: View {
             let report = try installer.install()
             backupPath = report.backup?.lastPathComponent
             wasSurgical = report.editWasSurgical
-            step = .waitingForData
+            step = step.afterInstalling()
             startPolling()
         } catch {
             failure = error.localizedDescription
@@ -220,7 +212,7 @@ struct OnboardingView: View {
             while !Task.isCancelled {
                 if let snapshot = try? SnapshotStore.default().load() {
                     firstSnapshot = snapshot
-                    step = .ready
+                    step = step.afterFirstSnapshot()
                     WidgetCenter.shared.reloadAllTimelines()
                     return
                 }

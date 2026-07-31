@@ -1,0 +1,243 @@
+import Foundation
+import SwiftUI
+import Testing
+
+/// Tier 2 of the rendering plan: what the widget says out loud, as text.
+///
+/// The defect this exists for took a real VoiceOver pass to find and could not
+/// have been found any other way: the three rows announced their percentage
+/// before their caption — "30 %, five-hour used" — so a listener got three
+/// bare numbers ahead of the things they measured. Nothing about that is
+/// visible, and no image would ever have shown it.
+///
+/// **What this checks and what it does not.** It checks the strings the views
+/// compose, against a baseline committed beside them. It does not read the
+/// platform accessibility tree: SwiftUI builds that lazily, only when an
+/// assistive client is attached, and an `NSHostingView` in a test process has
+/// no children to walk — measured, not assumed. That the composed label
+/// actually reaches VoiceOver was verified by listening, and stays a manual
+/// check; what a baseline can hold is the wording and the order, which is
+/// where the defect was.
+@Suite("Announcements")
+struct AnnouncementTests {
+
+    private static let baselineURL = URL(filePath: #filePath)
+        .deletingLastPathComponent()
+        .appending(path: "Baselines/announcements.txt")
+
+    private func entry(fiveHour: Int?, sevenDay: Int?, context: Int?,
+                       age: TimeInterval = 0) -> CCWidgetEntry {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = Snapshot(
+            schemaVersion: 1, capturedAt: now.addingTimeInterval(-age),
+            sessionId: nil, claudeCodeVersion: nil, model: nil, project: nil,
+            limits: Limits(
+                fiveHour: fiveHour.map { LimitWindow(usedPercentage: $0, resetsAt: now.addingTimeInterval(3600)) },
+                sevenDay: sevenDay.map { LimitWindow(usedPercentage: $0, resetsAt: now.addingTimeInterval(86400)) }),
+            context: ContextInfo(usedPercentage: context, totalInputTokens: nil,
+                                 windowSize: nil, cacheHitRatio: nil),
+            cost: nil)
+        return CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: nil)
+    }
+
+    private func emptyEntry() -> CCWidgetEntry {
+        CCWidgetEntry(date: Date(timeIntervalSince1970: 1_700_000_000),
+                      snapshot: nil, failure: nil, forecast: nil)
+    }
+
+    /// Pinned so the file is the same on any machine. The check is about the
+    /// wording and the order, not about which locale the runner happens to be
+    /// in — and a baseline that differs between two correct machines is a
+    /// baseline nobody trusts.
+    private static let baselineLocale = Locale(identifier: "en_US_POSIX")
+
+    private func announcement(_ caption: LocalizedStringResource, _ metric: GaugeMetric?) -> String {
+        gaugeAnnouncement(caption, metric, locale: Self.baselineLocale)
+    }
+
+    // MARK: The baseline
+
+    private func announcements() -> String {
+        var lines: [String] = []
+
+        func section(_ title: String, _ body: () -> Void) {
+            lines.append("── \(title)")
+            body()
+            lines.append("")
+        }
+
+        section("normal data") {
+            let e = entry(fiveHour: 21, sevenDay: 9, context: 63)
+            lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
+            lines.append("week     " + (announcement("Week used", e.limitMetric(e.snapshot?.limits.sevenDay))))
+            lines.append("context  " + (announcement("Context used", e.contextMetric)))
+        }
+
+        section("a limit the source has not sent yet") {
+            let e = entry(fiveHour: nil, sevenDay: 9, context: 63)
+            lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
+            lines.append("week     " + (announcement("Week used", e.limitMetric(e.snapshot?.limits.sevenDay))))
+        }
+
+        section("no snapshot at all") {
+            let e = emptyEntry()
+            lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(nil))))
+            lines.append("context  " + (announcement("Context used", e.contextMetric)))
+        }
+
+        section("a snapshot old enough to be abandoned") {
+            let e = entry(fiveHour: 21, sevenDay: 9, context: 63, age: 48 * 3600)
+            lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
+            lines.append("week     " + (announcement("Week used", e.limitMetric(e.snapshot?.limits.sevenDay))))
+            lines.append("context  " + (announcement("Context used", e.contextMetric)))
+        }
+
+        section("the boundaries") {
+            for used in [0, 50, 81, 100] {
+                let e = entry(fiveHour: used, sevenDay: nil, context: nil)
+                lines.append(String(format: "%3d %%    ", used)
+                             + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
+            }
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    /// The baseline is text, so a change to it is legible in a pull request —
+    /// which is the whole reason this tier is text rather than pictures. A
+    /// reviewer can tell an improvement from a regression by reading it.
+    @Test("What the widget announces matches the baseline")
+    func matchesBaseline() throws {
+        // Trailing newlines are an artefact of how the file is written, not
+        // part of what is being checked; trim both sides or the comparison
+        // fails on whitespace nobody can see.
+        let produced = announcements().trimmingCharacters(in: .newlines)
+
+        guard let existing = try? String(contentsOf: Self.baselineURL, encoding: .utf8) else {
+            try FileManager.default.createDirectory(
+                at: Self.baselineURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true)
+            try produced.write(to: Self.baselineURL, atomically: true, encoding: .utf8)
+            Issue.record("no baseline existed; one was written — review it and commit it")
+            return
+        }
+
+        if produced != existing.trimmingCharacters(in: .newlines) {
+            // Write the new one beside the old so the difference can be read
+            // rather than reconstructed from an assertion message.
+            let rejected = Self.baselineURL.appendingPathExtension("actual")
+            try? produced.write(to: rejected, atomically: true, encoding: .utf8)
+        }
+        #expect(produced == existing.trimmingCharacters(in: .newlines),
+                "announcements changed; compare Baselines/announcements.txt with .actual beside it")
+    }
+
+    /// The property the baseline exists to protect, stated on its own so a
+    /// regression names itself rather than showing up as a diff someone has to
+    /// interpret.
+    @Test("The caption is announced before the value")
+    func labelPrecedesValue() {
+        let e = entry(fiveHour: 21, sevenDay: nil, context: nil)
+        let text = (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour)))
+
+        let caption = try? #require(text.range(of: "5-hour used"))
+        let percent = try? #require(text.range(of: "21"))
+        guard let caption, let percent else {
+            Issue.record("neither part of \"\(text)\" is recognisable")
+            return
+        }
+        #expect(caption.lowerBound < percent.lowerBound,
+                "the value comes first: \"\(text)\"")
+    }
+
+    /// A row with nothing behind it says so, rather than reading as zero.
+    @Test("A row with no data says so")
+    func missingDataIsAnnounced() {
+        let e = emptyEntry()
+        let text = (announcement("Week used", e.limitMetric(nil)))
+        #expect(text.contains("no data"), "got \"\(text)\"")
+        #expect(!text.contains("0"), "an absent measurement must not read as zero: \"\(text)\"")
+    }
+}
+
+/// The two enums that were private to their views, and therefore had five and
+/// three cases respectively that nothing could ask for.
+@Suite("View state")
+struct ViewStateTests {
+
+    private func snapshot(age: TimeInterval) -> Snapshot {
+        let now = Date()
+        return Snapshot(schemaVersion: 1, capturedAt: now.addingTimeInterval(-age),
+                        sessionId: nil, claudeCodeVersion: nil, model: nil, project: nil,
+                        limits: Limits(fiveHour: nil, sevenDay: nil),
+                        context: nil, cost: nil)
+    }
+
+    /// The order of the questions is the content of the type, so the checks
+    /// are written as "this beats that" rather than as six independent cases.
+    @Test("A missing container outranks everything else")
+    func containerFirst() {
+        let state = WindowState(containerExists: false, statusLineIsOurs: true,
+                                snapshot: snapshot(age: 0), now: Date())
+        #expect(state == .needsWidget)
+        #expect(!state.showsData)
+    }
+
+    /// "Waiting" would be a lie when nothing is configured to write, and a
+    /// person would wait for it.
+    @Test("Setup outranks the absence of data")
+    func setupBeforeData() {
+        let state = WindowState(containerExists: true, statusLineIsOurs: false,
+                                snapshot: nil, now: Date())
+        #expect(state == .needsSetup)
+    }
+
+    @Test("Everything in place and nothing written yet")
+    func waiting() {
+        let state = WindowState(containerExists: true, statusLineIsOurs: true,
+                                snapshot: nil, now: Date())
+        #expect(state == .waiting)
+        #expect(!state.showsData)
+    }
+
+    @Test("The three ages",
+          arguments: [(0.0, WindowState.working), (3600 * 2, .outdated), (86_400 * 2, .abandoned)])
+    func ages(age: TimeInterval, expected: WindowState) {
+        let state = WindowState(containerExists: true, statusLineIsOurs: true,
+                                snapshot: snapshot(age: age), now: Date())
+        #expect(state == expected, "\(Int(age)) s old")
+        #expect(state.showsData, "an aged snapshot still has numbers to show")
+    }
+
+    // MARK: Onboarding
+
+    /// Asking someone to confirm that software they already have is installed
+    /// teaches them to click through without reading.
+    @Test("The first step is skipped when there is nothing to check")
+    func onboardingSkipsTheCheck() {
+        #expect(OnboardingStep.start(claudeCodeIsPresent: true) == .install)
+        #expect(OnboardingStep.start(claudeCodeIsPresent: false) == .checkClaudeCode)
+    }
+
+    @Test("The steps advance in order and only forwards")
+    func onboardingAdvances() {
+        var step = OnboardingStep.checkClaudeCode
+        #expect(step.afterCheckingClaudeCode(present: false) == .checkClaudeCode,
+                "without Claude Code the first step holds")
+
+        step = step.afterCheckingClaudeCode(present: true)
+        #expect(step == .install)
+
+        step = step.afterInstalling()
+        #expect(step == .waitingForData,
+                "installing does not mean data exists: the status line runs on the next redraw")
+
+        step = step.afterFirstSnapshot()
+        #expect(step == .ready)
+
+        // Late arrivals must not walk the wizard backwards.
+        #expect(step.afterInstalling() == .ready)
+        #expect(step.afterCheckingClaudeCode(present: true) == .ready)
+        #expect(step.afterFirstSnapshot() == .ready)
+    }
+}

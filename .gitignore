@@ -31,6 +31,10 @@ xcuserdata/
 .swiftpm/
 Package.resolved
 
+# Written beside a baseline when it does not match, so the difference can be
+# read rather than reconstructed from an assertion message.
+*.actual
+
 # Secrets and local settings
 *.local
 .env
