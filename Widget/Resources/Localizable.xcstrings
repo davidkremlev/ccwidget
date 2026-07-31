@@ -1,31 +1,67 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ %%/h": {
+      "comment": "Usage rate: a number followed by percent per hour",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %%/Std."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %%/h"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %%/時"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %%/ч"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ %%/小时"
+          }
+        }
+      }
+    },
     "5-hour used": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "5 Std. genutzt"
+            "value": "In 5 Std. verbraucht"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "5 h usado"
+            "value": "Consumo en 5 h"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "5時間 使用"
+            "value": "5時間の使用率"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "5 часов, расход"
+            "value": "Использовано за 5 часов"
           }
         },
         "zh-Hans": {
@@ -112,25 +148,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kontext genutzt"
+            "value": "Kontext belegt"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Contexto usado"
+            "value": "Contexto ocupado"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "コンテキスト 使用"
+            "value": "コンテキスト使用率"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Контекст, расход"
+            "value": "Заполнение контекста"
           }
         },
         "zh-Hans": {
@@ -515,7 +551,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Кончится ~%@"
+            "value": "Закончится ~%@"
           }
         },
         "zh-Hans": {
@@ -672,13 +708,13 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verbrauch steht"
+            "value": "Verbrauch stagniert"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El consumo está parado"
+            "value": "Consumo estancado"
           }
         },
         "ja": {
@@ -690,7 +726,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Расход стоит"
+            "value": "Расход не растёт"
           }
         },
         "zh-Hans": {
@@ -707,66 +743,31 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Woche genutzt"
+            "value": "Diese Woche verbraucht"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Semana usada"
+            "value": "Consumo semanal"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "週 使用"
+            "value": "週の使用率"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Неделя, расход"
+            "value": "Использовано за неделю"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "本周已用"
-          }
-        }
-      }
-    },
-    "based on %@ of data": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "basierend auf %@ Daten"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "basado en %@ de datos"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 分のデータに基づく"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "по %@ наблюдений"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "基于 %@ 的数据"
           }
         }
       }
@@ -917,25 +918,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "genutzt · Reset %@"
+            "value": "verbraucht · Reset %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "usado · reinicia %@"
+            "value": "consumido · reinicia %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用 · %@ にリセット"
+            "value": "使用済み · %@ にリセット"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "расход · сброс %@"
+            "value": "использовано · сброс %@"
           }
         },
         "zh-Hans": {
@@ -970,7 +971,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "ждём лимиты"
+            "value": "ожидание лимитов"
           }
         },
         "zh-Hans": {

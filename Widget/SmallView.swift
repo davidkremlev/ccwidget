@@ -73,7 +73,14 @@ struct SmallView: View {
         }
         .font(.caption2)
         .foregroundStyle(.secondary)
-        .lineLimit(1)
+        // Two lines, because one is an English-sized assumption. "used ·
+        // resets Wed 3:00" is 22 characters; the same sentence is 30 in
+        // Russian and 32 in German, and on a 158-point tile that is the
+        // difference between a caption and an ellipsis. The space below the
+        // bar was empty anyway.
+        .lineLimit(2)
         .minimumScaleFactor(0.8)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }

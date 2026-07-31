@@ -4,24 +4,6 @@
     "%lld field(s) dropped while parsing": {
       "extractionState": "manual",
       "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld field dropped while parsing"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld fields dropped while parsing"
-                }
-              }
-            }
-          }
-        },
         "de": {
           "variations": {
             "plural": {
@@ -35,6 +17,24 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld Felder beim Parsen verworfen"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld field dropped while parsing"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld fields dropped while parsing"
                 }
               }
             }
@@ -70,27 +70,9 @@
             }
           }
         },
-        "zh-Hans": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "解析时丢弃了 %lld 个字段"
-                }
-              }
-            }
-          }
-        },
         "ru": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld поле отброшено при разборе"
-                }
-              },
               "few": {
                 "stringUnit": {
                   "state": "translated",
@@ -103,10 +85,28 @@
                   "value": "%lld полей отброшено при разборе"
                 }
               },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld поле отброшено при разборе"
+                }
+              },
               "other": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld поля отброшено при разборе"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans": {
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "解析时丢弃了 %lld 个字段"
                 }
               }
             }
@@ -118,33 +118,111 @@
       "extractionState": "manual",
       "localizations": {
         "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Es gibt %lld Verlaufspunkte; sie zu löschen setzt die Schätzung zurück."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Es gibt %lld Verlaufspunkt; ihn zu löschen setzt die Schätzung zurück."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Es gibt %lld Verlaufspunkte; sie zu löschen setzt die Schätzung zurück."
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld history point exists; deleting it resets the estimate."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld history points exist; deleting them resets the estimate."
+                }
+              }
+            }
           }
         },
         "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hay %lld puntos de historial; borrarlos reinicia la estimación."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld punto de historial; borrarlo reinicia la estimación."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Hay %lld puntos de historial; borrarlos reinicia la estimación."
+                }
+              }
+            }
           }
         },
         "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "履歴が %lld 点あります。削除すると推定は最初からになります。"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "履歴が %lld 点あります。削除すると推定は最初からになります。"
+                }
+              }
+            }
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Накоплено %lld точек истории; после удаления оценка начнётся заново."
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Накоплено %lld точки истории; после удаления оценка начнётся заново."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Накоплено %lld точек истории; после удаления оценка начнётся заново."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Накоплена %lld точка истории; после удаления оценка начнётся заново."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Накоплено %lld точки истории; после удаления оценка начнётся заново."
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已有 %lld 个历史点；删除后估算将重新开始。"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "已有 %lld 个历史点；删除后估算将重新开始。"
+                }
+              }
+            }
           }
         }
       }
@@ -155,25 +233,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "5 Std. genutzt"
+            "value": "In 5 Std. verbraucht"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "5 h usado"
+            "value": "Consumo en 5 h"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "5時間 使用"
+            "value": "5時間の使用率"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "5 часов, расход"
+            "value": "Использовано за 5 часов"
           }
         },
         "zh-Hans": {
@@ -610,25 +688,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kontext genutzt"
+            "value": "Kontext belegt"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Contexto usado"
+            "value": "Contexto ocupado"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "コンテキスト 使用"
+            "value": "コンテキスト使用率"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Контекст, расход"
+            "value": "Заполнение контекста"
           }
         },
         "zh-Hans": {
@@ -740,41 +818,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "将模板复制到 ~/.claude/ccwidget-export.py"
-          }
-        }
-      }
-    },
-    "Could not read settings.json: %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "settings.json konnte nicht gelesen werden: %@"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se pudo leer settings.json: %@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "settings.json を読めませんでした: %@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось прочитать settings.json: %@"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法读取 settings.json：%@"
           }
         }
       }
@@ -1118,7 +1161,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Живые данные пошли."
+            "value": "Данные уже поступают."
           }
         },
         "zh-Hans": {
@@ -1153,7 +1196,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Установка вручную"
+            "value": "Настройка вручную"
           }
         },
         "zh-Hans": {
@@ -1479,41 +1522,6 @@
         }
       }
     },
-    "Render the exporter template:": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Exporter-Vorlage rendern:"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Genera la plantilla del exportador:"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エクスポーターのテンプレートを生成:"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Подставьте путь в шаблон экспортёра:"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "生成导出器模板："
-          }
-        }
-      }
-    },
     "Replace its first line with:": {
       "extractionState": "manual",
       "localizations": {
@@ -1783,7 +1791,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Настройка её заменит. Резервная копия позволит вернуть."
+            "value": "Настройка её заменит. Резервная копия позволит вернуть прежнюю."
           }
         },
         "zh-Hans": {
@@ -1829,41 +1837,6 @@
         }
       }
     },
-    "Setup writes the exporter to ~/.claude/ and points the status line at it. Your settings.json is backed up first.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Einrichtung schreibt den Exporter nach ~/.claude/ und richtet die Statuszeile darauf aus. Ihre settings.json wird vorher gesichert."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La configuración escribe el exportador en ~/.claude/ y apunta la línea de estado hacia él. Antes se hace una copia de tu settings.json."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップは ~/.claude/ にエクスポーターを書き込み、ステータスラインをそこに向けます。settings.json は事前にバックアップされます。"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Настройка положит экспортёр в ~/.claude/ и направит на него статуслайн. Резервная копия settings.json делается заранее."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置会把导出器写入 ~/.claude/ 并让状态行指向它。你的 settings.json 会先备份。"
-          }
-        }
-      }
-    },
     "Show manual instructions": {
       "extractionState": "manual",
       "localizations": {
@@ -1888,7 +1861,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Показать инструкцию вручную"
+            "value": "Показать инструкцию по ручной настройке"
           }
         },
         "zh-Hans": {
@@ -2035,76 +2008,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "导出器已被修改"
-          }
-        }
-      }
-    },
-    "The exporter is missing. Run setup again.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Exporter fehlt. Führen Sie die Einrichtung erneut aus."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Falta el exportador. Vuelve a ejecutar la configuración."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "エクスポーターがありません。セットアップをやり直してください。"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Экспортёра нет. Повторите настройку."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "导出器缺失，请重新运行设置。"
-          }
-        }
-      }
-    },
-    "The exporter on disk differs from the one this app installed. Something else changed it.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Exporter auf der Festplatte weicht von dem ab, den diese App installiert hat. Etwas anderes hat ihn geändert."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "El exportador en disco difiere del que instaló esta app. Algo más lo ha modificado."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ディスク上のエクスポーターは、このアプリが入れたものと違います。別の何かが変更しました。"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Экспортёр на диске отличается от установленного этим приложением. Его изменило что-то другое."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "磁盘上的导出器与本应用安装的不同，它被别的东西改动过。"
           }
         }
       }
@@ -2372,7 +2275,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "更新 %@"
+            "value": "最終更新 %@"
           }
         },
         "ru": {
@@ -2535,31 +2438,31 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Woche endet %@ · aktualisiert %@"
+            "value": "Wochen-Reset %@ · aktualisiert %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La semana se reinicia %@ · actualizado %@"
+            "value": "Reinicio semanal %@ · actualizado %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "週は %@ にリセット · 更新 %@"
+            "value": "週のリセット %@ · 更新 %@"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Неделя сбрасывается %@ · обновлено %@"
+            "value": "Сброс недели %@ · обновлено %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本周 %@ 重置 · 更新于 %@"
+            "value": "周重置 %@ · 更新于 %@"
           }
         }
       }
@@ -2570,25 +2473,25 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Woche genutzt"
+            "value": "Diese Woche verbraucht"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Semana usada"
+            "value": "Consumo semanal"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "週 使用"
+            "value": "週の使用率"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Неделя, расход"
+            "value": "Использовано за неделю"
           }
         },
         "zh-Hans": {
@@ -2813,33 +2716,111 @@
       "extractionState": "manual",
       "localizations": {
         "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "läuft · %lld Neuladungen · zuletzt %@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "läuft · %lld Neuladung · zuletzt %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "läuft · %lld Neuladungen · zuletzt %@"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "running · %lld reload · last %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "running · %lld reloads · last %@"
+                }
+              }
+            }
           }
         },
         "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "en marcha · %lld recargas · última %@"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "en marcha · %lld recarga · última %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "en marcha · %lld recargas · última %@"
+                }
+              }
+            }
           }
         },
         "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "動作中 · 再読み込み %lld 回 · 最後 %@"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "動作中 · 再読み込み %lld 回 · 最後 %@"
+                }
+              }
+            }
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "работает · перезагрузок %lld · последняя %@"
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "работает · %lld перезагрузки · последняя %@"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "работает · %lld перезагрузок · последняя %@"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "работает · %lld перезагрузка · последняя %@"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "работает · %lld перезагрузки · последняя %@"
+                }
+              }
+            }
           }
         },
         "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "运行中 · 重新加载 %lld 次 · 最近 %@"
+          "variations": {
+            "plural": {
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "运行中 · 重新加载 %lld 次 · 最近 %@"
+                }
+              }
+            }
           }
         }
       }
@@ -2980,41 +2961,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "settings.json 是符号链接。设置将写入其目标，链接保持不变。"
-          }
-        }
-      }
-    },
-    "settings.json is not a JSON object.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "settings.json ist kein JSON-Objekt."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "settings.json no es un objeto JSON."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "settings.json は JSON オブジェクトではありません。"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "settings.json не является объектом JSON."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "settings.json 不是 JSON 对象。"
           }
         }
       }

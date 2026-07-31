@@ -142,8 +142,13 @@ struct ForecastBlock: View {
         return forecast.points.count >= 2
     }
 
+    /// "0.7 %/h". The unit goes through the catalog like everything else: an
+    /// hour is not "h" in most of the six languages, and a caption that is
+    /// half translated reads worse than one that is not translated at all.
     private func rateCaption(_ rate: Double) -> String {
-        "\(rate.formatted(.number.precision(.fractionLength(1)))) %/h"
+        let number = rate.formatted(.number.precision(.fractionLength(1)))
+        return String(localized: "\(number) %/h",
+                      comment: "Usage rate: a number followed by percent per hour")
     }
 
     @ViewBuilder
