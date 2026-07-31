@@ -116,6 +116,10 @@ struct LargeView: View {
                 .layoutPriority(2)
         }
         .font(.caption)
+        // One item, not two. "Cost" and "$140.52" are separate announcements
+        // otherwise, and the second means nothing on its own — the same
+        // fragmentation already fixed in the app window's detail rows.
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Footer

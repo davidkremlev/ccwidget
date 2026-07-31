@@ -42,7 +42,17 @@ struct SmallView: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement("Week used", metric))
+        .accessibilityLabel(gaugeAnnouncement("Week used", metric, detail: spokenCaption))
+    }
+
+    /// The same sentence the caption shows, as a string. Without it a listener
+    /// got the percentage and nothing else, while the tile plainly says when
+    /// the window resets — the one other fact it has room for.
+    private var spokenCaption: String? {
+        if entry.snapshot == nil { return String(localized: "no data") }
+        if entry.hidesNumbers { return String(localized: "Launch Claude Code") }
+        guard let window else { return String(localized: "waiting for limits") }
+        return String(localized: "used · resets \(CCWidgetFormat.resetMoment(window.resetsAt))")
     }
 
     private var header: some View {

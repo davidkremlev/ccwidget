@@ -51,8 +51,9 @@ struct AnnouncementTests {
     /// baseline nobody trusts.
     private static let baselineLocale = Locale(identifier: "en_US_POSIX")
 
-    private func announcement(_ caption: LocalizedStringResource, _ metric: GaugeMetric?) -> String {
-        gaugeAnnouncement(caption, metric, locale: Self.baselineLocale)
+    private func announcement(_ caption: LocalizedStringResource, _ metric: GaugeMetric?,
+                              detail: String? = nil) -> String {
+        gaugeAnnouncement(caption, metric, detail: detail, locale: Self.baselineLocale)
     }
 
     // MARK: The baseline
@@ -90,6 +91,21 @@ struct AnnouncementTests {
             lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
             lines.append("week     " + (announcement("Week used", e.limitMetric(e.snapshot?.limits.sevenDay))))
             lines.append("context  " + (announcement("Context used", e.contextMetric)))
+        }
+
+        // What sits beside the number on the tile has to be said as well.
+        // Dropping it was a regression the order fix introduced, and the
+        // baseline enshrined it until a second VoiceOver pass caught it.
+        section("with what sits beside the number") {
+            // The detail is passed as a literal rather than taken from the
+            // metric: a countdown is formatted in the process's locale, and a
+            // baseline that says "1 ч" here and "1 hr" there is a baseline
+            // nobody trusts. How the countdown itself is formatted belongs to
+            // FormattersTests; what belongs here is that it is said at all.
+            let e = entry(fiveHour: 21, sevenDay: 9, context: 63)
+            let five = e.limitMetric(e.snapshot?.limits.fiveHour)
+            lines.append("5-hour   " + announcement("5-hour used", five, detail: "3 hr 59 min"))
+            lines.append("context  " + announcement("Context used", e.contextMetric, detail: "ccwidget"))
         }
 
         section("the boundaries") {

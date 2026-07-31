@@ -37,8 +37,15 @@ struct GaugeMetric {
 /// can look at. A `Text` cannot be read back — which is why the order was
 /// wrong for as long as it was, and why the check that now holds it is a text
 /// baseline rather than a rendering.
+/// `detail` is whatever sits beside the number on screen — the countdown to
+/// the reset, the project name, the line under the bar. Dropping it was a
+/// regression introduced by the fix above and found by the next VoiceOver
+/// pass: the order came right and the content went missing, so a listener
+/// heard "five-hour used, 49 %" where a reader saw "49 % · 3 hr 59 min".
+/// Whatever is on the tile is said.
 func gaugeAnnouncement(_ caption: LocalizedStringResource,
                        _ metric: GaugeMetric?,
+                       detail: String? = nil,
                        locale: Locale = .autoupdatingCurrent) -> String {
     var resource = caption
     resource.locale = locale
@@ -47,7 +54,7 @@ func gaugeAnnouncement(_ caption: LocalizedStringResource,
 
     let name = String(localized: resource)
     let value = metric?.spokenValue(locale: locale) ?? String(localized: missing)
-    return "\(name), \(value)"
+    return [name, value, detail].compactMap { $0 }.joined(separator: ", ")
 }
 
 extension CCWidgetEntry {
@@ -172,7 +179,7 @@ struct GaugeRow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement(caption, metric))
+        .accessibilityLabel(gaugeAnnouncement(caption, metric, detail: metric?.auxiliary))
     }
 
     private var tint: Color { metricTint(metric, dimmed: dimmed) }
@@ -216,7 +223,7 @@ struct DetailGaugeRow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement(caption, metric))
+        .accessibilityLabel(gaugeAnnouncement(caption, metric, detail: detail))
     }
 }
 

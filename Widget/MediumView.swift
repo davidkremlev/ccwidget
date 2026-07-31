@@ -62,6 +62,18 @@ struct MediumView: View {
         }
     }
 
+    /// What the footer says, as one sentence.
+    private func spokenFooter(_ snapshot: Snapshot) -> String {
+        var parts = [String(localized: "this session:")]
+        if let cost = snapshot.cost?.sessionUsd {
+            parts.append(CCWidgetFormat.money(cost))
+        }
+        if let ratio = snapshot.context?.cacheHitRatio {
+            parts.append(String(localized: "cache \(CCWidgetFormat.ratio(ratio))"))
+        }
+        return parts.joined(separator: " ")
+    }
+
     private func footer(_ snapshot: Snapshot) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             // "this session" governs the whole footer: both the money and
@@ -79,6 +91,12 @@ struct MediumView: View {
             }
             .lineLimit(1)
             .minimumScaleFactor(0.8)
+            // One sentence rather than three fragments. Left apart, VoiceOver
+            // read "this session:", then a sum, then "· cache 100 %" — with
+            // the bullet, which is a separator for the eye and noise for the
+            // ear.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(spokenFooter(snapshot))
 
             Spacer(minLength: 4)
 

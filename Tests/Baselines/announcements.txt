@@ -16,6 +16,10 @@ context  Context used, no data
 week     Week used, no data
 context  Context used, no data
 
+── with what sits beside the number
+5-hour   5-hour used, 21%, 3 hr 59 min
+context  Context used, 63%, ccwidget
+
 ── the boundaries
   0 %    5-hour used, 0%
  50 %    5-hour used, 50%

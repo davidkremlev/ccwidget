@@ -34,6 +34,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **VoiceOver lost what sits beside the number.** Fixing the announcement order
+  had replaced each row's label with a hand-built one, and the hand-built one
+  carried only the caption and the percentage — so the countdown to the reset,
+  the project name and the small tile's footer stopped being announced at all.
+  A reader saw `49 % · 3 hr 59 min`; a listener heard "five-hour used, 49 %".
+  Found by a second pass with the voice on, over all three widget sizes on a
+  real desktop, and not by the text baseline — which had enshrined the loss,
+  because it was written from the same wrong assumption.
+- **The medium tile's footer was three fragments**, one of them beginning with
+  the separator dot: "this session:", "$140.52", "· cache 100 %". It is one
+  sentence now. The large tile's session rows were two apiece — "Cost", then
+  "$140.52" — and are one each.
+
 - **VoiceOver read the gauge rows backwards.** Each row carried its caption as
   the accessibility label and its percentage as the accessibility value, and
   VoiceOver announces a static element's value before its label — so the three

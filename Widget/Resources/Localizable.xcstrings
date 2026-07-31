@@ -772,6 +772,42 @@
         }
       }
     },
+    "cache %@": {
+      "comment": "Spoken form of the footer's cache share; the visible one carries a separator dot",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cache %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "caché %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャッシュ %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "кеш %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缓存 %@"
+          }
+        }
+      }
+    },
     "no data": {
       "extractionState": "manual",
       "localizations": {
