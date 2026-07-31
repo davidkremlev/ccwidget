@@ -67,6 +67,12 @@ settings editing, installing, security, removal, the estimate, parsing, the
 history and the exporter. They build into their own target and do not launch
 the app — nothing they check needs it running.
 
+**Adding a translation?** `TextMetricsTests` measures every localized caption
+against the width its tile can give it, so a string that would truncate fails
+before anyone sees it. The tightest budget is the small tile's header, where
+Russian already uses 91 % of the space — that check exists because a caption
+that fits in English and ends in an ellipsis in German has shipped here twice.
+
 **The exporter is checked by running it.** `ExporterTests` installs the real
 template through the real installer and feeds the result to a subprocess:
 empty input, garbage, a megabyte, a payload with every optional field missing,

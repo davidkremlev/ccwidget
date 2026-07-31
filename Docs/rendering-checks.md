@@ -135,17 +135,34 @@ state in which a baseline set stops being a check and becomes a formality.
 **Three tiers, in this order. The first two are worth more than the third and
 cost less.**
 
-### 1. Text metrics, not pictures — for defect class #2
+### 1. Text metrics, not pictures — for defect class #2 — **built**
 
-Measure every localized caption with the font and the width it will actually
-have, and fail when it does not fit. No images, no baselines, six languages
-covered at once, and it runs identically on both macOS versions because a few
-points of metric drift are absorbed by the margin.
+`Tests/TextMetricsTests.swift`. Every localized caption is measured with the
+font and the width the layout can actually give it, and the check fails when it
+does not fit. No images, no baselines, six languages at once, and a seventh
+covered the day it is added.
 
-This encodes the constraint that is currently only in a comment — *a medium
-tile fits about 22 characters beside a bar and a number* — as something that
-fails when a translator exceeds it. It is also the only tier that keeps
-working when a seventh language arrives.
+The budgets are derived rather than guessed: the tile width minus the padding,
+minus the measured width of the glyph, the percentage and the countdown beside
+it, minus a declared minimum bar width — 40 points, the one judgement in the
+file and named as such. A caption may shrink by a fifth before it truncates, so
+the budget is what fits after that shrink.
+
+Measured headroom as it stands:
+
+| | budget | tightest language |
+|---|---:|---|
+| Medium row caption | 139 pt | Russian, 27 % spare |
+| Small tile header | 114 pt | Russian, 9 % spare |
+
+Nine percent is thin, and it is the honest number: the small tile is 158 points
+wide and Russian says `Использовано за неделю`. The check will fail rather than
+truncate, which is the point.
+
+Two negative controls keep the budgets meaningful — an over-long caption and a
+three-line footer must both be rejected — and the whole set was verified
+against a realistic regression: lengthening the German caption to
+`In dieser Woche bereits verbraucht` fails two checks.
 
 ### 2. Accessibility-tree snapshots — for defect class #4 and much of #3
 
