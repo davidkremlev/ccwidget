@@ -268,6 +268,29 @@ swiftc -swift-version 6 -target arm64-apple-macos14.0 \
 The same commands run in CI on every push, so if they stop working the build
 goes red rather than the README going stale.
 
+If the icon stays a grey placeholder after the first install, that is macOS's
+icon cache rather than the build. It survives reinstalling, `lsregister` and a
+`chronod` restart; what clears it is:
+
+```sh
+sudo rm -rf /Library/Caches/com.apple.iconservices.store
+sudo find /private/var/folders -name com.apple.dock.iconcache -delete
+killall Dock
+```
+
+Before reaching for that, check the bundle actually carries the icon — the two
+products are compiled by `actool`, not copied, and a build says nothing either
+way. The second command renders the standalone copy to a PNG you can open:
+
+```sh
+ls /Applications/CCWidget.app/Contents/Resources/Assets.car \
+   /Applications/CCWidget.app/Contents/Resources/CCWidget.icns
+sips -s format png /Applications/CCWidget.app/Contents/Resources/CCWidget.icns \
+     --out /tmp/ccwidget-icon.png && open /tmp/ccwidget-icon.png
+```
+
+If those show the ring and the surfaces still show a square, it is the cache.
+
 Watching what the widget actually does:
 
 ```sh

@@ -15,6 +15,49 @@
 
 Разделение намеренное. `ccwidget` попадает в соглашение экосистемы (ccusage, ccstatusline, ccflare) и находится поиском. Отображаемое имя по формуле «X for Y» — описательное использование чужого товарного знака, которое Apple считает допустимым. Слово «Claude» не должно входить в имя бандла и идентификатор.
 
+### В галерее виджетов приложение называется «CCWidget»
+
+**Принято как есть, переименования не будет.** В Finder и в Dock приложение подписано отображаемым именем, а в галерее виджетов — именем бандла. Расхождение известно и объяснимо:
+
+- в галерею попадают только те, кто уже поставил `ccwidget`; для них совпадение подписи с именем пакета — помощь, а не помеха;
+- соседи в том же списке подписаны так же, именами пакетов, а не описаниями: 1Blocker, Dropover, Bear;
+- переименование бандла завело бы пробелы в каждый путь в скриптах, в CI и в документации.
+
+### Откуда галерея берёт имя
+
+Установлено опытом; в документации Apple этого нет, и следующий читатель потратит на выяснение столько же, сколько было потрачено здесь.
+
+**Галерея берёт имя из имени бандла на диске.** Ни `CFBundleName`, ни `CFBundleDisplayName`, ни одноимённые поля расширения на подпись не влияют.
+
+Что именно исключено и чем:
+
+| Кандидат | Значение у нас | В галерее | Вывод |
+|---|---|---|---|
+| `CFBundleDisplayName` приложения | `Usage Widget for Claude Code` | не показано | исключено |
+| `CFBundleName` приложения | `CCWidget` → заменено на `Usage Widget for Claude Code`, пересборка и переустановка | подпись не изменилась | исключено опытом |
+| `CFBundleName` расширения | `CCWidgetExtension` | не показано | исключено |
+| `CFBundleDisplayName` расширения | `Usage Widget for Claude Code` | не показано | исключено |
+| Имя бандла на диске | `CCWidget.app` | `CCWidget` | остаётся единственным |
+
+Доказательство от соседей. Перебраны все бандлы в `/Applications` и `/System/Applications`, у которых есть расширение с точкой `com.apple.widgetkit-extension`; ниже те, чью подпись в галерее я сверил глазами с полями на диске:
+
+| Приложение | В галерее | `app.Name` | `app.Display` | `ext.Name` | `ext.Display` |
+|---|---|---|---|---|---|
+| 1Blocker | 1Blocker | 1Blocker | — | MacWidgetExtension | MacWidget |
+| Bear | Bear | Bear | — | Bear Widgets Extension | Bear Widgets |
+| Developer | Developer | Developer | — | Developer Widget | Developer |
+| Dropover | Dropover | Dropover | — | RecentShelvesWidgetExtension | RecentShelvesWidget |
+| Stats | Stats | Stats | — | — | Widgets |
+| MindNode | MindNode | MindNode | MindNode | MindNode Widget Extension | MindNode Widget |
+| Unread | Unread | Unread | Unread | UnreadWidgetExtension | Unread Widget |
+| **CCWidget** | **CCWidget** | CCWidget | Usage Widget for Claude Code | CCWidgetExtension | Usage Widget for Claude Code |
+
+Поля расширения соседи исключают сами: у Bear в галерее «Bear», а не «Bear Widgets»; у Stats — «Stats», хотя `ext.Display` там «Widgets», а `ext.Name` вовсе нет. Имя бандла и `CFBundleName` у них совпадают, поэтому эти два кандидата соседи не различают — различает только наш случай, единственный, где поля разошлись, и различает опытом: `CFBundleName` был заменён, подпись не изменилась.
+
+Полезный контрпример — системный `Clock.app`: `CFBundleName` у него отсутствует вовсе, только `CFBundleDisplayName`, и в галерее он подписан нормально и локализованно. Значит `CFBundleName` не обязателен и запасной путь у галереи есть.
+
+**Кэш имён исключён, и это вывод из наблюдения, а не предположение.** В том же обновлении списка, в котором подпись осталась прежней, иконка в этой самой строке сменилась с заглушки на настоящую. Запись перечитывается; будь дело в замороженном кэше, не обновилось бы ни то, ни другое.
+
 ---
 
 ## 1. Зачем это нужно
