@@ -32,6 +32,30 @@ public struct SnapshotStore: Sendable {
     public var snapshotURL: URL { containerURL.appending(path: "snapshot.json") }
     public var historyURL: URL { containerURL.appending(path: "history.jsonl") }
 
+    /// Left behind by the exporter while it is declining to write, and deleted
+    /// the moment it writes again. Section 3.
+    ///
+    /// Skipping the write is a fallback, and a silent fallback turns a defect
+    /// into an absence of data. On a session start the skip is expected and
+    /// lasts seconds; the case it exists for is the one nobody has seen —
+    /// `rate_limits` gone mid-session and not coming back. The exporter would
+    /// then fall quiet for good, the snapshot would age, and the symptom would
+    /// be indistinguishable from Claude Code not running.
+    public var skipNoticeURL: URL { containerURL.appending(path: "export-skipped.json") }
+
+    /// When the exporter last started declining to write, and why. `nil` when
+    /// it is writing normally, which is almost always.
+    public func loadSkipNotice() -> SkipNotice? {
+        guard let data = try? Data(contentsOf: skipNoticeURL) else { return nil }
+        do {
+            return try JSONDecoder().decode(SkipNotice.self, from: data)
+        } catch {
+            ccwidgetParseLog.error(
+                "skip notice unreadable: \(error.localizedDescription, privacy: .private)")
+            return nil
+        }
+    }
+
     public init(containerURL: URL) {
         self.containerURL = containerURL
     }
@@ -162,6 +186,28 @@ public struct SnapshotStore: Sendable {
         }
         return snapshot
     }
+}
+
+/// Why the exporter wrote nothing, and since when.
+public struct SkipNotice: Decodable, Sendable {
+    public let since: Date
+    public let reason: String
+    /// The session whose redraw first declined. A session start explains
+    /// itself; the same session still silent an hour later does not.
+    public let sessionId: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case since, reason, sessionId
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        since = Date(timeIntervalSince1970: try c.decode(Double.self, forKey: .since))
+        reason = try c.decode(String.self, forKey: .reason)
+        sessionId = try c.decodeIfPresent(String.self, forKey: .sessionId)
+    }
+
+    public func age(at now: Date = Date()) -> TimeInterval { now.timeIntervalSince(since) }
 }
 
 // MARK: - Freshness

@@ -16,10 +16,28 @@ func fail(_ message: String) -> Never {
     exit(1)
 }
 
+/// Printed before anything else when it exists, because it changes what an
+/// old snapshot means: the exporter is running and choosing not to write,
+/// rather than not running at all.
+func reportSkipNotice(_ store: SnapshotStore) {
+    guard let notice = store.loadSkipNotice() else { return }
+    let since = notice.since.formatted(date: .abbreviated, time: .standard)
+    print("!! The exporter is writing nothing.")
+    print("   since:   \(since)  (\(duration(notice.age())) ago)")
+    print("   reason:  \(notice.reason)")
+    print("   session: \(dash(notice.sessionId))")
+    print("")
+    print("   Expected for the first seconds of a session. Lasting longer than")
+    print("   that means the status line has stopped sending rate_limits, and")
+    print("   the snapshot below is as old as this notice.")
+    print("")
+}
+
 let snapshot: Snapshot
 do {
     snapshot = try store.load()
 } catch let error as SnapshotStoreError {
+    reportSkipNotice(store)
     fail(error.description)
 } catch {
     fail("\(error)")
@@ -79,6 +97,8 @@ func report(_ title: String, _ window: LimitWindow?) {
 // MARK: - Output
 
 let age = snapshot.age()
+
+reportSkipNotice(store)
 
 print("Directory: \(store.containerURL.path)")
 print("File:      \(store.snapshotURL.lastPathComponent)")

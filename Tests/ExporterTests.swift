@@ -477,6 +477,8 @@ struct ExporterTests {
         let after = try loadSnapshot(installed)
         #expect(after.limits.sevenDay?.usedPercentage == 9,
                 "a session start replaced the weekly number with nothing")
+        #expect(store(installed).loadSkipNotice() != nil,
+                "the skip left no trace of itself")
         #expect(after.limits.fiveHour?.usedPercentage == 21,
                 "a session start replaced the five-hour number with nothing")
         #expect(after.context?.usedPercentage == 25,
@@ -492,5 +494,42 @@ struct ExporterTests {
         try run(installed, stdin: sessionStartPayload())
         #expect(!FileManager.default.fileExists(atPath: installed.snapshot.path),
                 "a snapshot with no numbers in it was written")
+    }
+
+    private func store(_ installed: Installed) -> SnapshotStore {
+        SnapshotStore(containerURL: installed.exchange)
+    }
+
+    /// Skipping the write is a fallback, and the rule forbids silent ones.
+    ///
+    /// Not for debugging session starts, where the skip is expected and over
+    /// in seconds — for the case nobody has seen: `rate_limits` going missing
+    /// mid-session and not coming back. The exporter would fall quiet for
+    /// good, the snapshot would age, and the symptom would be
+    /// indistinguishable from Claude Code not running. The notice is the only
+    /// thing that would tell them apart.
+    @Test("A skipped write says since when, and stops saying it when it resumes")
+    func aSkippedWriteLeavesANotice() throws {
+        let installed = try install()
+
+        try run(installed, stdin: sessionStartPayload())
+        let first = try #require(store(installed).loadSkipNotice(),
+                                 "nothing recorded the exporter falling silent")
+        #expect(first.reason.contains("rate_limits"), "\(first.reason)")
+        #expect(first.sessionId == "fedcba98", "\(first.sessionId ?? "nil")")
+
+        // Redraw after redraw while the silence lasts. The moment it started
+        // is the useful number, so it must not be overwritten by the latest
+        // redraw — dozens of those arrive every minute.
+        Thread.sleep(forTimeInterval: 1.1)
+        try run(installed, stdin: sessionStartPayload())
+        let second = try #require(store(installed).loadSkipNotice())
+        #expect(second.since == first.since,
+                "the notice restarted its clock, so it no longer says when the silence began")
+
+        // And the first real payload clears it.
+        try run(installed, stdin: payload())
+        #expect(store(installed).loadSkipNotice() == nil,
+                "the exporter is writing again and the notice is still there")
     }
 }

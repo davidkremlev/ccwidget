@@ -108,6 +108,36 @@ def should_append(prev, entry):
     return entry["t"] - (prev.get("t") or 0) > MIN_INTERVAL
 
 
+def note_skip(session_id):
+    """Records that the exporter is declining to write, keeping the first
+    moment. Failures here are ignored: a diagnostic must never be the thing
+    that breaks the status line."""
+    path = os.path.join(GROUP_DIR, "export-skipped.json")
+    if os.path.exists(path):
+        return
+    payload = {
+        "since": int(time.time()),
+        "reason": "the status line sent no rate_limits",
+        "sessionId": session_id[:8] if isinstance(session_id, str) else None,
+    }
+    try:
+        handle = open_new(path + ".tmp")
+        if handle is None:
+            return
+        with handle as f:
+            json.dump(payload, f)
+        os.replace(path + ".tmp", path)
+    except OSError:
+        pass
+
+
+def clear_skip():
+    try:
+        os.unlink(os.path.join(GROUP_DIR, "export-skipped.json"))
+    except OSError:
+        pass
+
+
 def main():
     raw = sys.stdin.buffer.read(MAX_INPUT + 1)
     if len(raw) > MAX_INPUT:
@@ -172,8 +202,23 @@ def main():
     # Nothing is merged and nothing is preserved by hand — the write is simply
     # skipped. Keeping old numbers under a fresh capturedAt would be the one
     # outcome worse than either.
+    #
+    # And it is not skipped quietly. A silent fallback turns a defect into an
+    # absence of data: on a session start this lasts seconds and explains
+    # itself, but if rate_limits ever went missing mid-session and stayed
+    # missing, the exporter would fall quiet for good, the snapshot would age,
+    # and the symptom would be indistinguishable from Claude Code not running.
+    # The notice says since when and why; `ccwidget-dump` prints it.
+    #
+    # Written on the way into silence and not on every redraw — the status line
+    # redraws dozens of times a minute, and what matters is when the silence
+    # started, not how many times it has been observed since. Deleted below the
+    # moment a snapshot is written again.
     if five_hour is None and seven_day is None:
+        note_skip(d.get("session_id"))
         return
+
+    clear_skip()
 
     # Section 4: write only what is displayed. There is no full project path
     # here — the widget never shows it, and it can name a client.

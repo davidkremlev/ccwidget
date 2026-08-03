@@ -89,6 +89,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   input to produce a snapshot, and its own comment named the session-start
   shape while doing so. Rewritten rather than joined by a second one.
 
+  The skip is a fallback and does not happen quietly. It leaves
+  `export-skipped.json` beside the snapshot saying since when, why and in which
+  session, and `ccwidget-dump` prints it before anything else — an old snapshot
+  means something different when the exporter is running and declining to write.
+  Written on the way into silence rather than on every redraw, so the moment it
+  started survives; deleted by the first real write. Not for debugging session
+  starts, where the skip lasts seconds, but for the case nobody has seen:
+  `rate_limits` going missing mid-session and staying missing, where the
+  symptom would otherwise be indistinguishable from Claude Code not running.
+  In 29 status-line calls across three sessions it never did go missing after
+  appearing — which is an observation and not a guarantee.
+
 - **The window header was cut off at the widest badge.** "Usage Widget for
   Claude C…" beside *Нужна проверка*, seen at an hour's age. Tier 1 passed it:
   the check measured the badge against what was left after the title and
