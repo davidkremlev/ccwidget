@@ -34,6 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The status badge was cut off in four of its twenty-four translations.**
+  It was the only single-line text in the window with no shrink allowance, and
+  "Einrichtung nötig", "Нужна настройка", "Requiere revisión" and "Нужна
+  проверка" all needed one — the app's name and the badge together came to more
+  than the header's 300 points, which puts the header on two lines. Found by
+  measuring, not by looking: tier 1 of the rendering plan had only ever read the
+  widget's catalog, and the window's was measured by nobody. It is now, for the
+  two places in the window where width is actually a constraint.
+
 - **The window drew day-old numbers as though they were current.** Section 2.4
   replaces a snapshot over a day old with an invitation to launch Claude Code;
   the widget did that and the window went on drawing its bars. Which left the
@@ -48,7 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is rewritten, key order and indentation go, and the person is told and
   pointed at the backup. Removal edits the same file with the same fallback and
   said nothing. The asymmetry was an oversight, not a decision; both paths now
-  report it in the same words.
+  report it in the same words, and a check removes an escaped key through the
+  real uninstall and reads the sentence back out of the window.
 
 - **The window and the widget disagreed about how old the data was.** At one
   moment the window read "updated 42 seconds ago" and both widgets beside it

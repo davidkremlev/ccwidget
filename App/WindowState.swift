@@ -99,11 +99,19 @@ enum WindowState: Equatable {
         case .waiting:
             return localized("Waiting for Claude Code to send data. Send any message in the terminal.", locale)
         case .abandoned:
-            // The same words the widget uses. One rule, two surfaces: the
-            // sentence a person reads about stale data should not depend on
-            // which of our windows they happen to be looking at.
-            return localized("Data is stale", locale)
-                + " · " + localized("Launch Claude Code in the terminal to refresh.", locale)
+            // One key, not two joined with a separator at runtime. Section 10
+            // forbids assembling display text from parts, and the medium
+            // tile's footer was already fixed once for exactly this: read
+            // aloud, "Data is stale" and "Launch Claude Code…" came out as two
+            // unrelated items. It is also the only form a translator can
+            // punctuate, since where the sentences meet is their business.
+            //
+            // The widget says the same thing in different words on purpose:
+            // there it is a title over a message, two slots in a layout, so it
+            // is two keys. Here it is one line of prose among three others
+            // written the same way. Same rule, same information, phrasing that
+            // fits the shape each surface has.
+            return localized("The numbers are over a day old. Launch Claude Code in the terminal to refresh.", locale)
         case .working, .outdated:
             return nil
         }

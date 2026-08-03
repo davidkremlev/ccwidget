@@ -253,10 +253,11 @@ func metricTint(_ metric: GaugeMetric?, dimmed: Bool) -> Color {
 /// hour the age gets an explicit word in front of it.
 struct AgeCaption: View {
     let entry: CCWidgetEntry
+    @Environment(\.locale) private var locale
 
     var body: some View {
         if let captured = entry.snapshot?.capturedAt {
-            let age = CCWidgetFormat.relativeAge(of: captured, at: entry.date)
+            let age = CCWidgetFormat.relativeAge(of: captured, at: entry.date, locale: locale)
             Group {
                 if entry.freshness?.isDimmed == true {
                     Text("outdated · \(age)")

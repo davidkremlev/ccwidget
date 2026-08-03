@@ -123,4 +123,100 @@ struct RemovalTests {
             .filter { $0.hasPrefix("settings.json.bak-") }
         #expect(names.count <= Installer.backupsKept, "no more than five backups are kept")
     }
+
+    // MARK: A file that had to be rebuilt
+
+    /// The other half of the removal, and the one nothing produced.
+    ///
+    /// `RemovalReport.editWasSurgical` was added so that removal could say
+    /// what installation has always said — the file was rebuilt, key order and
+    /// indentation are gone, the backup has the original. Nothing produced the
+    /// `false` value through the real path: the guard on
+    /// `SettingsEditor.RemovalOutcome` compares the three outcomes directly,
+    /// which says nothing about whether `uninstall` carries one of them out.
+    /// A case nothing expects is wrong forever by construction.
+    ///
+    /// The key is spelled with an escape — `\u004C` is `L` — so a JSON parser
+    /// reads it as `statusLine` while a search through the text for
+    /// `"statusLine"` finds nothing. Contrived to write by hand, entirely
+    /// ordinary from a generator that escapes on output.
+    @Test("Removal reports a settings.json it had to rebuild")
+    func removalReportsARebuiltFile() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        let command = inst.exporterURL.path(percentEncoded: false)
+        write(#"{"status\u004Cine":{"type":"command","command":"\#(command)"},"theme":"dark"}"#,
+              to: home)
+
+        #expect(inst.statusLineState() == .ours,
+                "the fixture is wrong: the escaped key still has to parse as ours")
+
+        let report = try inst.uninstall(removingHistory: false)
+        #expect(report.statusLineRemoved, "the key went")
+        #expect(report.editWasSurgical == false,
+                "the file was rebuilt and the report says it was not")
+        #expect(!settings(home).contains("statusLine") && !settings(home).contains("u004C"),
+                "the key survived the rebuild")
+        #expect(settings(home).contains("dark"), "the neighbours did not")
+    }
+
+    /// And the surgical half, so the field is produced both ways rather than
+    /// only in the direction that raises a warning.
+    @Test("Removal reports a settings.json it could cut cleanly")
+    func removalReportsASurgicalEdit() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        write(#"{"theme":"dark"}"#, to: home)
+        _ = try inst.install()
+
+        let report = try inst.uninstall(removingHistory: false)
+        #expect(report.statusLineRemoved)
+        #expect(report.editWasSurgical == true, "a tidy file needs no rebuilding")
+    }
+
+    /// Nothing to remove: no edit happened, so there is nothing to be surgical
+    /// about and the report says so rather than guessing.
+    @Test("Removal with nothing of ours in the file reports no edit")
+    func removalWithoutOurKeyReportsNoEdit() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        write(#"{"theme":"dark"}"#, to: home)
+
+        let report = try inst.uninstall(removingHistory: false)
+        #expect(!report.statusLineRemoved)
+        #expect(report.editWasSurgical == nil)
+    }
+
+    /// The sentence has to reach the person, not just the report. This is the
+    /// step the original asymmetry hid: installation composed a warning from
+    /// its report and removal composed nothing from its own.
+    @MainActor
+    @Test("The window tells the user their settings.json was rebuilt")
+    func theWindowRepeatsTheWarning() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        let command = inst.exporterURL.path(percentEncoded: false)
+        write(#"{"status\u004Cine":{"type":"command","command":"\#(command)"},"theme":"dark"}"#,
+              to: home)
+
+        // A watcher pointed at the sandbox and told to reload nothing: the
+        // real one reads the developer's own container and asks WidgetKit to
+        // reload, which is not something a check may do.
+        let model = StatusModel(
+            installer: inst,
+            watcher: SnapshotWatcher(
+                store: SnapshotStore(containerURL: SnapshotStore.exchangeURL(home: home)),
+                read: { throw CocoaError(.fileNoSuchFile) },
+                reloadWidgets: {}))
+
+        model.uninstall(removingHistory: false)
+
+        let notice = try #require(model.notice)
+        #expect(notice.contains("rewritten"),
+                "the report knew the file was rebuilt and the window did not say so: \"\(notice)\"")
+    }
 }

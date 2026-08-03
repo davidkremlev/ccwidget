@@ -581,16 +581,6 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 无法写入 %@：%@ |
 
 
-**`Data is stale`**
-
-| | |
-|---|---|
-| German | Daten sind veraltet |
-| Spanish | Los datos están obsoletos |
-| Japanese | データが古くなっています |
-| Simplified Chinese | 数据已过时 |
-
-
 **`Details`**
 
 | | |
@@ -689,16 +679,6 @@ Seen after clicking the widget, and during setup.
 | Spanish | Inicia Claude Code y envía cualquier mensaje. |
 | Japanese | Claude Code を起動して、何かメッセージを送ってください。 |
 | Simplified Chinese | 启动 Claude Code 并发送任意消息。 |
-
-
-**`Launch Claude Code in the terminal to refresh.`**
-
-| | |
-|---|---|
-| German | Starten Sie Claude Code im Terminal, um zu aktualisieren. |
-| Spanish | Inicia Claude Code en el terminal para actualizar. |
-| Japanese | 更新するにはターミナルで Claude Code を起動してください。 |
-| Simplified Chinese | 在终端中启动 Claude Code 以刷新。 |
 
 
 **`Live data is coming in.`**
@@ -1081,6 +1061,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | ~/.claude/ccwidget-export.py 不是本应用安装的那个。它在每次状态行重绘时运行，请先查看其内容，再重新安装一份已知的副本。 |
 
 
+**`The numbers are over a day old. Launch Claude Code in the terminal to refresh.`**
+
+| | |
+|---|---|
+| German | Die Zahlen sind über einen Tag alt. Starten Sie Claude Code im Terminal, um zu aktualisieren. |
+| Spanish | Los datos tienen más de un día. Inicia Claude Code en el terminal para actualizar. |
+| Japanese | 数値は 1 日以上前のものです。更新するにはターミナルで Claude Code を起動してください。 |
+| Simplified Chinese | 数据已超过一天。在终端中启动 Claude Code 以刷新。 |
+
+
 **`The status line is not pointing at this app yet, so nothing is being written.`**
 
 | | |
@@ -1223,4 +1213,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-115 strings in total.
+114 strings in total.

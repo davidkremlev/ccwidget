@@ -90,6 +90,12 @@ struct StatusView: View {
             .background(badgeColor.opacity(0.18), in: Capsule())
             .foregroundStyle(badgeColor)
             .lineLimit(1)
+            // The only single-line text in the window that had no shrink
+            // allowance, and four of the twenty-four badge translations do not
+            // fit the header without one: "Einrichtung nötig", "Нужна
+            // настройка", "Requiere revisión", "Нужна проверка". Measured, not
+            // guessed — `badgesFitTheHeader`.
+            .minimumScaleFactor(0.8)
     }
 
     /// A hash mismatch raises the badge regardless of how fresh the data is:

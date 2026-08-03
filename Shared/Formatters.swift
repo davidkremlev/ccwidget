@@ -23,11 +23,18 @@ public enum CCWidgetFormat {
     /// stamped after the entry currently on screen, and the numeric wording for
     /// a negative age is "in 0 seconds" — a widget promising that the data is
     /// about to arrive.
-    public static func relativeAge(of date: Date, at now: Date = Date()) -> String {
+    /// The locale is a parameter for the same reason `resetMoment`'s is: a
+    /// view rendering against `.environment(\.locale, …)` and a string
+    /// formatted against the process locale disagree with each other. It is
+    /// also the only way to measure how wide this gets in German without
+    /// rebuilding the formatter in the check and hoping the two agree.
+    public static func relativeAge(of date: Date, at now: Date = Date(),
+                                   locale: Locale = .autoupdatingCurrent) -> String {
         let anchor = AgeClock.anchor(now)
         let minutes = max(0, (anchor.timeIntervalSince(date) / 60).rounded(.down))
 
         let formatter = RelativeDateTimeFormatter()
+        formatter.locale = locale
         formatter.unitsStyle = .full
         // Under a minute there is no duration to name — the statement is "this
         // is current", and every locale we ship has a word for it. Above a

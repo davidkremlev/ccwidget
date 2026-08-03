@@ -112,6 +112,14 @@ struct TextMetricsTests {
         try catalog("Widget/Resources/Localizable.xcstrings")
     }
 
+    private func windowStrings() throws -> [String: [String: String]] {
+        try catalog("App/Resources/Localizable.xcstrings")
+    }
+
+    /// The languages the app ships in, in a fixed order so a failure names the
+    /// same one twice running.
+    private static let languages = ["de", "en", "es", "ja", "ru", "zh-Hans"]
+
     // MARK: The medium row
 
     /// What is left for the caption once everything fixed has taken its share.
@@ -218,6 +226,118 @@ struct TextMetricsTests {
                 let ratio = width(text, font(.caption1)) / english
                 // German averages about a third longer; Japanese is shorter.
                 // Three times is not a translation, it is an explanation.
+                #expect(ratio < 3,
+                        "\(language) \"\(text)\" is \(String(format: "%.1f", ratio))× the English \"\(key)\"")
+            }
+        }
+    }
+
+    // MARK: The window
+
+    /// Tier 1 stopped at the widget, and the window's catalog was measured by
+    /// nobody. That is not a small omission: a clipped caption is the defect
+    /// class this project has shipped twice, and both times it was found by
+    /// somebody looking at a screenshot rather than by a check.
+    ///
+    /// Not everything in the window can clip. The explanations that stand in
+    /// place of the bars carry `.fixedSize(horizontal: false, vertical: true)`
+    /// — they wrap and the window grows downwards, so their width is not a
+    /// budget and measuring them would be asserting a constraint the layout
+    /// does not have. Two things are bounded, and both are measured below.
+    private static let windowWidth: CGFloat = 340
+    private static let windowPadding: CGFloat = 20
+    private var windowContent: CGFloat { Self.windowWidth - 2 * Self.windowPadding }
+
+    /// The badge sits at the end of the header, after the app's name and a
+    /// minimum gap, inside a capsule with its own horizontal padding.
+    ///
+    /// What overflow does here is worth stating exactly, because it is not
+    /// truncation of the badge: the app's name carries no `lineLimit`, so an
+    /// oversized badge pushes the header onto two lines instead. Either way
+    /// the header stops being one line, which is the property asserted.
+    ///
+    /// The badge had no `minimumScaleFactor` until this check went in. Four of
+    /// the twenty-four translations needed one.
+    private var badgeBudget: CGFloat {
+        let title = width("Usage Widget for Claude Code", font(.headline))
+        let gap: CGFloat = 8            // Spacer(minLength: 8)
+        let capsule: CGFloat = 8 * 2    // .padding(.horizontal, 8)
+        return windowContent - title - gap - capsule
+    }
+
+    @Test("The window header stays on one line in every language")
+    func badgesFitTheHeader() throws {
+        let strings = try windowStrings()
+        let budget = badgeBudget
+        #expect(budget > 20, "the derived budget is implausible: \(budget)")
+
+        for key in ["Working", "Waiting", "Setup needed", "Check needed"] {
+            let translations = try #require(strings[key], "\(key) is not in the catalog")
+            for (language, text) in translations.sorted(by: { $0.key < $1.key }) {
+                let shrunk = width(text, font(.caption1, weight: .medium)) * Self.minimumScale
+                #expect(shrunk <= budget,
+                        "\(language) \"\(text)\" needs \(Int(shrunk)) pt of \(Int(budget)) available")
+            }
+        }
+    }
+
+    /// The negative control for that budget. Six points of margin separate the
+    /// widest real badge from the limit, so the control has to be well clear
+    /// of it rather than just over.
+    @Test("A badge that is too long is rejected")
+    func overlongBadgeIsRejected() {
+        let absurd = "Einrichtung wird benötigt"
+        let shrunk = width(absurd, font(.caption1, weight: .medium)) * Self.minimumScale
+        #expect(shrunk > badgeBudget,
+                "a 25-character badge fits the budget, so the budget is wrong")
+    }
+
+    /// The quiet line under the bars: when the week resets and how old the
+    /// data is, on one line, with a fifth of shrink allowed before it
+    /// truncates. Both halves are substituted with what they actually produce
+    /// rather than with a guess — the reset moment through its own formatter,
+    /// the age through `relativeAge`, in the language being measured.
+    @Test("The quiet line fits the window in every language")
+    func quietLineFitsTheWindow() throws {
+        let strings = try windowStrings()
+        let key = "Week resets %@ · updated %@"
+        let translations = try #require(strings[key], "\(key) is not in the catalog")
+
+        // A Wednesday at 03:00, and the widest age the line can hold: the
+        // formatter's wording is longest in the minutes and hours range.
+        var components = DateComponents()
+        components.year = 2026; components.month = 8; components.day = 5
+        components.hour = 3; components.minute = 0
+        let reset = Calendar(identifier: .gregorian).date(from: components)!
+        let captured = Date(timeIntervalSince1970: 1_785_000_000)
+        let ages: [TimeInterval] = [0, 60, 45 * 60, 3600, 22 * 3600, 3 * 86_400]
+
+        for (language, template) in translations.sorted(by: { $0.key < $1.key }) {
+            let locale = Locale(identifier: language)
+            let moment = CCWidgetFormat.resetMoment(reset, locale: locale)
+            let widest = ages
+                .map { CCWidgetFormat.relativeAge(of: captured,
+                                                  at: captured.addingTimeInterval($0),
+                                                  locale: locale) }
+                .max(by: { width($0, font(.caption1)) < width($1, font(.caption1)) }) ?? ""
+
+            let line = template
+                .replacingOccurrences(of: "%@", with: moment, range: template.range(of: "%@"))
+                .replacingOccurrences(of: "%@", with: widest)
+            let shrunk = width(line, font(.caption1)) * Self.minimumScale
+            #expect(shrunk <= windowContent,
+                    "\(language) \"\(line)\" needs \(Int(shrunk)) pt of \(Int(windowContent)) available")
+        }
+    }
+
+    /// The same absurdity guard the widget's strings have, over the window's.
+    @Test("No window string is wildly longer than its English source")
+    func noWindowStringIsAbsurdlyLong() throws {
+        for (key, translations) in try windowStrings() {
+            let english = width(key, font(.caption1))
+            guard english > 0 else { continue }
+            for (language, text) in translations where language != "en" {
+                let ratio = width(text, font(.caption1)) / english
                 #expect(ratio < 3,
                         "\(language) \"\(text)\" is \(String(format: "%.1f", ratio))× the English \"\(key)\"")
             }

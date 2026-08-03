@@ -857,41 +857,6 @@
         }
       }
     },
-    "Data is stale": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Daten sind veraltet"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Los datos están obsoletos"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "データが古くなっています"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Данные устарели"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "数据已过时"
-          }
-        }
-      }
-    },
     "Details": {
       "extractionState": "manual",
       "localizations": {
@@ -1168,41 +1133,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "启动 Claude Code 并发送任意消息。"
-          }
-        }
-      }
-    },
-    "Launch Claude Code in the terminal to refresh.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Starten Sie Claude Code im Terminal, um zu aktualisieren."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inicia Claude Code en el terminal para actualizar."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更新するにはターミナルで Claude Code を起動してください。"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запустите Claude Code в терминале, чтобы обновить."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在终端中启动 Claude Code 以刷新。"
           }
         }
       }
@@ -2148,6 +2078,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "~/.claude/ccwidget-export.py 不是本应用安装的那个。它在每次状态行重绘时运行，请先查看其内容，再重新安装一份已知的副本。"
+          }
+        }
+      }
+    },
+    "The numbers are over a day old. Launch Claude Code in the terminal to refresh.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Zahlen sind über einen Tag alt. Starten Sie Claude Code im Terminal, um zu aktualisieren."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los datos tienen más de un día. Inicia Claude Code en el terminal para actualizar."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数値は 1 日以上前のものです。更新するにはターミナルで Claude Code を起動してください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цифрам больше суток. Запустите Claude Code в терминале, чтобы обновить."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据已超过一天。在终端中启动 Claude Code 以刷新。"
           }
         }
       }
