@@ -857,6 +857,41 @@
         }
       }
     },
+    "Data is stale": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daten sind veraltet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los datos están obsoletos"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "データが古くなっています"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные устарели"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数据已过时"
+          }
+        }
+      }
+    },
     "Details": {
       "extractionState": "manual",
       "localizations": {
@@ -1133,6 +1168,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "启动 Claude Code 并发送任意消息。"
+          }
+        }
+      }
+    },
+    "Launch Claude Code in the terminal to refresh.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Starten Sie Claude Code im Terminal, um zu aktualisieren."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicia Claude Code en el terminal para actualizar."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新するにはターミナルで Claude Code を起動してください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запустите Claude Code в терминале, чтобы обновить."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在终端中启动 Claude Code 以刷新。"
           }
         }
       }

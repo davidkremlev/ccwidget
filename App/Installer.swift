@@ -143,6 +143,27 @@ struct Installer {
         case changed
         case unknown      // no hash: installed before the check existed
         case missing      // the exporter itself is gone
+
+        /// The line the window prints beside "Exporter". Composed here rather
+        /// than in the view so that two verdicts saying the same thing is
+        /// something a check can notice — the window puts an executable file
+        /// in the status line's path, and what it says about that file is the
+        /// whole point of the type.
+        func detail(locale: Locale = .autoupdatingCurrent) -> String {
+            var resource: LocalizedStringResource
+            switch self {
+            case .matches: resource = LocalizedStringResource("matches the installed copy")
+            case .changed: resource = LocalizedStringResource("modified since installation")
+            case .unknown: resource = LocalizedStringResource("installed before checking existed")
+            case .missing: resource = LocalizedStringResource("not installed")
+            }
+            resource.locale = locale
+            return String(localized: resource)
+        }
+
+        /// Whether the tamper banner is raised. A hash mismatch outranks
+        /// everything else the window might be saying.
+        var raisesBanner: Bool { self == .changed }
     }
 
     func checkIntegrity() -> Integrity {
@@ -393,6 +414,15 @@ struct Installer {
         let exporterRemoved: Bool
         let historyRemoved: Bool
         let backup: URL?
+        /// Whether the key could be cut out without rebuilding the file.
+        /// `nil` when nothing was edited, because there is then nothing to be
+        /// surgical about.
+        ///
+        /// Installation has reported this since section 11 asked it to, and
+        /// removal did not — the same file, the same risk of losing somebody's
+        /// key order and indentation, and one of the two paths saying nothing.
+        /// The asymmetry was an oversight, not a decision.
+        let editWasSurgical: Bool?
     }
 
     func removalPlan() -> RemovalPlan {
@@ -421,21 +451,28 @@ struct Installer {
     func uninstall(removingHistory: Bool) throws -> RemovalReport {
         var backup: URL?
         var statusLineRemoved = false
+        var editWasSurgical: Bool?
 
         if statusLineState() == .ours {
             backup = try backupSettings()
             let destination = resolvedSettingsURL
             let original = try? String(contentsOf: destination, encoding: .utf8)
-            switch SettingsEditor.removing("statusLine", from: original) {
-            case .surgical(let edited), .rewritten(let edited):
+
+            let outcome = SettingsEditor.removing("statusLine", from: original)
+            let edited: String?
+            switch outcome {
+            case .surgical(let text): edited = text; editWasSurgical = true
+            case .rewritten(let text): edited = text; editWasSurgical = false
+            case .absent: edited = nil
+            }
+
+            if let edited {
                 do {
                     try edited.write(to: destination, atomically: true, encoding: .utf8)
                     statusLineRemoved = true
                 } catch {
                     throw Failure.writeFailed(destination, error)
                 }
-            case .absent:
-                statusLineRemoved = false
             }
         }
 
@@ -454,7 +491,8 @@ struct Installer {
             statusLineRemoved: statusLineRemoved,
             exporterRemoved: exporterRemoved,
             historyRemoved: historyRemoved,
-            backup: backup
+            backup: backup,
+            editWasSurgical: editWasSurgical
         )
     }
 

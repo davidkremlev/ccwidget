@@ -222,7 +222,20 @@ struct ViewStateTests {
         let state = WindowState(containerExists: true, statusLineIsOurs: true,
                                 snapshot: snapshot(age: age), now: Date())
         #expect(state == expected, "\(Int(age)) s old")
-        #expect(state.showsData, "an aged snapshot still has numbers to show")
+    }
+
+    /// This used to say "an aged snapshot still has numbers to show" of all
+    /// three, which was the defect written down as a requirement: section 2.4
+    /// replaces day-old numbers with an invitation, the widget did it and the
+    /// window did not. Kept and split, because where the line falls is worth
+    /// asserting either way.
+    @Test("Numbers survive being dimmed, and do not survive a day")
+    func numbersSurviveDimmingButNotADay() {
+        #expect(WindowState.working.showsData)
+        #expect(WindowState.outdated.showsData,
+                "an hour-old snapshot is dimmed, not withheld")
+        #expect(!WindowState.abandoned.showsData,
+                "a day-old snapshot is replaced by an invitation")
     }
 
     // MARK: Onboarding

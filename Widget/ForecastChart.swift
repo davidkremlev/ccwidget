@@ -1,5 +1,111 @@
 import SwiftUI
 
+// MARK: - What the estimate block says
+
+/// The estimate block's whole output, as data rather than as a view.
+///
+/// It used to live inside `ForecastBlock` as a `@ViewBuilder` and two private
+/// computed properties, which meant that of the five `Forecast.Outcome` cases
+/// no check could tell `.notEnoughData` from `.flat`, or `.lastsUntilReset`
+/// from `.runsOut`: the only things a check could ask — `hasRate` and
+/// `showsProjection` — are equal within each of those pairs. Everything that
+/// actually separated them was a `Text` nobody could read back.
+///
+/// That is the shape the `.runsOut` defect lived in. It was documented as
+/// "exhaustion falls before the reset" and implemented as "falls inside the
+/// horizon", and eighteen checks on the estimate missed it because all
+/// eighteen tested the arithmetic and none could look at the verdict. A
+/// property that cannot be asked stays wrong longest.
+///
+/// So the block is composed here and rendered there, the same way the spoken
+/// row label is built by `gaugeAnnouncement`.
+struct EstimateStatement: Equatable {
+    /// How loudly the block speaks. A named level rather than a `Color`,
+    /// because a colour cannot be asked what it means — `CLAUDE.md` lists
+    /// exactly that as the sign of a value that will be wrong for a long time.
+    enum Emphasis: String, Equatable {
+        case plain
+        case warning
+        case alarm
+    }
+
+    let caption: String
+    let emphasis: Emphasis
+    /// Whether the chart is drawn at all.
+    let drawsChart: Bool
+    /// Whether the dashed projection is drawn over it.
+    let drawsProjection: Bool
+}
+
+extension EstimateStatement.Emphasis {
+    var color: Color {
+        switch self {
+        case .plain: return .secondary
+        case .warning: return .yellow
+        case .alarm: return .red
+        }
+    }
+}
+
+extension Forecast.Outcome {
+    /// Section 7: red means the quota does not last, yellow means it does,
+    /// and everything without a date is said quietly.
+    var emphasis: EstimateStatement.Emphasis {
+        switch self {
+        case .runsOut: return .alarm
+        case .lastsUntilReset: return .warning
+        case .rateOnly, .flat, .notEnoughData: return .plain
+        }
+    }
+}
+
+/// The locale is a parameter for the same reason the rate's and the reset
+/// moment's are: a view rendering against `.environment(\.locale, …)` and a
+/// string formatted against the process locale disagree with each other, and a
+/// baseline taken on one machine then fails on another.
+func estimateStatement(_ forecast: Forecast,
+                       locale: Locale = .autoupdatingCurrent) -> EstimateStatement {
+    func localized(_ resource: LocalizedStringResource) -> String {
+        var copy = resource
+        copy.locale = locale
+        return String(localized: copy)
+    }
+
+    let caption: String
+    switch forecast.outcome {
+    case .notEnoughData:
+        caption = localized(LocalizedStringResource("Not enough data yet"))
+    case .flat:
+        caption = localized(LocalizedStringResource("Usage is flat"))
+    case .rateOnly:
+        // A rate with no date: the speed is measured, the horizon did not
+        // reach far enough to name one.
+        caption = localized(LocalizedStringResource("Rate only — too little history for a date"))
+    case .lastsUntilReset:
+        caption = localized(LocalizedStringResource("Lasts until reset"))
+    case .runsOut(let date):
+        // The tilde is mandatory: this is an estimate, not a timetable.
+        let moment = CCWidgetFormat.resetMoment(date, locale: locale)
+        caption = localized(LocalizedStringResource("Runs out ~\(moment)"))
+    }
+
+    // With "not enough data" the chart is not drawn at all. The axis stretches
+    // to the reset, which can be six days out, so a couple of points occupy a
+    // few percent of the width: a stub on the left, indistinguishable from a
+    // drawing artifact. The caption says enough on its own.
+    let drawsChart: Bool
+    if case .notEnoughData = forecast.outcome {
+        drawsChart = false
+    } else {
+        drawsChart = forecast.points.count >= 2
+    }
+
+    return EstimateStatement(caption: caption,
+                             emphasis: forecast.outcome.emphasis,
+                             drawsChart: drawsChart,
+                             drawsProjection: forecast.showsProjection)
+}
+
 /// Accumulated weekly consumption with a dashed projection line. Section 7:
 /// yellow means the quota lasts to the reset, red means it does not.
 struct ForecastChart: View {
@@ -86,13 +192,7 @@ struct ForecastChart: View {
         return path
     }
 
-    private var tint: Color {
-        switch forecast.outcome {
-        case .runsOut: return .red
-        case .lastsUntilReset: return .yellow
-        case .rateOnly, .flat, .notEnoughData: return .secondary
-        }
-    }
+    private var tint: Color { forecast.outcome.emphasis.color }
 }
 
 // MARK: - The estimate block
@@ -125,28 +225,21 @@ struct ForecastBlock: View {
                 }
             }
 
-            if hasChart {
+            if statement.drawsChart {
                 ForecastChart(forecast: forecast, window: window)
                     .frame(height: 30)
             }
 
-            caption
+            Text(verbatim: statement.caption)
                 .font(.caption2)
-                .foregroundStyle(captionColor)
+                .foregroundStyle(statement.emphasis.color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
     }
 
-    /// With "not enough data" the chart is not drawn at all.
-    ///
-    /// The axis stretches to the reset, which can be six days out, so a couple
-    /// of points occupy a few percent of the width. The result is a stub on
-    /// the left, indistinguishable from a drawing artifact: it says nothing
-    /// and reads as broken. The "Not enough data yet" caption is enough.
-    private var hasChart: Bool {
-        if case .notEnoughData = forecast.outcome { return false }
-        return forecast.points.count >= 2
+    private var statement: EstimateStatement {
+        estimateStatement(forecast, locale: locale)
     }
 
     /// "0.7 %/h". The unit goes through the catalog like everything else: an
@@ -158,30 +251,4 @@ struct ForecastBlock: View {
                       comment: "Usage rate: a number followed by percent per hour")
     }
 
-    @ViewBuilder
-    private var caption: some View {
-        switch forecast.outcome {
-        case .notEnoughData:
-            Text("Not enough data yet")
-        case .flat:
-            Text("Usage is flat")
-        case .rateOnly:
-            // A rate with no date: the speed is measured, the horizon did not
-            // reach far enough to name one.
-            Text("Rate only — too little history for a date")
-        case .lastsUntilReset:
-            Text("Lasts until reset")
-        case .runsOut(let date):
-            // The tilde is mandatory: this is an estimate, not a timetable.
-            Text("Runs out ~\(CCWidgetFormat.resetMoment(date, locale: locale))")
-        }
-    }
-
-    private var captionColor: Color {
-        switch forecast.outcome {
-        case .runsOut: return .red
-        case .lastsUntilReset: return .yellow
-        case .rateOnly, .flat, .notEnoughData: return .secondary
-        }
-    }
 }

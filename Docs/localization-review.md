@@ -581,6 +581,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 无法写入 %@：%@ |
 
 
+**`Data is stale`**
+
+| | |
+|---|---|
+| German | Daten sind veraltet |
+| Spanish | Los datos están obsoletos |
+| Japanese | データが古くなっています |
+| Simplified Chinese | 数据已过时 |
+
+
 **`Details`**
 
 | | |
@@ -679,6 +689,16 @@ Seen after clicking the widget, and during setup.
 | Spanish | Inicia Claude Code y envía cualquier mensaje. |
 | Japanese | Claude Code を起動して、何かメッセージを送ってください。 |
 | Simplified Chinese | 启动 Claude Code 并发送任意消息。 |
+
+
+**`Launch Claude Code in the terminal to refresh.`**
+
+| | |
+|---|---|
+| German | Starten Sie Claude Code im Terminal, um zu aktualisieren. |
+| Spanish | Inicia Claude Code en el terminal para actualizar. |
+| Japanese | 更新するにはターミナルで Claude Code を起動してください。 |
+| Simplified Chinese | 在终端中启动 Claude Code 以刷新。 |
 
 
 **`Live data is coming in.`**
@@ -1203,4 +1223,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-113 strings in total.
+115 strings in total.

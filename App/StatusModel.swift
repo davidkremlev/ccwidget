@@ -117,6 +117,11 @@ class StatusModel: ObservableObject {
             if let backup = report.backup {
                 parts.append(String(localized: "Settings backed up as \(backup.lastPathComponent)."))
             }
+            if report.editWasSurgical == false {
+                // The same sentence installation shows, for the same reason:
+                // the file was rebuilt and somebody's formatting is gone.
+                parts.append(String(localized: "settings.json had to be rewritten, so key order and indentation changed. The backup has the original."))
+            }
             notice = parts.joined(separator: " ")
             refresh()
         } catch {

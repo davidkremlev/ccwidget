@@ -30,9 +30,34 @@ from existing. The behaviour they argued for is checked.
 | **Total** | **30** | **29** | |
 
 Plus the enum audit the rule implies: every case of every enum in the project
-is now produced by a check that expects it, except the two enums named below.
+is now produced by a check that expects it, except the enum named below.
 `SnapshotStoreError.containerUnavailable` was deleted rather than covered — no
 code path threw it.
+
+**A second sweep asked a stronger question**: not whether each case is
+produced, but whether each case makes an observable difference *in what that
+enum is responsible for*. Being produced is not enough — a case can be produced
+and mean nothing. All thirteen enums were taken in turn, each with its own area
+named first: the widget's appearance for `Freshness`, the message and the
+suggested action for `Installer.Failure`, the verdict for `Forecast.Outcome`,
+the diagnosis for `Forecast.Gate`. The guards live in
+`ObservableDifferenceTests`, one per enum, each verified by planting a
+collision and watching it fail.
+
+The sweep produced all three of the outcomes it can produce, which is why it
+was worth running:
+
+| | |
+|---|---|
+| **Distinguishable** | eight enums; a guard each |
+| **Indistinguishable, and the difference was not needed** | `Freshness` — `fresh` and `recent` drew the same; collapsed |
+| **Indistinguishable, and the difference *was* needed** | `WindowState.abandoned` produced nothing, and should have withheld the numbers; `SettingsEditor.RemovalOutcome` did not report a rebuilt file where installation did. Both were missing behaviour, not surplus cases |
+
+Two of the guards were unwritable until the thing they guard came out of a
+view: the estimate block's caption, colour and chart, and the window's badge
+and explanation. Both are now composed as values — `estimateStatement` and
+`WindowState.badge`/`.explanation` — and rendered from them, the way
+`gaugeAnnouncement` already was.
 
 **A1 was a real defect.** `.runsOut` was documented as "exhaustion falls
 before the reset" and implemented as "exhaustion falls inside the horizon", so
@@ -54,11 +79,15 @@ scheduled, not gaps in the audit's sense. Listed so nothing is lost.
 caption with the font and the width the layout gives it. The clipped-footer
 class of defect closes there.
 
-**Two enums of view state.** `StatusView.WindowState` (five of six cases) and
-`OnboardingView.Step` (three of four) are private to their views and reachable
-only through view-level checks — tier 2, the accessibility-tree snapshots.
-`WindowState.abandoned` and `Step.install` happen to be named elsewhere; the
-rest are not produced by anything.
+**One enum of view state.** `OnboardingStep` decides which of four step views
+the setup screen shows, and that consequence is a view — tier 2, the
+accessibility-tree snapshots. Its transitions are checked; the distinctness of
+what they render is not.
+
+`WindowState` used to be listed here beside it. It left `StatusView` earlier,
+and now its badge, tone, explanation and whether bars are drawn are values
+rather than view code, so `windowStatesDiffer` covers all six cases. Getting
+there is what exposed the missing `.abandoned` branch.
 
 ### Cannot be built: stated as unverifiable
 

@@ -44,11 +44,75 @@ enum WindowState: Equatable {
 
     /// Whether the window can draw bars at all. Everything else shows an
     /// explanation instead.
+    ///
+    /// `.abandoned` used to be on the other side of this. Section 2.4 says
+    /// numbers over a day old are replaced by an invitation rather than shown,
+    /// and the widget did that while the window went on drawing the bars — so
+    /// the two cases the window has for old data, `.outdated` and
+    /// `.abandoned`, came out of it identical: same badge, same colour, same
+    /// bars. The window is where the comparison with the Usage panel happens,
+    /// which makes day-old percentages worse there, not better.
     var showsData: Bool {
         switch self {
-        case .working, .outdated, .abandoned: return true
-        case .needsWidget, .needsSetup, .waiting: return false
+        case .working, .outdated: return true
+        case .needsWidget, .needsSetup, .waiting, .abandoned: return false
         }
+    }
+
+    // MARK: What the window says
+
+    /// How loudly the badge speaks. A named level rather than a `Color`: a
+    /// colour cannot be asked what it means.
+    enum Tone: String, Equatable {
+        case good
+        case quiet
+        case attention
+    }
+
+    var tone: Tone {
+        switch self {
+        case .working: return .good
+        case .waiting: return .quiet
+        case .needsWidget, .needsSetup, .outdated, .abandoned: return .attention
+        }
+    }
+
+    /// The badge text. Composed here rather than in the view for the reason
+    /// this whole type left the view: a `Text` cannot be read back, and two
+    /// states that produce the same one are two states nothing can tell apart.
+    func badge(locale: Locale = .autoupdatingCurrent) -> String {
+        switch self {
+        case .needsWidget, .needsSetup: return localized("Setup needed", locale)
+        case .waiting: return localized("Waiting", locale)
+        case .working: return localized("Working", locale)
+        case .outdated, .abandoned: return localized("Check needed", locale)
+        }
+    }
+
+    /// What stands in place of the bars, or `nil` when the bars are drawn.
+    func explanation(locale: Locale = .autoupdatingCurrent) -> String? {
+        switch self {
+        case .needsWidget:
+            return localized("Add the widget to your desktop first. Right-click the desktop, choose Edit Widgets, then come back.", locale)
+        case .needsSetup:
+            return localized("The status line is not pointing at this app yet, so nothing is being written.", locale)
+        case .waiting:
+            return localized("Waiting for Claude Code to send data. Send any message in the terminal.", locale)
+        case .abandoned:
+            // The same words the widget uses. One rule, two surfaces: the
+            // sentence a person reads about stale data should not depend on
+            // which of our windows they happen to be looking at.
+            return localized("Data is stale", locale)
+                + " · " + localized("Launch Claude Code in the terminal to refresh.", locale)
+        case .working, .outdated:
+            return nil
+        }
+    }
+
+    private func localized(_ resource: LocalizedStringResource, _ locale: Locale) -> String {
+        var copy = resource
+        copy.locale = locale
+        return String(localized: copy)
     }
 }
 

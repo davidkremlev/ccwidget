@@ -34,6 +34,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The window drew day-old numbers as though they were current.** Section 2.4
+  replaces a snapshot over a day old with an invitation to launch Claude Code;
+  the widget did that and the window went on drawing its bars. Which left the
+  window with two states for old data, *outdated* and *abandoned*, that were
+  identical in every respect — same badge, same colour, same bars — and so with
+  no way to notice that one of them did nothing. The window is also where the
+  comparison against the official Usage panel happens, which makes day-old
+  percentages worse there than on a tile.
+
+- **Removal did not say when it had rebuilt `settings.json`.** Installation has
+  said so since the beginning: if the key cannot be cut out surgically the file
+  is rewritten, key order and indentation go, and the person is told and
+  pointed at the backup. Removal edits the same file with the same fallback and
+  said nothing. The asymmetry was an oversight, not a decision; both paths now
+  report it in the same words.
+
 - **The window and the widget disagreed about how old the data was.** At one
   moment the window read "updated 42 seconds ago" and both widgets beside it
   read "1 minute ago", off the same file. Neither surface knows the time: the
@@ -135,6 +151,22 @@ modifier lists, and confirmed the same way afterwards.
   The rule that replaced the level is checkable, which the level never was: no
   two freshness levels may draw the same. A fourth one fails the suite until it
   is visible, and a reload for a change nobody can see fails it too.
+
+- **Every enum in the project now has to make an observable difference**, in
+  whatever it is responsible for — the widget's appearance for freshness, the
+  verdict on screen for the estimate, the message and the suggested action for
+  an installer failure, the diagnosis for the estimate's gate. One guard per
+  enum, each verified by planting a collision and watching it fail.
+
+  Two of them were only writable after the thing they guard came out of a view.
+  The estimate block composed its caption, its colour and whether to draw the
+  chart inside a `@ViewBuilder`, so nothing could tell *not enough data* from
+  *usage is flat*, or *lasts until reset* from *runs out*: on everything a
+  check could reach, each pair was equal. That is the shape the `.runsOut`
+  defect lived in — announced in red for quotas that comfortably outlived their
+  window, past eighteen checks that all tested the arithmetic. The window's
+  badge and explanation came out of `StatusView` for the same reason, and that
+  is how the missing *abandoned* branch above became visible at all.
 
 - **The display name is now "Usage Widget for Claude Code".** It used to be
   "Gauge for Claude Code", which no longer connected to anything: people

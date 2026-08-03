@@ -27,7 +27,7 @@ struct StatusView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            if model.integrity == .changed {
+            if model.integrity.raisesBanner {
                 tamperBanner
             }
 
@@ -83,7 +83,7 @@ struct StatusView: View {
     }
 
     private var badge: some View {
-        Text(badgeText)
+        Text(verbatim: badgeText)
             .font(.caption.weight(.medium))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -94,22 +94,17 @@ struct StatusView: View {
 
     /// A hash mismatch raises the badge regardless of how fresh the data is:
     /// a tampered exporter outranks a stale snapshot.
-    private var badgeText: LocalizedStringKey {
-        if model.integrity == .changed { return "Check needed" }
-        switch state {
-        case .needsWidget, .needsSetup: return "Setup needed"
-        case .waiting: return "Waiting"
-        case .working: return "Working"
-        case .outdated, .abandoned: return "Check needed"
-        }
+    private var badgeText: String {
+        if model.integrity.raisesBanner { return WindowState.outdated.badge() }
+        return state.badge()
     }
 
     private var badgeColor: Color {
-        if model.integrity == .changed { return .yellow }
-        switch state {
-        case .working: return .green
-        case .waiting: return .secondary
-        case .needsWidget, .needsSetup, .outdated, .abandoned: return .yellow
+        if model.integrity.raisesBanner { return .yellow }
+        switch state.tone {
+        case .good: return .green
+        case .quiet: return .secondary
+        case .attention: return .yellow
         }
     }
 
@@ -182,19 +177,21 @@ struct StatusView: View {
     @ViewBuilder
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 10) {
-            switch state {
-            case .needsWidget:
-                Text("Add the widget to your desktop first. Right-click the desktop, choose Edit Widgets, then come back.")
-            case .needsSetup:
-                Text("The status line is not pointing at this app yet, so nothing is being written.")
-                Button("Set up…") { model.install() }
-            case .waiting:
-                HStack(alignment: .top, spacing: 8) {
-                    ProgressView().controlSize(.small)
-                    Text("Waiting for Claude Code to send data. Send any message in the terminal.")
+            if let explanation = state.explanation() {
+                // The words come from `WindowState`; what stays here is the
+                // furniture around them, which differs by case and carries no
+                // meaning of its own.
+                if state == .waiting {
+                    HStack(alignment: .top, spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text(verbatim: explanation)
+                    }
+                } else {
+                    Text(verbatim: explanation)
                 }
-            default:
-                EmptyView()
+                if state == .needsSetup {
+                    Button("Set up…") { model.install() }
+                }
             }
         }
         .font(.callout)
@@ -308,14 +305,7 @@ struct StatusView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var exporterDescription: String {
-        switch model.integrity {
-        case .matches: return String(localized: "matches the installed copy")
-        case .changed: return String(localized: "modified since installation")
-        case .unknown: return String(localized: "installed before checking existed")
-        case .missing: return String(localized: "not installed")
-        }
-    }
+    private var exporterDescription: String { model.integrity.detail() }
 
 
     private func snapshotDescription(_ snapshot: Snapshot) -> String {
