@@ -203,6 +203,56 @@ Privacy & Security**, below the message about the blocked app, and appears
 only after you have tried to open it once. Worth knowing before you conclude
 the app is broken.
 
+## When the numbers stop moving
+
+Claude Code is running, you are working, and the widget has not changed in a
+while. On screen that looks exactly like Claude Code not running at all — the
+numbers simply age. These are different problems and there is one command that
+tells them apart.
+
+Build `ccwidget-dump` with the command under [Development](#development) — one
+copy of it, so it cannot drift from the one CI runs — and then:
+
+```sh
+./.build/ccwidget-dump
+```
+
+**If it starts with `!! The exporter is writing nothing`**, the status line is
+running and choosing not to write:
+
+```
+!! The exporter is writing nothing.
+   since:   3 Aug 2026 at 20:48:30
+   for:     8 min
+   reason:  the status line sent no rate_limits
+```
+
+That happens when Claude Code sends a redraw with no rate limits in it. Every
+session begins with one such redraw, and the notice clears itself the moment
+you send your first message — so seeing it for a second or two after starting
+Claude Code is normal.
+
+A notice that outlives that, minutes into a working session, is something we
+have never seen and would like to: please [open an issue](../../issues) with
+the *since* and *for* lines. It means the status line has stopped sending
+limits, and the numbers you are looking at are as old as the notice says.
+
+**If there is no such line and the snapshot is simply old**, nothing is writing
+at all. The usual causes, in the order worth checking:
+
+- Claude Code is the desktop app rather than the terminal one — the status line
+  only runs in the terminal, and this widget has no other source.
+- The `statusLine` key in `~/.claude/settings.json` no longer points at
+  `~/.claude/ccwidget-export.py`. The app's window says **Setup needed** when
+  that is the case.
+- The exporter file was deleted or replaced. The window's **Details** says
+  *modified since installation* or *not installed*.
+
+**If the numbers are current but the widget is showing older ones**, that is
+expected up to a minute — the widget is redrawn at most once a minute so the
+reload budget lasts. See *The window and the widget can be a minute apart*
+above.
+
 ## Removing it
 
 Either way undoes the same things.

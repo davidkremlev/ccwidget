@@ -12,6 +12,10 @@ if CommandLine.arguments.count > 1 {
 }
 
 func fail(_ message: String) -> Never {
+    // stdout is buffered and stderr is not, so without this the error jumps
+    // ahead of whatever has already been printed — including the notice that
+    // explains it.
+    fflush(stdout)
     FileHandle.standardError.write(Data(("error: " + message + "\n").utf8))
     exit(1)
 }
@@ -21,9 +25,13 @@ func fail(_ message: String) -> Never {
 /// rather than not running at all.
 func reportSkipNotice(_ store: SnapshotStore) {
     guard let notice = store.loadSkipNotice() else { return }
+    // Durations follow the region, so "8 min" comes out as "8 мин" on a
+    // Russian Mac. Fine beside a label, wrong inside an English sentence —
+    // hence no preposition around it.
     let since = notice.since.formatted(date: .abbreviated, time: .standard)
     print("!! The exporter is writing nothing.")
-    print("   since:   \(since)  (\(duration(notice.age())) ago)")
+    print("   since:   \(since)")
+    print("   for:     \(duration(notice.age()))")
     print("   reason:  \(notice.reason)")
     print("   session: \(dash(notice.sessionId))")
     print("")
