@@ -101,6 +101,26 @@ consequence, the data's age, grows identically whether the budget is spent or
 Claude Code is closed. A check becomes possible if Apple publishes either
 figure.
 
+**The stake on this one went up**, and that is worth knowing before anything
+else on the list. Until the snapshot's moment joined the reload signature
+(`SPEC` 2.4), the ceiling of one reload a minute was reached rarely — of the
+order of thirty reloads across 127 hours of real history. Every write is a
+reason now, so the ceiling is reached in every hour of active work: up to sixty
+an hour against fractions of one. Neither the assumption nor the ceiling
+changed; how hard we lean on them did, and with it what an error in the
+assumption costs.
+
+**What it looks like when the assumption is wrong:** the widget stops updating
+in the middle of the working day and comes back to life on its own a while
+later, with nothing done to it. There will be no error and no log line — the
+system simply stops calling the provider and later starts again. Anyone who
+sees that should come here first rather than go looking for a defect in the
+watcher: `SnapshotWatcher` is working correctly in that scenario and is asking
+for reloads that are being dropped in silence. The first thing to try is a
+longer `minimumReloadInterval`, not a narrower signature — the signature
+answers "has anything visible changed", and that answer does not depend on the
+budget.
+
 **G2. Which branch computes the exchange path** — `SPEC` 2.2.
 Both branches are covered separately: the parameterised `exchangeURL(home:)`
 in `Tests/`, and the sandboxed behaviour observed on the live extension. The

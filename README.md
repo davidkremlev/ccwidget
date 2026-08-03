@@ -96,6 +96,25 @@ models"** is the weekly window.
 A one-percent difference is fine: the exporter rounds fractional values. More
 than that is a bug — please [open an issue](../../issues).
 
+### The window and the widget can be a minute apart
+
+While an agent is working you may see the window say *updated now* and the
+widgets beside it say *1 minute ago*. That is expected and it is not a bug.
+
+The window reads the file the moment it changes; the widget is redrawn only
+when macOS is asked to reload it, and that is rationed to once a minute so the
+reload budget lasts. So the widget can be holding a snapshot up to a minute
+old. The gap does not accumulate — it is the age of the snapshot the widget is
+holding, and that is capped by the same minute.
+
+The percentages are whole numbers and move slowly, so in practice they agree.
+In the minute where one of them crosses a whole point they can differ too, for
+the same reason and no longer. The other places it shows are the exact token
+count on the large tile and the *Snapshot* row under Details in the window.
+
+Worth an issue if the gap is bigger than a minute, or if it does not close
+while Claude Code is running.
+
 ## Languages
 
 The interface is in English, German, Spanish, Japanese, Russian and Simplified

@@ -268,4 +268,61 @@ struct WatcherTests {
             }, "write of \(value)% reaches the window")
         }
     }
+
+    /// The defect the signature was too narrow to notice.
+    ///
+    /// Seen on the desktop: the window said "updated now" and both widgets
+    /// beside it said "2 minutes ago". A message had gone out, the context had
+    /// grown by a thousand tokens and stayed on 76 %, so none of the three
+    /// percentages moved — and the widget went on counting the age from a
+    /// snapshot two minutes old, because nothing had asked it to look again.
+    ///
+    /// A new snapshot always changes what the widget says, whatever the
+    /// numbers do: it puts the age back to zero, and the timeline in the
+    /// widget's hands cannot know that on its own.
+    @Test("A new snapshot with the very same percentages still reloads")
+    func newSnapshotWithUnchangedPercentagesReloads() {
+        let home = sandbox()
+        let spy = Spy()
+        spy.current = snapshot(capturedAt: spy.now, fiveHour: 13, week: 23, context: 76)
+
+        let w = watcher(spy, in: home)
+        w.handleChange(reason: "test", force: true)
+        let reloadsAfterLoad = spy.reloads
+
+        // Two minutes on, another write with identical numbers. The exporter
+        // does this constantly: the status line redraws on every turn and the
+        // percentages only move when a whole point is crossed.
+        spy.now += 120
+        spy.current = snapshot(capturedAt: spy.now, fiveHour: 13, week: 23, context: 76)
+        w.handleChange(reason: "test", force: false)
+
+        #expect(spy.reloads == reloadsAfterLoad + 1,
+                "the numbers were the same, so the widget kept an age two minutes out of date")
+    }
+
+    /// And the budget still holds. The moment in the signature means every
+    /// write is a change, so the minute is now the only thing rationing
+    /// reloads — it has to actually ration them.
+    @Test("Writes inside the same minute still cost one reload between them")
+    func repeatedWritesWithinAMinuteReloadOnce() {
+        let home = sandbox()
+        let spy = Spy()
+        spy.current = snapshot(capturedAt: spy.now, fiveHour: 13, week: 23, context: 76)
+
+        let w = watcher(spy, in: home)
+        w.handleChange(reason: "test", force: true)
+        let reloadsAfterLoad = spy.reloads
+
+        // Fifteen writes in two and a half minutes is what was measured of the
+        // status line; here they are, ten seconds apart.
+        for _ in 0..<15 {
+            spy.now += 10
+            spy.current = snapshot(capturedAt: spy.now, fiveHour: 13, week: 23, context: 76)
+            w.handleChange(reason: "test", force: false)
+        }
+
+        #expect(spy.reloads == reloadsAfterLoad + 2,
+                "two and a half minutes of writing bought \(spy.reloads - reloadsAfterLoad) reloads")
+    }
 }

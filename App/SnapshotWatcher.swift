@@ -190,11 +190,25 @@ final class SnapshotWatcher: ObservableObject {
     /// The numbers whose change actually gives the widget something new to
     /// show. The snapshot's age is deliberately left out: it changes every
     /// second and the pre-generated timeline draws it without our help.
+    /// What counts as the widget having something new to draw.
+    ///
+    /// The three percentages, and **when the snapshot was taken**. The moment
+    /// was left out at first on the reasoning that the age ticks by itself,
+    /// drawn by a pre-generated timeline without the daemon — which is true of
+    /// the age *growing* and false of the age being *reset*. A new snapshot
+    /// puts it back to zero, the timeline in the widget's hands cannot know
+    /// that, and it goes on counting from the moment it was built.
+    ///
+    /// Seen: the window said "updated now" while both widgets beside it said
+    /// "2 minutes ago". A message had been sent, the context had grown by a
+    /// thousand tokens and stayed on 76 %, so not one of the three percentages
+    /// moved and nothing asked the widget to look again.
     private func signature(of snapshot: Snapshot) -> String {
         [
             snapshot.limits.fiveHour?.usedPercentage.description ?? "-",
             snapshot.limits.sevenDay?.usedPercentage.description ?? "-",
             snapshot.context?.usedPercentage?.description ?? "-",
+            snapshot.capturedAt.timeIntervalSince1970.description,
         ].joined(separator: "|")
     }
 
@@ -218,11 +232,16 @@ final class SnapshotWatcher: ObservableObject {
         let current = signature(of: snapshot)
 
         if !force {
-            // Either reason is enough. The numbers are the obvious one; the
+            // Either reason is enough. The signature is the obvious one; the
             // freshness matters because it changes how the widget draws itself
             // — a stale snapshot is dimmed — and a write that revives a dimmed
             // widget without changing a single percentage would otherwise
             // leave it dimmed until the next time a number moved.
+            //
+            // Since the signature now carries the moment, every write is a
+            // change and the minute below is what actually rations reloads.
+            // That is the ceiling the interval was chosen for; section 2.3 has
+            // what it costs.
             guard current != lastSignature || state.freshness != wasFresh else { return }
             if let last = state.lastReload,
                state.now.timeIntervalSince(last) < Self.minimumReloadInterval {

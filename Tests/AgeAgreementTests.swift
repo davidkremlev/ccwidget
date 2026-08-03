@@ -237,4 +237,58 @@ struct AgeAgreementTests {
         #expect(!day.filter(\.isNumber).isEmpty, "a day old reads \"\(day)\"")
         #expect(!week.filter(\.isNumber).isEmpty, "a week old reads \"\(week)\"")
     }
+
+    // MARK: When the two hold different snapshots
+
+    /// Everything above hands both surfaces the same snapshot, which is the
+    /// case where the clocks are the only thing that can differ. It is not the
+    /// only case, and the one it leaves out is where the defect lived: the
+    /// window reads the file the moment it changes, the widget only when it is
+    /// reloaded, and if nothing asks for a reload the two are describing
+    /// different snapshots.
+    ///
+    /// Seen on the desktop — "updated now" beside "2 minutes ago" — because the
+    /// reload rule looked at three percentages and a new snapshot had not moved
+    /// any of them.
+    ///
+    /// So this is the missing half: with identical percentages and different
+    /// moments the two surfaces really do disagree, and what stops it is the
+    /// watcher counting the new moment as a change.
+    @MainActor
+    @Test("Snapshots taken at different moments cannot be left on the two surfaces")
+    func differentMomentsCannotSurviveOnTheTwoSurfaces() {
+        let older = Self.start.addingTimeInterval(-120)
+        let newer = Self.start
+
+        // First, that it matters: the same percentages, two moments, two
+        // different sentences. Without the reload below this is what the
+        // desktop shows.
+        let fromOlder = CCWidgetFormat.relativeAge(of: older, at: Self.start)
+        let fromNewer = CCWidgetFormat.relativeAge(of: newer, at: Self.start)
+        #expect(fromOlder != fromNewer,
+                "the fixture is wrong: two minutes apart has to read differently")
+
+        // Then, what prevents it. Percentages identical in both, only the
+        // moment moves.
+        let home = sandbox()
+        var current = Self.snapshot(capturedAt: older)
+        var reloads = 0
+        var now = older
+
+        let watcher = SnapshotWatcher(
+            store: SnapshotStore(containerURL: SnapshotStore.exchangeURL(home: home)),
+            read: { current },
+            reloadWidgets: { reloads += 1 },
+            clock: { now })
+
+        watcher.handleChange(reason: "first", force: true)
+        let afterFirst = reloads
+
+        now = newer
+        current = Self.snapshot(capturedAt: newer)
+        watcher.handleChange(reason: "second", force: false)
+
+        #expect(reloads == afterFirst + 1,
+                "the widget was left holding a snapshot two minutes older than the window's")
+    }
 }

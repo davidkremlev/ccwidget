@@ -34,6 +34,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The widget kept showing an age from a snapshot it no longer had.** The
+  window read "updated now" while both widgets beside it read "2 minutes ago",
+  off the same file. A message had gone out, the context had grown by a
+  thousand tokens and stayed on 76 %, and the rule that decides whether the
+  widget is worth reloading looked at three percentages — none of which had
+  moved. So nothing asked the widget to look again, and the timeline it was
+  holding went on counting the age from where it had started.
+
+  The moment the snapshot was taken is part of that rule now. The reasoning
+  that left it out — the age ticks by itself, drawn by a pre-generated timeline
+  without the daemon — is true of the age growing and false of the age being
+  reset, which is what a new snapshot does to it.
+
+  What it costs, measured on 127 hours of real history: at most about 960
+  reloads under the new rule against at least 30 under the old one. Both are
+  bounds rather than counts — the history file carries only the weekly
+  percentage, and the rule reads three — so the increase is real and its size
+  is bracketed rather than pinned. The ceiling did not move: one reload a
+  minute is what section 2.3 chose deliberately, and the new rule reaches it
+  during active work where the old one rarely did.
+
+  Which raises the stake on the one assumption in `SPEC` 2.3 that cannot be
+  checked — that reloads asked for by the app cost less budget than the
+  system's own. The assumption did not change and neither did the ceiling; how
+  hard the widget leans on both did. Both places now say what it looks like if
+  the assumption is wrong: the widget stops updating in the middle of the day
+  and revives by itself later, with no error and no log line. That is a budget
+  symptom, not a watcher defect, and the knob for it is
+  `minimumReloadInterval`.
+
+  What remains after the fix is a minute, and it is accepted rather than
+  outstanding: while an agent is working the window says *updated now* and the
+  widgets say *1 minute ago*, because the widget is holding a snapshot as old
+  as the rationing allows. Consistency and freshness pull against each other
+  here and the budget settles it — the window is deliberately not slowed to the
+  widget's pace, since it is open because somebody opened it and redrawing it
+  costs nothing. `SPEC` 2.4 has the reasoning; README tells the reader before
+  they file it as a bug.
+
 - **The status badge was cut off in four of its twenty-four translations.**
   It was the only single-line text in the window with no shrink allowance, and
   "Einrichtung nötig", "Нужна настройка", "Requiere revisión" and "Нужна
