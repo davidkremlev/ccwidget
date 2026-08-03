@@ -67,6 +67,14 @@ targets:
     type: application
     platform: macOS
     sources:
+      # Icon Composer, two layers over a dark background: the grey ring track
+      # and the green arc at seventy per cent. The sources are in Docs/icon/.
+      #
+      # It belongs to the application and not to the extension. Measured: with
+      # no icon of its own the extension is already served the app's icon by
+      # the system, and giving it one — its own Assets.car, its own .icns, its
+      # own CFBundleIconName — changed nothing anywhere that was looked at.
+      - path: CCWidget.icon
       - path: App
         excludes: [Info.plist]
       - path: Shared
@@ -88,6 +96,10 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: App/Info.plist
+        # Names the icon inside CCWidget.icon. Without it the file is copied
+        # into the bundle and never compiled, which looks like a build that
+        # succeeded and an icon that did not appear.
+        ASSETCATALOG_COMPILER_APPICON_NAME: CCWidget
         PRODUCT_BUNDLE_IDENTIFIER: dev.illvminat.ccwidget
         PRODUCT_NAME: CCWidget
         COMBINE_HIDPI_IMAGES: YES

@@ -27,6 +27,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   accessibility5` will show you. Someone who needs bigger text has nothing to
   turn on. Finding and adopting whatever macOS actually wants here is open
   work, not a decision that has been made.
+- **The Dock and the widget gallery still draw a placeholder instead of the
+  icon.** Finder shows it correctly, and `NSWorkspace.icon(forFile:)` — the API
+  those surfaces are built on — returns the real icon for both the app and the
+  extension. The Dock and the gallery draw the generic grey square anyway.
+
+  What was tried, and did not change it: re-registering the bundle with
+  `lsregister`; restarting `chronod`, `NotificationCenter`, `Dock` and
+  `iconservicesagent`; removing the app entirely and reinstalling so the
+  registration was rebuilt from nothing; giving the extension its own icon;
+  renaming the asset to `AppIcon`, which is what almost every other app calls
+  it. Not tried: clearing the icon services store under `/var/folders`, which
+  needs elevated rights, and logging out. The evidence points at a cache rather
+  than at the bundle, but that is a guess and it is written here as one.
+
 - **The four non-Russian localizations have had no native review.** German,
   Spanish, Japanese and Simplified Chinese are one developer's best judgement.
   The row captions were rewritten once already after reading them aloud caught
@@ -211,6 +225,17 @@ modifier lists, and confirmed the same way afterwards.
   single screen could mix two languages.
 
 ### Added
+
+- **An application icon**, built in Icon Composer from two layers over a dark
+  background: the grey ring track and the green arc at seventy per cent. The
+  sources are in `Docs/icon/`. It compiles into `Assets.car` and a standalone
+  `CCWidget.icns`, and CI now fails if either goes missing from the bundle —
+  they arrive from `actool` rather than from a file we copy, so nothing else
+  would notice their absence.
+
+  It belongs to the application alone. The widget extension was given one as an
+  experiment and it changed nothing anywhere: with no icon of its own the
+  extension is already handed the app's by the system.
 
 - **`ccwidget-replay`, a console tool that replays a `history.jsonl` through
   the estimate** and reports what the widget would have shown, for how long,

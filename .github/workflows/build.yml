@@ -106,6 +106,16 @@ jobs:
             || { echo "::error::widget extension missing from the bundle"; exit 1; }
           test -f "$APP/Contents/Resources/ccwidget-export.py.template" \
             || { echo "::error::exporter template missing from the bundle"; exit 1; }
+          # The icon is compiled from CCWidget.icon by actool, not copied. Both
+          # products matter and both can go missing without the build saying a
+          # word: Assets.car is what macOS 26 draws, CCWidget.icns is the
+          # standalone copy older surfaces fall back to. The .icns arrives by
+          # default rather than by a setting we pin, which is exactly the kind
+          # of thing that changes under you between Xcode releases.
+          test -f "$APP/Contents/Resources/Assets.car" \
+            || { echo "::error::compiled icon missing from the bundle"; exit 1; }
+          test -f "$APP/Contents/Resources/CCWidget.icns" \
+            || { echo "::error::standalone .icns missing from the bundle"; exit 1; }
           for lang in en de es ja ru zh-Hans; do
             test -d "$APP/Contents/Resources/$lang.lproj" \
               || { echo "::error::missing localization: $lang"; exit 1; }
