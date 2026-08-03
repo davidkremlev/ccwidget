@@ -87,24 +87,29 @@ guard snapshot != nil else {
 /// Corner radius of desktop widgets on macOS.
 let cornerRadius: CGFloat = 20
 
-/// Pinned, not taken from the screen.
+/// Pinned so the images are Retina-sized, and pinned rather than defaulted so
+/// nothing silently halves them.
 ///
-/// `ImageRenderer` defaults its scale to the main display's, and this machine
-/// has two: a built-in Retina panel at 2× and an external monitor at 1×. The
-/// same command would then produce images of different sizes depending on
-/// which display happened to be primary, and on a cloned repository depending
-/// on the hardware.
+/// `ImageRenderer.scale` defaults to **1.0** — measured on both a 1× and a 2×
+/// main display, and it is 1.0 on each. It does *not* follow the screen, which
+/// is the thing this comment used to claim; the claim was inherited from how
+/// `NSImage` behaves and never checked. Removing the pin does not make the
+/// output depend on the hardware — it makes it half size everywhere.
 ///
-/// Measured rather than assumed: the renderer also propagates this value into
-/// the view's `\.displayScale`, so pinning it here pins everything that scales
-/// — hairlines, capsule edges, text hinting. A probe rendering
-/// `\.displayScale` as text reads 2.0 on a 1× main display.
+/// What the renderer does propagate is this value into the view's
+/// `\.displayScale`, so pinning it pins everything that scales with it —
+/// hairlines, capsule edges, text hinting. A probe that renders its own
+/// `\.displayScale` reads back whatever is set here.
 let renderScale: CGFloat = 2
 
-/// Also pinned. The renderer produced sRGB on a monitor whose own profile is
-/// anything but, which suggests it always does — but "suggests" is not a
-/// guarantee, and a wide-gamut panel is exactly the sort of thing that would
-/// prove it wrong on somebody else's desk.
+/// sRGB explicitly.
+///
+/// Also measured on both panels — the external monitor with its own profile
+/// and the built-in one — and the renderer produced sRGB on each, so this
+/// conversion is currently a no-op. It stays because "currently" is doing a
+/// lot of work in that sentence: a wide-gamut panel on somebody else's desk is
+/// exactly what would make it stop being one, and the cost of the line is
+/// nothing.
 @MainActor
 func encodePNG(_ renderer: ImageRenderer<some View>) -> Data? {
     guard let cgImage = renderer.cgImage else { return nil }

@@ -44,17 +44,16 @@ struct ChartBaselineTests {
     /// Padding around the block, so the baseline is not flush to the edge.
     private static let inset: CGFloat = 8
 
-    /// Pinned, not taken from the screen.
+    /// Pinned so the baselines are Retina-sized, and pinned rather than
+    /// defaulted so nothing silently halves them.
     ///
-    /// `ImageRenderer` defaults its scale to the main display's, and a machine
-    /// with a Retina panel and an external monitor has two different ones. The
-    /// baselines would then depend on which display was primary when they were
-    /// taken — and on the hardware of whoever cloned the repository.
+    /// `ImageRenderer.scale` defaults to **1.0** and does not follow the main
+    /// display — measured on a 1× monitor and a 2× built-in panel, and it is
+    /// 1.0 on both. Baselines taken with one display primary verify unchanged
+    /// with the other primary, byte for byte.
     ///
-    /// Measured rather than assumed: the renderer propagates this value into
-    /// the view's `\.displayScale`, so pinning it pins everything that scales.
-    /// Rendering a probe that draws its own `\.displayScale` gives 2.0 on a 1×
-    /// main display.
+    /// The renderer does propagate this value into the view's
+    /// `\.displayScale`, so pinning it pins everything that scales with it.
     private static let scale: CGFloat = 2
 
     // MARK: The five outcomes

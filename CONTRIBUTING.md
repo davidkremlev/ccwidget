@@ -88,12 +88,13 @@ why that rule exists, and `Tests/Sandbox.swift` for the stand-in root they all
 share.
 
 **Re-shooting the screenshots or the chart baselines?** Both the tool and the
-check pin the render scale to 2 and convert to sRGB, so the result does not
-depend on which display is primary. `ImageRenderer` otherwise takes its scale
-from the main screen, and a laptop with an external monitor has two different
-ones — measured, not assumed: with the pin removed, the same command produces
-half-size images on a 1× monitor. If you regenerate a baseline and every file
-changes size, that is the pin gone rather than a real difference.
+check pin the render scale to 2 and convert to sRGB. `ImageRenderer.scale`
+defaults to 1, not to the main display's scale — checked on a 1× monitor and a
+2× built-in panel, and baselines taken with one primary verify unchanged with
+the other. So the pin is not there to defend against your hardware; it is there
+because without it every image comes out half size. If you regenerate a
+baseline and every file shrinks, that is the pin gone rather than a real
+difference.
 
 Coverage, the same way CI measures it:
 
