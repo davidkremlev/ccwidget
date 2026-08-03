@@ -119,11 +119,17 @@ struct WatcherTests {
     /// What the tick is for. No write happens, so nothing is read and no
     /// signature changes — but the snapshot ages past a threshold, the widget
     /// starts drawing itself dimmed, and it has to be told.
+    ///
+    /// The crossing here is the hour. It used to be five minutes, which was
+    /// the boundary between two levels that drew the same — so the reload this
+    /// check demanded produced a timeline identical to the one it replaced.
+    /// The levels are one now and the hour is the first crossing that changes
+    /// anything.
     @Test("Crossing a freshness threshold on the clock alone reloads the widget")
     func tickReloadsOnFreshnessChange() {
         let home = sandbox()
         let spy = Spy()
-        spy.current = snapshot(capturedAt: spy.now.addingTimeInterval(-299),
+        spy.current = snapshot(capturedAt: spy.now.addingTimeInterval(-3599),
                                fiveHour: 10, week: 20, context: 9)
 
         let w = watcher(spy, in: home)
@@ -132,14 +138,39 @@ struct WatcherTests {
         let reloadsAfterLoad = spy.reloads
         let readsAfterLoad = spy.reads
 
-        // Two minutes later the snapshot is over five minutes old. Nothing has
-        // been written and nothing is read.
+        // Two minutes later the snapshot is over an hour old, so the widget
+        // draws itself dimmed. Nothing has been written and nothing is read.
         spy.now += 120
         w.tick()
 
         #expect(spy.reads == readsAfterLoad, "still nothing is read")
-        #expect(w.state.freshness == .recent, "the freshness follows the clock")
+        #expect(w.state.freshness == .stale, "the freshness follows the clock")
         #expect(spy.reloads == reloadsAfterLoad + 1, "and the widget is told once")
+    }
+
+    /// The reload the collapse removed. Ageing from four minutes to seven used
+    /// to cross a threshold and cost a reload; it now crosses nothing, and the
+    /// widget is left alone. This is the check that keeps it that way — the
+    /// budget in section 2.3 is small enough that a reload nobody can see is
+    /// worth refusing.
+    @Test("Ageing without changing how the widget looks costs no reload")
+    func tickDoesNotReloadWithoutAVisibleChange() {
+        let home = sandbox()
+        let spy = Spy()
+        spy.current = snapshot(capturedAt: spy.now.addingTimeInterval(-240),
+                               fiveHour: 10, week: 20, context: 9)
+
+        let w = watcher(spy, in: home)
+        w.handleChange(reason: "test", force: true)
+        #expect(w.state.freshness == .fresh)
+        let reloadsAfterLoad = spy.reloads
+
+        spy.now += 180          // seven minutes old, and still drawn the same
+        w.tick()
+
+        #expect(w.state.freshness == .fresh)
+        #expect(spy.reloads == reloadsAfterLoad,
+                "the widget was reloaded for a change it cannot show")
     }
 
     /// The other half: a write that revives a widget which had gone dim. The

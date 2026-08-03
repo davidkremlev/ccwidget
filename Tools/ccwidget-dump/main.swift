@@ -58,8 +58,7 @@ func describe(_ level: Level) -> String {
 
 func describe(_ freshness: Freshness) -> String {
     switch freshness {
-    case .fresh: return "just now"
-    case .recent: return "recent"
+    case .fresh: return "fresh"
     case .stale: return "outdated"
     case .abandoned: return "launch Claude Code"
     }

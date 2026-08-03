@@ -166,16 +166,28 @@ public struct SnapshotStore: Sendable {
 
 // MARK: - Freshness
 
+/// How old the snapshot is, in as many levels as the widget has appearances —
+/// three, and not one more.
+///
+/// There used to be four. `fresh` was under five minutes and `recent` was five
+/// to sixty, and the pair drew identically: not dimmed, numbers shown. The
+/// difference had a purpose while the caption said "just now" under five
+/// minutes; when that wording went, the purpose went with it and the case
+/// stayed. A distinction that produces no observable difference is a lie about
+/// how complicated the thing is — it has to be maintained, it made the watcher
+/// reload a timeline that would come back looking exactly the same, and it
+/// left a reason in `SPEC` 2.3 that had quietly stopped being true.
+///
+/// `everyLevelLooksDifferent` holds the rule that replaced it: no two levels
+/// may draw the same. Add a fourth and it fails until the fourth is visible.
 public enum Freshness: Sendable {
-    case fresh          // under 5 minutes
-    case recent         // 5 to 60 minutes
-    case stale          // over an hour
+    case fresh          // under an hour
+    case stale          // an hour to a day
     case abandoned      // over a day
 
     public init(age: TimeInterval) {
         switch age {
-        case ..<(5 * 60): self = .fresh
-        case ..<(60 * 60): self = .recent
+        case ..<(60 * 60): self = .fresh
         case ..<(24 * 60 * 60): self = .stale
         default: self = .abandoned
         }

@@ -99,7 +99,10 @@ struct AgeAgreementTests {
     /// not dim at different moments either, and having built shared clocks for
     /// the caption it would be strange to leave the colour on the old ones.
     ///
-    /// Ages sit either side of each threshold: five minutes, an hour, a day.
+    /// Ages sit either side of each threshold — an hour and a day — and either
+    /// side of five minutes, which was a threshold until `fresh` and `recent`
+    /// turned out to draw the same and became one level. Kept because the
+    /// disagreement this suite is about was first found there.
     @Test("Both surfaces reach the same freshness at the same instant",
           arguments: [-30, 0, 299, 300, 301, 3599, 3600, 3601, 86_399, 86_400, 86_401]
             .map(TimeInterval.init),

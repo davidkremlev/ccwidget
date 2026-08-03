@@ -29,7 +29,7 @@ extension Freshness {
     /// yesterday's percentages is worse than no widget at all.
     public var isDimmed: Bool {
         switch self {
-        case .fresh, .recent: return false
+        case .fresh: return false
         case .stale, .abandoned: return true
         }
     }

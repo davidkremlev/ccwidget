@@ -75,11 +75,46 @@ struct ThresholdsTests {
     // MARK: Freshness
 
     @Test("Freshness follows the age",
-          arguments: [(0.0, Freshness.fresh), (299, .fresh), (300, .recent),
-                      (3599, .recent), (3600, .stale), (86_399, .stale),
+          arguments: [(0.0, Freshness.fresh), (299, .fresh), (300, .fresh),
+                      (3599, .fresh), (3600, .stale), (86_399, .stale),
                       (86_400, .abandoned)])
     func freshnessBoundaries(age: TimeInterval, expected: Freshness) {
         #expect(Freshness(age: age) == expected, "\(Int(age)) s old")
+    }
+
+    /// Five minutes used to divide `fresh` from `recent`, and the two drew
+    /// identically. The pair is one level now, so the ages either side of that
+    /// line still have a check — it just says the opposite of what it used to.
+    /// Kept rather than deleted: a boundary that has been removed is worth
+    /// stating, or the next person restores it by accident.
+    @Test("Five minutes is not a boundary any more")
+    func fiveMinutesIsNotABoundary() {
+        #expect(Freshness(age: 299) == Freshness(age: 300))
+        #expect(Freshness(age: 299) == Freshness(age: 3599),
+                "everything under an hour is one level")
+        #expect(Freshness(age: 3599) != Freshness(age: 3600),
+                "and the hour is where it does change")
+    }
+
+    /// The rule the fourth level broke, made permanent.
+    ///
+    /// `Freshness` exists to decide how the widget draws itself, and it draws
+    /// itself in exactly two bits: dimmed or not, numbers or an invitation. Two
+    /// levels that agree on both are one level wearing two names — nothing can
+    /// tell them apart on screen, and the watcher reloads a timeline that comes
+    /// back identical when the clock crosses between them.
+    @Test("No two freshness levels draw the same")
+    func everyLevelLooksDifferent() {
+        let levels: [Freshness] = [.fresh, .stale, .abandoned]
+        let appearances = levels.map { AppearancePair(dimmed: $0.isDimmed, hidden: $0.hidesNumbers) }
+        #expect(Set(appearances).count == levels.count,
+                "two levels look alike: \(zip(levels, appearances).map { "\($0) \($1)" })")
+    }
+
+    private struct AppearancePair: Hashable, CustomStringConvertible {
+        let dimmed: Bool
+        let hidden: Bool
+        var description: String { "dimmed=\(dimmed) hidden=\(hidden)" }
     }
 
     /// A clock that has gone backwards — a snapshot stamped in the future —
@@ -92,14 +127,12 @@ struct ThresholdsTests {
     @Test("Dimming starts at stale, hiding only at abandoned")
     func dimmingAndHiding() {
         #expect(Freshness.fresh.isDimmed == false)
-        #expect(Freshness.recent.isDimmed == false)
         #expect(Freshness.stale.isDimmed == true)
         #expect(Freshness.abandoned.isDimmed == true)
 
         // Numbers survive being dimmed; a widget that quietly shows
         // yesterday's percentages is worse than one that admits it has none.
         #expect(Freshness.fresh.hidesNumbers == false)
-        #expect(Freshness.recent.hidesNumbers == false)
         #expect(Freshness.stale.hidesNumbers == false)
         #expect(Freshness.abandoned.hidesNumbers == true)
     }

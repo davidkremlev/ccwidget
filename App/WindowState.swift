@@ -18,7 +18,7 @@ enum WindowState: Equatable {
     case needsSetup
     /// Everything is in place and the first snapshot has not arrived.
     case waiting
-    /// Fresh or recent data.
+    /// Data under an hour old.
     case working
     /// Over an hour old.
     case outdated
@@ -36,7 +36,7 @@ enum WindowState: Equatable {
         guard let snapshot else { self = .waiting; return }
 
         switch Freshness(of: snapshot, at: now) {
-        case .fresh, .recent: self = .working
+        case .fresh: self = .working
         case .stale: self = .outdated
         case .abandoned: self = .abandoned
         }

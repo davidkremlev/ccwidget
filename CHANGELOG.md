@@ -54,9 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Freshness moved onto the same clock, for the same reason. It says the same
   thing about the same snapshot without words — dimmed or not, numbers or an
-  invitation — and two surfaces landing either side of the five-minute
-  threshold dimmed at different moments. That check fails on the old code too:
-  at 299 seconds the widget read *fresh* while the window read *recent*.
+  invitation — and two surfaces landing either side of a threshold dimmed at
+  different moments. That check fails on the old code too: at 299 seconds, back
+  when five minutes was still a threshold, the widget read *fresh* while the
+  window read *recent*.
 
 - **VoiceOver lost what sits beside the number.** Fixing the announcement order
   had replaced each row's label with a hand-built one, and the hand-built one
@@ -119,9 +120,21 @@ modifier lists, and confirmed the same way afterwards.
   five minutes, and on the fourth minute that stopped being true. The caption
   is the age and nothing else — "now" under a minute, then minutes, hours,
   days. How fresh the data is arrives as colour: normal, dimmed past an hour,
-  replaced by an invitation past a day. `SPEC` 2.4 carries the decision and
-  the one consequence worth knowing — *fresh* and *recent* now look identical,
-  so the timeline reload on that particular crossing changes nothing on screen.
+  replaced by an invitation past a day. `SPEC` 2.4 carries the decision.
+
+  **Freshness lost a level as a consequence, not as a decision of its own.**
+  *fresh* was under five minutes and *recent* was five to sixty, and the two
+  drew identically — not dimmed, numbers shown. The difference earned its keep
+  while the caption said "just now" under five minutes; once that wording went,
+  nothing could tell the two apart on screen, and the watcher was still
+  reloading the widget's timeline when the clock crossed between them, to get
+  back a timeline that looked the same. Three levels now, one per appearance:
+  normal, dimmed, replaced. Five minutes is not a boundary any more — not moved,
+  removed; the nearest one is still the hour, where it always was.
+
+  The rule that replaced the level is checkable, which the level never was: no
+  two freshness levels may draw the same. A fourth one fails the suite until it
+  is visible, and a reload for a change nobody can see fails it too.
 
 - **The display name is now "Usage Widget for Claude Code".** It used to be
   "Gauge for Claude Code", which no longer connected to anything: people
