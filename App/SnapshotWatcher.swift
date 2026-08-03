@@ -50,10 +50,12 @@ final class SnapshotWatcher: ObservableObject {
     /// The exporter writes the snapshot and the history back to back; wait
     /// for the dust to settle.
     static let debounce: TimeInterval = 2
-    /// How often the age is recomputed. Ages are shown to the minute, and the
-    /// tick reads nothing, so this only has to be fine enough that a minute
-    /// boundary is never missed by long.
-    static let tickInterval: TimeInterval = 30
+    /// How often the age is recomputed. The tick reads nothing, so the only
+    /// thing this has to do is land on every minute boundary — that is when
+    /// the age can change, and the widget beside the window changes there
+    /// exactly. Thirty seconds divides sixty, so every other tick is a minute
+    /// boundary; `theTickGridContainsTheMinute` holds that.
+    nonisolated static let tickInterval: TimeInterval = 30
 
     @Published private(set) var state = WatcherState()
 
@@ -209,7 +211,7 @@ final class SnapshotWatcher: ObservableObject {
         state.now = clock()
         state.snapshot = snapshot
         if let snapshot {
-            state.freshness = Freshness(age: snapshot.age(at: state.now))
+            state.freshness = Freshness(of: snapshot, at: state.now)
         }
 
         guard let snapshot else { return }
@@ -242,11 +244,22 @@ final class SnapshotWatcher: ObservableObject {
 
     // MARK: Ticking
 
+    /// When the tick after `moment` is due.
+    ///
+    /// Its own function because the phase is the point and a phase is not
+    /// visible in a `Timer`. Ticking every thirty seconds from whenever the
+    /// window opened leaves the age changing up to thirty seconds after the
+    /// widget's does; ticking on the grid leaves it changing with it.
+    nonisolated static func nextTick(after moment: Date) -> Date {
+        AgeClock.boundary(after: moment, every: tickInterval)
+    }
+
     private func startTicking() {
         tickTimer?.invalidate()
         let timer = Timer(timeInterval: Self.tickInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
+        timer.fireDate = Self.nextTick(after: clock())
         RunLoop.main.add(timer, forMode: .common)
         tickTimer = timer
     }
@@ -263,7 +276,7 @@ final class SnapshotWatcher: ObservableObject {
         state.now = clock()
         guard let snapshot = state.snapshot else { return }
 
-        let updated = Freshness(age: snapshot.age(at: state.now))
+        let updated = Freshness(of: snapshot, at: state.now)
         guard updated != state.freshness else { return }
 
         ccwidgetStoreLog.notice(

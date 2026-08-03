@@ -14,15 +14,35 @@ struct CCWidgetEntry: TimelineEntry {
     var forecast: Forecast?
 
     var freshness: Freshness? {
-        snapshot.map { Freshness(age: $0.age(at: date)) }
+        snapshot.map { Freshness(of: $0, at: date) }
     }
 }
 
 struct CCWidgetProvider: TimelineProvider {
     /// Timeline step and length from section 2.3: thirty entries a minute
     /// apart. The countdown ticks for half an hour without touching disk.
-    static let step: TimeInterval = 60
+    ///
+    /// The step is `AgeClock.step` and not a 60 that happens to match it: the
+    /// timeline step is what stops the widget from knowing the time any better
+    /// than a minute, so it is the same number by definition, not by
+    /// coincidence.
+    static let step: TimeInterval = AgeClock.step
     static let count = 30
+
+    /// The moments the entries are stamped with — the widget's whole notion of
+    /// "now", since it never asks the clock.
+    ///
+    /// Aligned to the minute rather than to the moment the timeline happened
+    /// to be built. Off that grid the entry on screen and the window's clock
+    /// land in different minutes about half the time, and the two surfaces
+    /// print different ages off one file.
+    ///
+    /// Separate from `makeTimeline` because it is the half that can be
+    /// checked: `makeTimeline` reads the store, and these are arithmetic.
+    static func entryDates(from now: Date) -> [Date] {
+        let anchor = AgeClock.anchor(now)
+        return (0..<count).map { anchor.addingTimeInterval(Double($0) * step) }
+    }
 
     func placeholder(in context: Context) -> CCWidgetEntry {
         CCWidgetEntry(date: Date(), snapshot: .preview, failure: nil, forecast: nil)
@@ -44,13 +64,14 @@ struct CCWidgetProvider: TimelineProvider {
     /// cannot be constructed from outside — without this the timeline could
     /// not be checked at all.
     func makeTimeline(now: Date) -> Timeline<CCWidgetEntry> {
-        let base = Self.load(at: now)
+        let dates = Self.entryDates(from: now)
+        let base = Self.load(at: dates[0])
 
         // One disk read per timeline. The entries differ only in their
         // moment; the snapshot inside them is the same one.
-        let entries = (0..<Self.count).map { index in
+        let entries = dates.map { date in
             CCWidgetEntry(
-                date: now.addingTimeInterval(Double(index) * Self.step),
+                date: date,
                 snapshot: base.snapshot,
                 failure: base.failure,
                 forecast: base.forecast

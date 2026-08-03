@@ -253,13 +253,15 @@ them:
 # print the parsed snapshot and its parse diagnostics
 swiftc -swift-version 6 -target arm64-apple-macos14.0 \
     Shared/Snapshot.swift Shared/SnapshotStore.swift Shared/Formatters.swift \
-    Shared/Diagnostics.swift Tools/ccwidget-dump/main.swift -o .build/ccwidget-dump
+    Shared/Diagnostics.swift Shared/AgeClock.swift \
+    Tools/ccwidget-dump/main.swift -o .build/ccwidget-dump
 
 # replay a history.jsonl through the estimate: what the widget would have
 # shown, for how long, and at every change of state
 swiftc -swift-version 6 -target arm64-apple-macos14.0 \
     Shared/Snapshot.swift Shared/SnapshotStore.swift Shared/Formatters.swift \
-    Shared/Diagnostics.swift Shared/HistoryStore.swift Shared/Forecast.swift \
+    Shared/Diagnostics.swift Shared/AgeClock.swift \
+    Shared/HistoryStore.swift Shared/Forecast.swift \
     Tools/ccwidget-replay/main.swift -o .build/ccwidget-replay
 ```
 

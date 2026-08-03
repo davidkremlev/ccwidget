@@ -10,9 +10,10 @@ conditions stated in `SPEC` sections 2–8.
 **First pass: 33 items, one of them a live defect. This pass: 5 remain**, and
 none of the five can be closed by the kind of check the others were.
 
-Two more have been added since, by the hysteresis work in `SPEC` 7 — G4 and
-G5. Both are numbers rather than behaviour, and both name what stops a check
-from existing. The behaviour those numbers argued for is checked.
+Three more have been added since — G4 and G5 by the hysteresis work in
+`SPEC` 7, G6 by the one-grid rule for the age in `SPEC` 2.4. All three are
+numbers or latencies rather than behaviour, and each names what stops a check
+from existing. The behaviour they argued for is checked.
 
 ---
 
@@ -102,6 +103,16 @@ limit, measured in an optimised build on an Apple silicon laptop. A check here
 would assert a wall-clock time on a shared runner whose speed nobody controls,
 which is how a suite learns to fail for no reason. Stated as measured, with the
 machine named, rather than checked.
+
+**G6. The last few milliseconds of the age** — `SPEC` 2.4, one grid.
+The window and the widget now measure the age from the same minute, and that
+is checked character for character. What is not checked is the window's timer
+firing exactly on the boundary: `Timer` may run late by whatever the run loop
+is busy with. A check would have to observe a real timer against a real clock,
+which is a test that fails on a loaded machine and passes on an idle one. The
+gap is one-sided — a timer cannot fire early — so the window can lag the widget
+by the latency and never lead it, and it is stated in `SPEC` rather than
+measured.
 
 ---
 

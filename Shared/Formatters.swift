@@ -3,10 +3,41 @@ import Foundation
 /// Localized formatting. No hand-assembled strings — see section 10.
 public enum CCWidgetFormat {
     /// "2 minutes ago". Localized out of the box.
+    ///
+    /// Both surfaces come through here, and everything about the resolution is
+    /// decided here rather than at the call sites — that is the whole point of
+    /// there being one function. Three things happen to the number on its way
+    /// in:
+    ///
+    /// **The moment is snapped to the start of its minute.** The window's clock
+    /// and the widget's differ by seconds; the minute they fall in is the same
+    /// minute. `AgeClock` says why that is enough and what has to hold for it.
+    ///
+    /// **The age is floored to whole minutes.** A widget redraws once a minute,
+    /// so "42 seconds ago" is a precision it does not have; the window sitting
+    /// beside it must not claim it either. Floored rather than rounded, so the
+    /// number is always something the data has actually reached — which is how
+    /// the formatter already treats everything above a minute.
+    ///
+    /// **Anything at or below zero reads as the present.** A snapshot can be
+    /// stamped after the entry currently on screen, and the numeric wording for
+    /// a negative age is "in 0 seconds" — a widget promising that the data is
+    /// about to arrive.
     public static func relativeAge(of date: Date, at now: Date = Date()) -> String {
+        let anchor = AgeClock.anchor(now)
+        let minutes = max(0, (anchor.timeIntervalSince(date) / 60).rounded(.down))
+
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
-        return formatter.localizedString(for: date, relativeTo: now)
+        // Under a minute there is no duration to name — the statement is "this
+        // is current", and every locale we ship has a word for it. Above a
+        // minute the numeric wording is the one to keep: `.named` turns a day
+        // into "yesterday" and a week into "last week", which are facts about
+        // the calendar rather than about how old the data is, and section 2.4
+        // wants stale data to look its age.
+        formatter.dateTimeStyle = minutes == 0 ? .named : .numeric
+        return formatter.localizedString(for: anchor.addingTimeInterval(-minutes * 60),
+                                         relativeTo: anchor)
     }
 
     /// Countdown to the window reset. Two largest units, abbreviated.

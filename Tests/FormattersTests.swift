@@ -20,10 +20,18 @@ struct FormattersTests {
 
     // MARK: Ages
 
+    /// A fixed moment on a minute boundary. `Date()` used to do here, and
+    /// stopped: the age is now measured from the start of the minute `now`
+    /// falls in, so two minutes before an arbitrary instant is between one and
+    /// two whole minutes and the wording is whichever the clock felt like.
+    /// Section 2.4, "Возраст меряется по одной сетке", and the agreement it
+    /// exists for is checked in `AgeAgreementTests`.
+    private static let onTheMinute = Date(timeIntervalSince1970: 1_785_000_000)
+
     @Test("A relative age names a unit and does not read as a date")
     func relativeAge() {
-        let now = Date()
-        let text = CCWidgetFormat.relativeAge(of: now.addingTimeInterval(-120), at: now)
+        let text = CCWidgetFormat.relativeAge(of: Self.onTheMinute.addingTimeInterval(-120),
+                                              at: Self.onTheMinute)
         #expect(!text.isEmpty)
         #expect(digits(text).contains("2"), "\(text)")
     }
@@ -32,7 +40,7 @@ struct FormattersTests {
     /// formatter has to take that clock rather than reach for `Date()`.
     @Test("The age is measured against the moment it is given")
     func relativeAgeUsesTheGivenNow() {
-        let captured = Date(timeIntervalSince1970: 1_700_000_000)
+        let captured = Self.onTheMinute
         let early = CCWidgetFormat.relativeAge(of: captured,
                                                at: captured.addingTimeInterval(60))
         let late = CCWidgetFormat.relativeAge(of: captured,

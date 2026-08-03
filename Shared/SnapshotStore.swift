@@ -180,4 +180,19 @@ public enum Freshness: Sendable {
         default: self = .abandoned
         }
     }
+
+    /// How every surface should ask. The moment is snapped to the start of its
+    /// minute first, by `AgeClock`, for the same reason the age caption is:
+    /// the window's clock and the widget's are quantised differently, and two
+    /// surfaces landing either side of a threshold dim at different times off
+    /// one file. That is the same defect as "42 seconds ago" beside "1 minute
+    /// ago", told in colour instead of in words.
+    ///
+    /// Only the moment is snapped, not the age. The caption floors the age as
+    /// well because it prints a number and a number must not claim precision
+    /// it has not got; this prints nothing, so there is nothing to round and
+    /// no reason to move a threshold by up to a minute.
+    public init(of snapshot: Snapshot, at moment: Date) {
+        self.init(age: AgeClock.anchor(moment).timeIntervalSince(snapshot.capturedAt))
+    }
 }

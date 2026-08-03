@@ -34,6 +34,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The window and the widget disagreed about how old the data was.** At one
+  moment the window read "updated 42 seconds ago" and both widgets beside it
+  read "1 minute ago", off the same file. Neither surface knows the time: the
+  widget draws a timeline entry stamped up to a minute before the pixels
+  appear, and the window reads its clock on a timer. Two quantised clocks on
+  independent grids gave two answers.
+
+  Both now measure from the start of the same minute, and the age is floored
+  to whole minutes — a widget redraws once a minute, so "42 seconds ago" is a
+  precision it does not have and the window beside it should not claim.
+  Anything at or below zero reads as the present instead of "in 0 seconds",
+  which is what a snapshot stamped after the entry on screen used to produce.
+
+  The check is the one that would have caught it: at one instant, with one
+  snapshot, each surface reaching its clock the way it really does, the two
+  strings must match character for character — swept across the minute and
+  across every wording boundary. It fails on the old code.
+
+  Freshness moved onto the same clock, for the same reason. It says the same
+  thing about the same snapshot without words — dimmed or not, numbers or an
+  invitation — and two surfaces landing either side of the five-minute
+  threshold dimmed at different moments. That check fails on the old code too:
+  at 299 seconds the widget read *fresh* while the window read *recent*.
+
 - **VoiceOver lost what sits beside the number.** Fixing the announcement order
   had replaced each row's label with a hand-built one, and the hand-built one
   carried only the caption and the percentage — so the countdown to the reset,
@@ -90,6 +114,14 @@ modifier lists, and confirmed the same way afterwards.
   The gate keeps no state: it is replayed from the history file each time, so
   the verdict depends on the data and not on when the system happened to wake
   the widget.
+
+- **The age caption no longer says "just now".** It said it for anything under
+  five minutes, and on the fourth minute that stopped being true. The caption
+  is the age and nothing else — "now" under a minute, then minutes, hours,
+  days. How fresh the data is arrives as colour: normal, dimmed past an hour,
+  replaced by an invitation past a day. `SPEC` 2.4 carries the decision and
+  the one consequence worth knowing — *fresh* and *recent* now look identical,
+  so the timeline reload on that particular crossing changes nothing on screen.
 
 - **The display name is now "Usage Widget for Claude Code".** It used to be
   "Gauge for Claude Code", which no longer connected to anything: people

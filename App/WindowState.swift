@@ -35,7 +35,7 @@ enum WindowState: Equatable {
         if !statusLineIsOurs { self = .needsSetup; return }
         guard let snapshot else { self = .waiting; return }
 
-        switch Freshness(age: snapshot.age(at: now)) {
+        switch Freshness(of: snapshot, at: now) {
         case .fresh, .recent: self = .working
         case .stale: self = .outdated
         case .abandoned: self = .abandoned
