@@ -202,6 +202,20 @@ jobs:
             exit 1
           fi
 
+      - name: Check the localization review document is current
+        run: |
+          # It is generated from the catalogs, and the README sends translators
+          # to it. Regenerating is a step somebody has to remember, and once it
+          # was not remembered: the document went a string short of the
+          # catalogs, missing the very key it was asking people to review.
+          # Remembering is not a mechanism.
+          ./Scripts/localization-review.py
+          if ! git diff --quiet -- Docs/localization-review.md; then
+            echo "::error::Docs/localization-review.md is out of date — run ./Scripts/localization-review.py and commit the result"
+            git diff -- Docs/localization-review.md
+            exit 1
+          fi
+
       - name: Check every catalog key is reachable from the code
         run: |
           # A key nobody can reach is text that gets translated into six
