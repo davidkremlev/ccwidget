@@ -34,7 +34,11 @@ if [ "$RUN" -eq 1 ]; then
         | grep -E "error:|✘|Test run|TEST" || true
 fi
 
-RESULT="$(ls -td "$DERIVED"/Logs/Test/*.xcresult 2>/dev/null | head -1)"
+# `|| true` is not decoration. With `set -e` and `pipefail`, a glob that
+# matches nothing makes this assignment fail, and the script exits silently
+# with status 1 — swallowing the very message written for this case, which is
+# the one anybody running --no-run before a test run will hit.
+RESULT="$(ls -td "$DERIVED"/Logs/Test/*.xcresult 2>/dev/null | head -1 || true)"
 if [ -z "$RESULT" ]; then
     echo "!! No test result bundle under $DERIVED/Logs/Test" >&2
     exit 1

@@ -8,6 +8,8 @@ DerivedData/
 *.o
 *.dSYM
 *.dSYM.zip
+*.profraw
+*.profdata
 *.ipa
 *.hmap
 *.moved-aside

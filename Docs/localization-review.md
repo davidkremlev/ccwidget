@@ -97,6 +97,16 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Simplified Chinese | 缓存 |
 
 
+**`cache %@`** — Spoken form of the footer's cache share; the visible one carries a separator dot
+
+| | |
+|---|---|
+| German | Cache %@ |
+| Spanish | caché %@ |
+| Japanese | キャッシュ %@ |
+| Simplified Chinese | 缓存 %@ |
+
+
 **`Claude Code %@`**
 
 | | |
@@ -1193,4 +1203,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-112 strings in total.
+113 strings in total.
