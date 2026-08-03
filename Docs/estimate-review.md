@@ -7,20 +7,18 @@ The hypothesis put to me was that R² gates linearity, that bursty work is not
 linear, and that the threshold therefore hides the feature from a large part of
 the audience rather than hiding unreliable estimates.
 
-**The hypothesis is right about R². It is not the worst thing the measurement
-found.** Replaying four days of real history through the current code says the
-estimate was not mostly silent — it was mostly *wrong*.
+**The hypothesis is right about R². It was not the thing doing the damage.**
+Replaying four days of real history showed the estimate was not mostly silent —
+it was mostly *wrong*, and for a reason that had nothing to do with R².
 
 ---
 
-## What actually happened over the four days
+## 1. What the four days actually looked like
 
-Replayed point by point: at each moment, the estimate is recomputed from the
-history available up to that moment, exactly as the widget would have.
-
-Both weekly windows in the data ended without exhausting the quota — peaks of
-67 % and 14 %. **The correct answer, for the whole period, was "lasts until
-reset".** Weighted by how long each verdict was on screen:
+Replayed point by point: at each moment the estimate is recomputed from the
+history available then, exactly as the widget would have. Both weekly windows
+ended without exhausting the quota — peaks of 67 % and 14 % — so the correct
+answer for the whole period was "lasts until reset".
 
 | What the widget showed | Share of the four days |
 |---|---:|
@@ -28,137 +26,128 @@ reset".** Weighted by how long each verdict was on screen:
 | Silent | 25.5 % |
 | `Lasts until reset` — correct | 15.7 % |
 
-Nine changes of state across the period: the block appears, names a date,
-falls silent, reappears.
+Only 10 of 181 samples produced a date, but a verdict once computed stays on
+screen until the next history line is written. A wrong answer computed rarely
+is displayed continuously.
 
-Two figures that look contradictory and are both true. Only **10 of 181
-samples** produced a date — but those samples were followed by long idle
-stretches, and a verdict once computed stays on screen until the next history
-line is written. A wrong answer computed rarely is displayed continuously.
-
----
-
-## Why it named those dates
-
-Not because of R². Because of a mismatch nobody had measured:
+## 2. Why those dates appeared
 
 | At the ten moments a date was named | |
 |---|---:|
 | Usage at the time | 12–13 % |
 | Formal observation base | 30 h |
-| Of that, what the weighting actually reaches | **11 h** |
+| Of that, what the weighting actually reached | **11 h** |
 | Horizon the code therefore allowed | **298 h** |
 
-The horizon rule is `span × 10`, and `span` is the full range of the points.
-But the slope comes from a regression weighted with a 12-hour half-life, so
-90 % of the weight sits in the last 11 hours. The guard was computed against
-30 hours of evidence while the number it guards was computed from 11.
+The horizon rule is `span × 10` where `span` is the full range of points. The
+slope comes from a regression weighted with a twelve-hour half-life, so ninety
+per cent of the weight sits in the last eleven hours. **The guard was measured
+on thirty hours of evidence while the number it guards was made from eleven.**
 
-The result is a projection licensed to run 298 hours forward from 11 hours of
-observation — a 27× extrapolation, where the design intended 10×, and 10× was
-already generous. At 12 % used, on a week that reached 14 %, it announced
-"runs out ~Thu 05:11" in red.
-
-**This is a defect, not a design trade-off.** The two halves of section 7
-disagree with each other, and nothing said so because no check compares them.
+A projection licensed to run 298 hours forward from 11 hours of observation —
+27×, where the design intended 10×.
 
 ---
 
-## What R² does here
+## 3. The fix, and what it alone achieved
 
-Confirmed, and secondary:
+**Chosen: the horizon is computed from the effective weighted span.** The
+alternative was dropping the weighting so the slope genuinely uses the whole
+base.
 
-```
-R² over the period:  median 0.719,  25th 0.653,  75th 0.788
-samples above the 0.7 threshold: 54.8 %
-```
+Why this way round. Both rules have a recorded purpose and both purposes are
+real — recency weighting exists so yesterday's marathon does not dominate
+today's estimate, and the horizon exists so a short observation cannot license
+a long projection. Dropping the weighting would discard a rule that works to
+satisfy a rule that was mis-measured. Changing the guard to match the estimator
+keeps both intentions and touches only the thing that was wrong.
 
-The distribution straddles the threshold. That is the flickering: the estimate
-is not gated by a property of the data, it is gated by a coin landing near its
-edge. And what it gates is the wrong property — for "will the total reach 100 %
-before Thursday", the linearity of the path is not the question. A staircase
-and a ramp with the same average rate arrive at the same place.
+The effective span is defined as the interval, measured back from the newest
+point, carrying nine tenths of the weight. Nine tenths rather than all of it
+because the exponential tail never ends. The number has a useful property: on a
+base short against the half-life the weights are near-uniform and the effective
+span is almost the whole span, so **the fix is invisible exactly where the two
+measures always agreed**, and separates them only where they had diverged.
 
----
+Re-running the same 118 hours after this fix and nothing else:
 
-## What was tried instead, and what happened
-
-### Average rate with a confidence interval on the exhaustion date
-
-The suggested alternative, taken literally: rate from the data, spread across
-sub-intervals, verdict from whether the reset falls inside the interval.
-
-Measured on the same history — and it fails, for a reason worth stating,
-because it is the same reason the original design reached for R²:
-
-```
-speaks:                         30.4 % of samples
-true outcome inside interval:   85.5 %
-average interval width:         329 percentage points
-```
-
-`0 % to 704 % by Thursday` is honest and useless. The uncertainty grows with
-the distance projected, and six days out from a few hours of bursty work the
-honest interval is unbounded. **Early in a week the answer is not hidden by a
-bad statistic — it is genuinely not in the data.** An interval says so loudly;
-R² says so by falling silent. Neither is more informative than the other.
-
-### The same interval, used to choose between the three states
-
-The version that works. Keep the three outcomes; let the interval decide, and
-drop both R² and the horizon rule:
-
-- interval entirely below 100 % → **lasts until reset**
-- interval entirely above → **runs out ~date**
-- interval straddles 100 % → **rate only**, no date
-
-| | Current | Interval-driven |
+| | Before | After the horizon fix |
 |---|---:|---:|
-| Silent | 25.5 % | **21.4 %** |
-| Says something | 74.5 % | **78.6 %** |
-| Correct "lasts until reset" | 15.7 % | 10.7 % |
-| Rate without a date | 0 % | **67.9 %** |
-| **Wrong dates** | **58.8 %** | **0** |
+| **False dates** | **58.8 %** | **0** |
+| Silent | 25.5 % | 25.8 % |
+| Rate without a date | 0 % | **59.9 %** |
+| Correct "lasts until reset" | 15.7 % | 14.3 % |
 
-The block stops lying and starts saying "0.07 %/h" for most of the week, which
-is a true and checkable statement, and names a date only when the arithmetic
-supports one. Late in a window it tightens usefully on its own — at 66 % used
-with six hours to the reset it gave `67 %, between 66 and 68`, and the week
-finished at 67 %.
+Average base 27 h, weighted reach 15 h — a horizon of 150 hours instead of 271.
+
+`rateOnly` was a state the code could reach in principle and never did in
+practice. It is now the normal state, which is the honest description of most
+of a week.
 
 ---
 
-## Recommendation
+## 4. Both schemes against windows that do exhaust
 
-**Three changes, in this order. The first is a bug fix and stands on its own.**
+The objection to the first round stood: that history never ran out, so it could
+only measure false alarms. A scheme that never warns would have scored
+perfectly.
 
-**1. Compute the horizon from the evidence that produced the slope.** Whatever
-else is decided, `span × 10` must not be measured on a base the weighting does
-not reach. Either the horizon uses the effective weighted span, or the
-weighting is removed and the slope genuinely uses the whole base. Today they
-contradict each other and that alone produced every false date in the data.
+Eight synthetic weeks, four of which exhaust. The current scheme is the fixed
+one; the interval scheme replaces R² and the horizon with a 95 % interval on
+the rate, taken across six-hour blocks.
 
-**2. Replace R² with the interval as the gate.** It measures what the question
-needs — how much the rate varies, hence how far the projection can be trusted —
-rather than how straight the path was. On the real history it removes every
-false date and cuts silence from a quarter of the time to a fifth.
+| Profile | Outcome | Date shown, current | Date shown, interval | Warning, current | Warning, interval |
+|---|---|---:|---:|---:|---:|
+| steady, survives | survives | 0 % | 0 % | — | — |
+| steady, exhausts | at 134 h | 92 % | 93 % | 120 h | 126 h |
+| accelerating, exhausts | at 135 h | 44 % | 31 % | **40 h** | 18 h |
+| quiet then a surge | at 160 h | 16 % | 7 % | **18 h** | 3 h |
+| weekdays only, survives | survives | 2 % | 2 % | — | — |
+| decelerating, survives | survives | 0 % | 0 % | — | — |
+| bursty, survives | survives | **0 %** | 2 % | — | — |
+| bursty, exhausts | at 128 h | **89 %** | 43 % | 123 h | 122 h |
 
-**3. Show the rate whenever there is one.** `rateOnly` already exists and is
-never reached in practice; under the interval gate it becomes the normal state,
-which is the honest description of most of a week. A widget that says
-"0.07 %/h" all week and adds a date on Thursday is more useful than one that
-alternates between a red date and nothing.
+*"Warning" is how many hours before actual exhaustion the date first appeared.*
 
-**What I am not recommending.** Predicting the level at the reset instead of
-the exhaustion date is attractive — it is a bounded extrapolation, and the
-horizon rule disappears — but it changes what the feature *says*, not just how
-it decides, and the numbers above do not make that case on their own. Worth
-considering separately if the three changes above leave the block feeling
-thin.
+**The interval scheme is worse where it was supposed to be better.** On bursty
+work that does exhaust — the audience the whole question was about — it shows a
+date 43 % of the time against 89 %, because the spread across blocks keeps the
+interval straddling 100 % and the warning flickers in and out. On the two
+hardest profiles, accelerating and a late surge, it cuts the lead time from 40
+hours to 18 and from 18 to 3. And it is not even better at false alarms: 2 % on
+bursty-surviving where the current scheme has none.
 
-**What this cannot settle.** One person's four days, two windows, both ending
-comfortably under the limit. The false-date rate is measured; the true-date
-rate is not, because nothing in this history ever ran out. A design that never
-says "runs out" would score identically here and be useless. Before shipping a
-change, the interval gate should be checked against a synthetic window that
-does exhaust — and against a second person's history, if one becomes available.
+Neither scheme handles a late surge well — 3 or 18 hours of notice on a week
+that quietly filled up. That is a real limitation of extrapolating from the
+past, and no gate fixes it.
+
+---
+
+## 5. Recommendation
+
+**Do not replace R².** The case for replacing it rested on false dates, and
+false dates came from the horizon, not from R². With the horizon fixed the
+current scheme is at least as good as the interval scheme on every profile
+measured and substantially better on two of them.
+
+**What is left against R², honestly stated.** It still gates the wrong
+property: the median over the real four days is 0.719 against a threshold of
+0.7, so the block still flickers — eight state changes across the period. That
+is worth fixing, but it is a stability problem, not a correctness one, and it
+does not need the scheme replaced. Options, in increasing order of ambition:
+
+1. Leave it. The flickering is between "rate only" and "lasts until reset";
+   both are true statements and neither alarms anyone.
+2. Add hysteresis: once a verdict is shown, require R² to fall further before
+   withdrawing it. Cheap and removes the flicker without changing what is
+   measured.
+3. Revisit the gate later, with data from more than one person.
+
+**Show the rate whenever there is one** is already true as a consequence of the
+fix, not as a separate change: `rateOnly` went from never to 59.9 % of the
+time.
+
+**What these numbers still cannot settle.** The synthetic profiles are my
+inventions, and a profile is a hypothesis about how people work. They were
+chosen to include the shapes that ought to be hardest, but a second real
+history would be worth more than all eight of them.

@@ -323,4 +323,90 @@ struct ForecastTests {
         #expect(slopeLate > slopeEarly,
                 "the accelerating series must read faster: \(slopeLate) vs \(slopeEarly)")
     }
+
+    // MARK: The horizon and the slope must come from the same data
+
+    /// The defect this suite existed alongside for weeks without noticing.
+    ///
+    /// The horizon rule allows a projection of ten times the observation base.
+    /// The slope comes from a regression weighted with a twelve-hour half-life.
+    /// Nobody compared the two, so the base grew with every point ever written
+    /// while the slope kept reflecting the last few hours — and on real data
+    /// the guard licensed a 298-hour projection built from 11 hours of
+    /// evidence.
+    ///
+    /// The property, stated so that it cannot drift apart again: **data that
+    /// does not move the slope may not move the horizon.** Anything else means
+    /// the two halves are looking at different things.
+    @Test("Adding history that carries no weight does not widen the horizon")
+    func horizonFollowsTheWeightedData() {
+        let now = Date()
+        let resets = now.addingTimeInterval(140 * 3600)
+        let rate = 0.35                          // % per hour, constant throughout
+
+        /// A point on one steady line, `back` hours ago.
+        func point(_ back: Double) -> HistoryEntry {
+            HistoryEntry(time: now.addingTimeInterval(-back * 3600),
+                         sevenDayUsed: Int((40 - rate * back).rounded()),
+                         resetsAt: resets)
+        }
+
+        // Half a day of ordinary work, sampled as the exporter samples it.
+        let recent = stride(from: 12.0, through: 0.0, by: -0.5).map(point)
+
+        // In front of it, four days of the same rate sampled sparsely — the
+        // shape idle nights actually leave behind. Every one of these is more
+        // than five half-lives old, so together they carry well under a
+        // hundredth of the weight and the slope does not notice them.
+        let ancient = stride(from: 110.0, through: 60.0, by: -6.0).map(point)
+
+        let window = LimitWindow(usedPercentage: 40, resetsAt: resets)
+        let short = Forecast.make(history: recent, window: window, now: now)
+        let long = Forecast.make(history: ancient + recent, window: window, now: now)
+
+        let a = try! #require(short.percentPerHour)
+        let b = try! #require(long.percentPerHour)
+        #expect(abs(a - b) / a < 0.05,
+                "the fixture is wrong: the older points moved the slope, \(a) against \(b)")
+        #expect(long.observationSpan > short.observationSpan * 3,
+                "the fixture is wrong: the padding did not lengthen the raw base")
+
+        // The property. Before the fix the horizon was ten times the raw base,
+        // so this padding alone widened it from 120 hours to 1100 and turned a
+        // refusal into a date.
+        #expect(abs(long.effectiveSpan - short.effectiveSpan) < 3600,
+                "the weighted reach changed although the slope did not: \(long.effectiveSpan / 3600) h against \(short.effectiveSpan / 3600) h")
+        #expect(describe(long.outcome) == describe(short.outcome),
+                "history that does not move the slope changed the verdict from \(describe(short.outcome)) to \(describe(long.outcome))")
+    }
+
+    /// The reach can never exceed the base it is measured inside.
+    @Test("The effective span never exceeds the observation span",
+          arguments: [10, 20, 40, 80])
+    func effectiveSpanIsBounded(count: Int) {
+        let now = Date()
+        let resets = now.addingTimeInterval(80 * 3600)
+        let window = LimitWindow(usedPercentage: 30, resetsAt: resets)
+        let f = Forecast.make(history: series(count: count, stepMinutes: 45, from: 5, per: 0.4,
+                                              resets: resets, now: now), window: window, now: now)
+        #expect(f.effectiveSpan <= f.observationSpan + 1,
+                "\(f.effectiveSpan / 3600) h of reach inside \(f.observationSpan / 3600) h of base")
+        #expect(f.effectiveSpan > 0)
+    }
+
+    /// Where the two always agreed they must go on agreeing. A base short
+    /// against the half-life has near-uniform weights, so the fix must be
+    /// invisible there — otherwise it is not a fix but a new rule.
+    @Test("On a short base the reach is almost the whole base")
+    func shortBaseIsUnaffected() {
+        let now = Date()
+        let resets = now.addingTimeInterval(20 * 3600)
+        let window = LimitWindow(usedPercentage: 60, resetsAt: resets)
+        // Four hours against a twelve-hour half-life.
+        let f = Forecast.make(history: series(count: 25, stepMinutes: 10, from: 20, per: 1.6,
+                                              resets: resets, now: now), window: window, now: now)
+        #expect(f.effectiveSpan > f.observationSpan * 0.8,
+                "\(f.effectiveSpan / 3600) h of \(f.observationSpan / 3600) h")
+        #expect(describe(f.outcome) == "runsOut", "and the verdict is unchanged")
+    }
 }

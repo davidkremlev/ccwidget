@@ -34,8 +34,20 @@ public struct Forecast: Sendable {
     public let exhaustionAt: Date?
     /// Share of variance explained. `nil` when no regression was run.
     public let fitQuality: Double?
-    /// Length of the observation base.
+    /// Length of the observation base — the full range of the points used.
     public let observationSpan: TimeInterval
+
+    /// The part of that base the weighting actually reaches: the interval,
+    /// measured back from the newest point, that carries `weightShare` of the
+    /// total weight.
+    ///
+    /// It exists because the horizon rule needs it and because nothing could
+    /// see it before. The slope comes from a regression with a twelve-hour
+    /// half-life, so on a hundred hours of history the number is made almost
+    /// entirely from the last ten or so — while the horizon was being computed
+    /// from all hundred. The two halves of section 7 disagreed, and the
+    /// disagreement was invisible: neither quantity was exposed.
+    public let effectiveSpan: TimeInterval
 
     // MARK: Confidence thresholds
 
@@ -59,6 +71,17 @@ public struct Forecast: Sendable {
     /// estimate, but the history cannot be thrown away either.
     public static let weightHalfLife: TimeInterval = 12 * 3600
 
+    /// How much of the weight has to fall inside the effective span for it to
+    /// count as "the data the slope came from".
+    ///
+    /// Nine tenths rather than all of it, because the exponential tail never
+    /// ends: with every point included the effective span is the full span
+    /// again and the rule dissolves. Nine tenths keeps the two measures nearly
+    /// equal where they always agreed — a base short against the half-life,
+    /// where the weights are near-uniform — and separates them where they did
+    /// not, which is what a fix to this ought to do.
+    public static let weightShare = 0.9
+
     public static func make(
         history: [HistoryEntry],
         window: LimitWindow,
@@ -73,7 +96,7 @@ public struct Forecast: Sendable {
 
         func giveUp(_ span: TimeInterval = 0) -> Forecast {
             Forecast(outcome: .notEnoughData, points: points, slope: nil,
-                     exhaustionAt: nil, fitQuality: nil, observationSpan: span)
+                     exhaustionAt: nil, fitQuality: nil, observationSpan: span, effectiveSpan: 0)
         }
 
         // 2. Too few points or too narrow a base — nothing to compute.
@@ -93,7 +116,7 @@ public struct Forecast: Sendable {
         let values = points.map(\.sevenDayUsed)
         guard let lowest = values.min(), let highest = values.max(), highest > lowest else {
             return Forecast(outcome: .flat, points: points, slope: 0,
-                            exhaustionAt: nil, fitQuality: nil, observationSpan: span)
+                            exhaustionAt: nil, fitQuality: nil, observationSpan: span, effectiveSpan: 0)
         }
 
         // 3. Weighted least-squares regression.
@@ -101,6 +124,19 @@ public struct Forecast: Sendable {
         func weight(_ point: HistoryEntry) -> Double {
             pow(0.5, last.time.timeIntervalSince(point.time) / weightHalfLife)
         }
+
+        // How far back the weight actually reaches. Walking from the newest
+        // point until nine tenths of the weight is accounted for gives the
+        // interval the slope is really made of.
+        let totalWeight = points.reduce(0.0) { $0 + weight($1) }
+        var accumulated = 0.0
+        var oldestWeighty = last.time
+        for point in points.reversed() {
+            accumulated += weight(point)
+            oldestWeighty = point.time
+            if accumulated >= weightShare * totalWeight { break }
+        }
+        let effectiveSpan = last.time.timeIntervalSince(oldestWeighty)
 
         var sumW = 0.0, sumWX = 0.0, sumWY = 0.0
         for p in points {
@@ -122,7 +158,7 @@ public struct Forecast: Sendable {
         }
         guard sxx > 0 else {
             return Forecast(outcome: .flat, points: points, slope: 0,
-                            exhaustionAt: nil, fitQuality: nil, observationSpan: span)
+                            exhaustionAt: nil, fitQuality: nil, observationSpan: span, effectiveSpan: effectiveSpan)
         }
 
         let slope = sxy / sxx
@@ -143,7 +179,7 @@ public struct Forecast: Sendable {
         // 5. Consumption has stopped — nothing to estimate.
         guard slope > 0 else {
             return Forecast(outcome: .flat, points: points, slope: slope,
-                            exhaustionAt: nil, fitQuality: quality, observationSpan: span)
+                            exhaustionAt: nil, fitQuality: quality, observationSpan: span, effectiveSpan: effectiveSpan)
         }
 
         // 6. The line does not describe the data — stay silent. Keep the
@@ -152,7 +188,7 @@ public struct Forecast: Sendable {
         //    "the line is a poor fit".
         guard quality >= minimumFitQuality else {
             return Forecast(outcome: .notEnoughData, points: points, slope: slope,
-                            exhaustionAt: nil, fitQuality: quality, observationSpan: span)
+                            exhaustionAt: nil, fitQuality: quality, observationSpan: span, effectiveSpan: effectiveSpan)
         }
 
         // 7. Extrapolate to 100%.
@@ -174,7 +210,12 @@ public struct Forecast: Sendable {
         //    supported: beyond ten base lengths nothing can be asserted —
         //    neither an exhaustion date nor that the quota lasts to the reset.
         //    The second is every bit as much an extrapolation as the first.
-        let maxHorizon = span * horizonMultiplier
+        // Ten times the evidence that produced the slope, not ten times the
+        // range of points that happen to exist. Those were the same number
+        // until somebody added a weighting, and then they were not: thirty
+        // hours of points, eleven hours of weight, a horizon of two hundred
+        // and ninety-eight.
+        let maxHorizon = effectiveSpan * horizonMultiplier
         let toExhaustion = exhaustion.timeIntervalSince(last.time)
         let toReset = window.resetsAt.timeIntervalSince(last.time)
 
@@ -191,7 +232,7 @@ public struct Forecast: Sendable {
 
         return Forecast(outcome: outcome, points: points, slope: slope,
                         exhaustionAt: exhaustion, fitQuality: quality,
-                        observationSpan: span)
+                        observationSpan: span, effectiveSpan: effectiveSpan)
     }
 
     /// Consumption in percent per hour — a measurement, not an
