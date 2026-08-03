@@ -78,11 +78,26 @@ struct CCWidgetProvider: TimelineProvider {
             )
             var forecast: Forecast?
             if let week = snapshot.limits.sevenDay {
-                forecast = Forecast.make(
+                let made = Forecast.make(
                     history: HistoryStore(store: store).load(),
                     window: week,
                     now: date
                 )
+                // The gate has hysteresis, so a verdict on screen can be
+                // standing on a current reading or only on the fact that it
+                // was already there. Those look identical from outside, and a
+                // difference nobody can see is one nobody can debug.
+                ccwidgetWidgetLog.info(
+                    """
+                    estimate: \(made.outcome.label, privacy: .public), \
+                    gate \(made.gate.label, privacy: .public); \
+                    R²=\(made.fitQuality.map { String(format: "%.3f", $0) } ?? "nil", privacy: .private); \
+                    base=\(Int(made.observationSpan / 3600), privacy: .private)h, \
+                    reach=\(Int(made.effectiveSpan / 3600), privacy: .private)h, \
+                    points=\(made.points.count, privacy: .public)
+                    """
+                )
+                forecast = made
             }
             return CCWidgetEntry(date: date, snapshot: snapshot, failure: nil, forecast: forecast)
         } catch let error as SnapshotStoreError {

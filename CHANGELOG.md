@@ -67,6 +67,30 @@ modifier lists, and confirmed the same way afterwards.
 
 ### Changed
 
+- **The estimate stopped switching itself on and off.** Its R² gate had one
+  threshold, 0.7, and on 118 hours of real history the statistic sat on it —
+  median 0.710 — so the block appeared and disappeared eight times in five
+  days, twice within a minute of itself. The gate now has two thresholds: 0.7
+  to start showing a verdict and 0.58 to go on showing one.
+
+  0.58 is measured, not chosen. Over that history R² dipped below 0.7 four
+  times while a verdict was on screen; the two that were noise reached 0.648
+  and 0.653 and came back, and the one that was real reached 0.507 after a
+  sixty-seven-hour gap and did not. 0.58 is the middle of what those two
+  bracket. Result on the same history: eight state changes become five, and
+  the three that go are exactly the three that were flicker.
+
+  The entry threshold did not move, and the reason is a measurement too — on
+  a synthetic week that stays quiet and then surges, every step up the entry
+  bar costs hours of the only warning it gets. Steadiness is not worth an hour
+  of warning, so the asymmetry is made by letting the exit go. All four
+  synthetic weeks that exhaust give the same lead time before this change and
+  after it, to the sample, and those lead times are now floors in the suite.
+
+  The gate keeps no state: it is replayed from the history file each time, so
+  the verdict depends on the data and not on when the system happened to wake
+  the widget.
+
 - **The display name is now "Usage Widget for Claude Code".** It used to be
   "Gauge for Claude Code", which no longer connected to anything: people
   install `ccwidget` and something called *Gauge* appears in their
@@ -100,6 +124,20 @@ modifier lists, and confirmed the same way afterwards.
   single screen could mix two languages.
 
 ### Added
+
+- **`ccwidget-replay`, a console tool that replays a `history.jsonl` through
+  the estimate** and reports what the widget would have shown, for how long,
+  and at every change of state. The figures published about the estimate came
+  from scripts that were never committed, which made a published table
+  impossible to re-derive; they are re-derivable now. The file it reads holds
+  timestamps, percentages and reset times and nothing else, so a history from
+  somebody else can be replayed without carrying anything about them.
+
+- **Eight synthetic weeks in the checks, four of which run out of quota.** The
+  one real history there is never exhausted, so it can measure false alarms and
+  nothing else — a scheme that never warns would score perfectly on it. What
+  these measure is how long before exhaustion the date first appears, recorded
+  as floors that a later change may raise and not lower.
 
 - **Removal.** A button in the app and `Scripts/uninstall.sh` as the fallback
   for when the app will not open. The `statusLine` key is deleted surgically

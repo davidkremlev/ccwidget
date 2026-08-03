@@ -22,6 +22,55 @@ public struct Forecast: Sendable {
         case lastsUntilReset
         /// Exhaustion falls before the reset and within the horizon.
         case runsOut(at: Date)
+
+        public var label: String {
+            switch self {
+            case .notEnoughData: return "notEnoughData"
+            case .flat: return "flat"
+            case .rateOnly: return "rateOnly"
+            case .lastsUntilReset: return "lastsUntilReset"
+            case .runsOut: return "runsOut"
+            }
+        }
+    }
+
+    /// Why the R² gate is where it is. Section 7.
+    ///
+    /// The gate has two thresholds rather than one, and without this the
+    /// difference is invisible: a verdict standing on a current reading and a
+    /// verdict standing only on the fact that it was already on screen look
+    /// exactly alike from outside.
+    public enum Gate: Sendable, Equatable {
+        /// R² has never reached the entry threshold in this window. Nothing
+        /// has been shown and nothing has been taken back.
+        case closed
+        /// R² is at or above the entry threshold.
+        case open
+        /// R² is below the entry threshold but has not fallen to the exit
+        /// threshold, and a verdict was already being shown. Hysteresis is
+        /// the only reason it is still there.
+        case held
+        /// A verdict had been shown and R² fell below the exit threshold, so
+        /// it was withdrawn. Distinct from `closed`, which never showed
+        /// anything: only one of the two is a change the user saw.
+        case withdrawn
+
+        public var label: String {
+            switch self {
+            case .closed: return "closed"
+            case .open: return "open"
+            case .held: return "held"
+            case .withdrawn: return "withdrawn"
+            }
+        }
+
+        /// Whether a verdict may be shown at all.
+        public var admitsAVerdict: Bool {
+            switch self {
+            case .open, .held: return true
+            case .closed, .withdrawn: return false
+            }
+        }
     }
 
     public let outcome: Outcome
@@ -49,6 +98,9 @@ public struct Forecast: Sendable {
     /// disagreement was invisible: neither quantity was exposed.
     public let effectiveSpan: TimeInterval
 
+    /// The state of the R² gate, replayed over this window's history.
+    public let gate: Gate
+
     // MARK: Confidence thresholds
 
     /// With deduplication at ten-minute intervals, ten points mean they did
@@ -60,8 +112,37 @@ public struct Forecast: Sendable {
     public static let minimumSpan: TimeInterval = 2 * 3600
 
     /// Below this the line does not describe the data, and a confident date
-    /// misleads more than a dash would.
+    /// misleads more than a dash would. This is the bar for *starting* to
+    /// show a verdict, and it is unchanged: everything that argued for 0.7
+    /// argued about entering, and nothing measured since argues for a
+    /// different number.
     public static let minimumFitQuality = 0.7
+
+    /// The bar for *going on* showing one. Lower than the entry bar, so that
+    /// a reading which wanders across the entry threshold does not switch the
+    /// block on and off.
+    ///
+    /// Where the number comes from — 118 hours of one real history, replayed
+    /// point by point. R² crossed below 0.7 four times there while a verdict
+    /// was on screen. Two of those dips reached 0.648 and 0.653 and recovered
+    /// within minutes and within an hour and a half: nothing about the week
+    /// had changed, the statistic had merely wobbled. The deepest, 0.507, came
+    /// after a sixty-seven-hour gap in the history and did not recover — the
+    /// line genuinely no longer described anything, and withdrawing the
+    /// verdict there was right.
+    ///
+    /// So the exit threshold has to sit below 0.653 and above 0.507, and 0.58
+    /// is the middle of that interval: as far as one history can put it from
+    /// either mistake. The margin either way, 0.073, is about eight tenths of
+    /// the standard error of R² at this operating point — 0.089, from a median
+    /// effective sample size of 32 behind those fits. One history cannot buy
+    /// more precision than that, and pretending otherwise by quoting more
+    /// digits would be false.
+    ///
+    /// Measured consequence on the same 118 hours: eight state changes become
+    /// five, and the three that go are exactly the three that were flicker.
+    /// `Docs/estimate-review.md` carries the sweep.
+    public static let minimumFitQualityToKeep = 0.58
 
     /// A date is named only if it lies within ten base lengths. Two hours of
     /// observation earn a twenty-hour horizon, not a week.
@@ -82,31 +163,32 @@ public struct Forecast: Sendable {
     /// not, which is what a fix to this ought to do.
     public static let weightShare = 0.9
 
-    public static func make(
-        history: [HistoryEntry],
-        window: LimitWindow,
-        now: Date = Date()
-    ) -> Forecast {
-        // 1. Current window only. A reset drops the percentage in one step,
-        //    and a regression across mixed windows produces garbage.
-        let points = history.filter { entry in
-            guard let resets = entry.resetsAt else { return false }
-            return abs(resets.timeIntervalSince(window.resetsAt)) < 1
-        }
+    // MARK: - The regression
 
-        func giveUp(_ span: TimeInterval = 0) -> Forecast {
-            Forecast(outcome: .notEnoughData, points: points, slope: nil,
-                     exhaustionAt: nil, fitQuality: nil, observationSpan: span, effectiveSpan: 0)
-        }
+    /// One weighted least-squares fit. Everything the verdict is built from,
+    /// and the only place the arithmetic lives: the gate replays this same
+    /// function over prefixes rather than reimplementing it, so the two can
+    /// never come to mean different things.
+    struct Fit {
+        var span: TimeInterval
+        var effectiveSpan: TimeInterval
+        var slope: Double
+        var intercept: Double
+        /// `nil` when the regression could not be run at all: a plateau, or
+        /// no spread left in time after weighting.
+        var quality: Double?
+    }
 
-        // 2. Too few points or too narrow a base — nothing to compute.
+    /// `nil` when there are too few points or the base is too narrow — the two
+    /// refusals that precede any arithmetic.
+    static func fit(_ points: ArraySlice<HistoryEntry>) -> Fit? {
         guard points.count >= minimumPoints,
               let first = points.first,
               let last = points.last
-        else { return giveUp() }
+        else { return nil }
 
         let span = last.time.timeIntervalSince(first.time)
-        guard span >= minimumSpan else { return giveUp(span) }
+        guard span >= minimumSpan else { return nil }
 
         // A plateau is detected from the integer percentages, not from the
         // variance. With identical values the weighted mean lands a hair off,
@@ -115,87 +197,173 @@ public struct Forecast: Sendable {
         // data".
         let values = points.map(\.sevenDayUsed)
         guard let lowest = values.min(), let highest = values.max(), highest > lowest else {
-            return Forecast(outcome: .flat, points: points, slope: 0,
-                            exhaustionAt: nil, fitQuality: nil, observationSpan: span, effectiveSpan: 0)
+            return Fit(span: span, effectiveSpan: 0, slope: 0, intercept: 0, quality: nil)
         }
 
-        // 3. Weighted least-squares regression.
         let origin = first.time
-        func weight(_ point: HistoryEntry) -> Double {
-            pow(0.5, last.time.timeIntervalSince(point.time) / weightHalfLife)
-        }
+        // Computed once and reused. The gate replays this function over every
+        // prefix, so a weight recomputed three times is a weight recomputed
+        // three times per prefix.
+        let weights = points.map { pow(0.5, last.time.timeIntervalSince($0.time) / weightHalfLife) }
+        let offsets = points.map { $0.time.timeIntervalSince(origin) }
+        let observed = points.map { Double($0.sevenDayUsed) }
 
         // How far back the weight actually reaches. Walking from the newest
         // point until nine tenths of the weight is accounted for gives the
         // interval the slope is really made of.
-        let totalWeight = points.reduce(0.0) { $0 + weight($1) }
+        let totalWeight = weights.reduce(0, +)
         var accumulated = 0.0
         var oldestWeighty = last.time
-        for point in points.reversed() {
-            accumulated += weight(point)
-            oldestWeighty = point.time
+        for index in points.indices.reversed() {
+            accumulated += weights[index - points.startIndex]
+            oldestWeighty = points[index].time
             if accumulated >= weightShare * totalWeight { break }
         }
         let effectiveSpan = last.time.timeIntervalSince(oldestWeighty)
 
         var sumW = 0.0, sumWX = 0.0, sumWY = 0.0
-        for p in points {
-            let w = weight(p)
-            sumW += w
-            sumWX += w * p.time.timeIntervalSince(origin)
-            sumWY += w * Double(p.sevenDayUsed)
+        for i in weights.indices {
+            sumW += weights[i]
+            sumWX += weights[i] * offsets[i]
+            sumWY += weights[i] * observed[i]
         }
-        guard sumW > 0 else { return giveUp(span) }
+        guard sumW > 0 else { return nil }
         let meanX = sumWX / sumW
         let meanY = sumWY / sumW
 
         var sxy = 0.0, sxx = 0.0
-        for p in points {
-            let w = weight(p)
-            let dx = p.time.timeIntervalSince(origin) - meanX
-            sxy += w * dx * (Double(p.sevenDayUsed) - meanY)
-            sxx += w * dx * dx
+        for i in weights.indices {
+            let dx = offsets[i] - meanX
+            sxy += weights[i] * dx * (observed[i] - meanY)
+            sxx += weights[i] * dx * dx
         }
         guard sxx > 0 else {
-            return Forecast(outcome: .flat, points: points, slope: 0,
-                            exhaustionAt: nil, fitQuality: nil, observationSpan: span, effectiveSpan: effectiveSpan)
+            return Fit(span: span, effectiveSpan: effectiveSpan, slope: 0, intercept: 0, quality: nil)
         }
 
         let slope = sxy / sxx
         let intercept = meanY - slope * meanX
 
-        // 4. How well the line describes the data at all.
+        // How well the line describes the data at all.
         var ssResidual = 0.0, ssTotal = 0.0
-        for p in points {
-            let w = weight(p)
-            let x = p.time.timeIntervalSince(origin)
-            let y = Double(p.sevenDayUsed)
-            let predicted = intercept + slope * x
-            ssResidual += w * (y - predicted) * (y - predicted)
-            ssTotal += w * (y - meanY) * (y - meanY)
+        for i in weights.indices {
+            let predicted = intercept + slope * offsets[i]
+            ssResidual += weights[i] * (observed[i] - predicted) * (observed[i] - predicted)
+            ssTotal += weights[i] * (observed[i] - meanY) * (observed[i] - meanY)
         }
         let quality = ssTotal > 0 ? max(0, 1 - ssResidual / ssTotal) : 0
 
-        // 5. Consumption has stopped — nothing to estimate.
-        guard slope > 0 else {
-            return Forecast(outcome: .flat, points: points, slope: slope,
-                            exhaustionAt: nil, fitQuality: quality, observationSpan: span, effectiveSpan: effectiveSpan)
+        return Fit(span: span, effectiveSpan: effectiveSpan,
+                   slope: slope, intercept: intercept, quality: quality)
+    }
+
+    // MARK: - The gate
+
+    /// Replays the two-threshold gate over every prefix of this window's
+    /// points, in the order the exporter wrote them.
+    ///
+    /// Hysteresis needs to know what was on screen a moment ago, and there are
+    /// two ways to know it: remember it, or work it out again. Remembering it
+    /// would mean the widget writing state — it only ever reads — and it would
+    /// make the verdict depend on when the system happened to wake the
+    /// provider. Working it out again makes the verdict a function of the
+    /// history file and nothing else: the same file gives the same answer on
+    /// any machine, at any refresh, in any replay.
+    ///
+    /// The cost is a fit per point. Measured on this hardware: 1.8 ms at 200
+    /// points, 26 ms at 1000, 98 ms at the 2000-line truncation limit — once
+    /// per timeline, which is once per half hour.
+    ///
+    /// A prefix that produces no R² — fewer than ten points, a base under two
+    /// hours, a plateau — leaves the gate as it was. It is not evidence about
+    /// the fit in either direction, and treating "consumption paused" as
+    /// "the line stopped describing the data" would put the flicker back in
+    /// through the other door.
+    static func latchedGate(_ points: [HistoryEntry]) -> Gate {
+        guard points.count >= minimumPoints else { return .closed }
+
+        var open = false
+        var everOpened = false
+        var newest: Double? = nil
+
+        for k in minimumPoints...points.count {
+            guard let quality = fit(points.prefix(k))?.quality else { continue }
+            newest = quality
+            if open {
+                if quality < minimumFitQualityToKeep { open = false }
+            } else if quality >= minimumFitQuality {
+                open = true
+                everOpened = true
+            }
         }
 
-        // 6. The line does not describe the data — stay silent. Keep the
+        guard open else { return everOpened ? .withdrawn : .closed }
+        // `newest` is the last reading that existed; if the newest points are
+        // a plateau it is an earlier one, and the verdict stands on the latch
+        // rather than on anything current — which is what `held` says.
+        return (newest ?? 0) >= minimumFitQuality ? .open : .held
+    }
+
+    // MARK: - The verdict
+
+    public static func make(
+        history: [HistoryEntry],
+        window: LimitWindow,
+        now: Date = Date()
+    ) -> Forecast {
+        // 1. Current window only. A reset drops the percentage in one step,
+        //    and a regression across mixed windows produces garbage. It also
+        //    starts the gate over: a new week has shown nothing yet.
+        let points = history.filter { entry in
+            guard let resets = entry.resetsAt else { return false }
+            return abs(resets.timeIntervalSince(window.resetsAt)) < 1
+        }
+
+        let gate = latchedGate(points)
+
+        // 2. Too few points or too narrow a base — nothing to compute.
+        guard let fitted = fit(points[...]), let first = points.first, let last = points.last else {
+            var span: TimeInterval = 0
+            if points.count >= minimumPoints, let a = points.first, let b = points.last {
+                span = b.time.timeIntervalSince(a.time)
+            }
+            return Forecast(outcome: .notEnoughData, points: points, slope: nil,
+                            exhaustionAt: nil, fitQuality: nil, observationSpan: span,
+                            effectiveSpan: 0, gate: gate)
+        }
+
+        // 3. A plateau, or no spread in time — the rate is zero, not unknown.
+        guard let quality = fitted.quality else {
+            return Forecast(outcome: .flat, points: points, slope: 0,
+                            exhaustionAt: nil, fitQuality: nil,
+                            observationSpan: fitted.span, effectiveSpan: fitted.effectiveSpan,
+                            gate: gate)
+        }
+
+        // 4. Consumption has stopped — nothing to estimate.
+        guard fitted.slope > 0 else {
+            return Forecast(outcome: .flat, points: points, slope: fitted.slope,
+                            exhaustionAt: nil, fitQuality: quality,
+                            observationSpan: fitted.span, effectiveSpan: fitted.effectiveSpan,
+                            gate: gate)
+        }
+
+        // 5. The line does not describe the data — stay silent. Keep the
         //    slope and R² anyway: without them the dump tool cannot show why
         //    it refused, and "not enough data" becomes indistinguishable from
         //    "the line is a poor fit".
-        guard quality >= minimumFitQuality else {
-            return Forecast(outcome: .notEnoughData, points: points, slope: slope,
-                            exhaustionAt: nil, fitQuality: quality, observationSpan: span, effectiveSpan: effectiveSpan)
+        guard gate.admitsAVerdict else {
+            return Forecast(outcome: .notEnoughData, points: points, slope: fitted.slope,
+                            exhaustionAt: nil, fitQuality: quality,
+                            observationSpan: fitted.span, effectiveSpan: fitted.effectiveSpan,
+                            gate: gate)
         }
 
-        // 7. Extrapolate to 100%.
-        let secondsTo100 = (100 - intercept) / slope
-        let exhaustion = origin.addingTimeInterval(max(secondsTo100, 0))
+        // 6. Extrapolate to 100%.
+        let secondsTo100 = (100 - fitted.intercept) / fitted.slope
+        let exhaustion = first.time.addingTimeInterval(max(secondsTo100, 0))
 
-        // 8. Which comes first, and can we say so?
+        // 7. Which comes first, and can we say so?
         //
         //    Two questions, and they used to be one. The old code asked only
         //    whether the exhaustion date fell inside the horizon, and named it
@@ -215,7 +383,7 @@ public struct Forecast: Sendable {
         // until somebody added a weighting, and then they were not: thirty
         // hours of points, eleven hours of weight, a horizon of two hundred
         // and ninety-eight.
-        let maxHorizon = effectiveSpan * horizonMultiplier
+        let maxHorizon = fitted.effectiveSpan * horizonMultiplier
         let toExhaustion = exhaustion.timeIntervalSince(last.time)
         let toReset = window.resetsAt.timeIntervalSince(last.time)
 
@@ -230,9 +398,10 @@ public struct Forecast: Sendable {
             outcome = toReset <= maxHorizon ? .lastsUntilReset : .rateOnly
         }
 
-        return Forecast(outcome: outcome, points: points, slope: slope,
+        return Forecast(outcome: outcome, points: points, slope: fitted.slope,
                         exhaustionAt: exhaustion, fitQuality: quality,
-                        observationSpan: span, effectiveSpan: effectiveSpan)
+                        observationSpan: fitted.span, effectiveSpan: fitted.effectiveSpan,
+                        gate: gate)
     }
 
     /// Consumption in percent per hour — a measurement, not an

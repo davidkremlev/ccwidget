@@ -254,6 +254,13 @@ them:
 swiftc -swift-version 6 -target arm64-apple-macos14.0 \
     Shared/Snapshot.swift Shared/SnapshotStore.swift Shared/Formatters.swift \
     Shared/Diagnostics.swift Tools/ccwidget-dump/main.swift -o .build/ccwidget-dump
+
+# replay a history.jsonl through the estimate: what the widget would have
+# shown, for how long, and at every change of state
+swiftc -swift-version 6 -target arm64-apple-macos14.0 \
+    Shared/Snapshot.swift Shared/SnapshotStore.swift Shared/Formatters.swift \
+    Shared/Diagnostics.swift Shared/HistoryStore.swift Shared/Forecast.swift \
+    Tools/ccwidget-replay/main.swift -o .build/ccwidget-replay
 ```
 
 The same commands run in CI on every push, so if they stop working the build

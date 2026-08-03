@@ -140,8 +140,9 @@ does not need the scheme replaced. Options, in increasing order of ambition:
    both are true statements and neither alarms anyone.
 2. Add hysteresis: once a verdict is shown, require R² to fall further before
    withdrawing it. Cheap and removes the flicker without changing what is
-   measured.
-3. Revisit the gate later, with data from more than one person.
+   measured. — *Taken. Section 6.*
+3. Revisit the gate later, with data from more than one person. — *Open, and
+   section 6.6 sharpens what it would settle. `SPEC` 14 carries it.*
 
 **Show the rate whenever there is one** is already true as a consequence of the
 fix, not as a separate change: `rateOnly` went from never to 59.9 % of the
@@ -151,3 +152,190 @@ time.
 inventions, and a profile is a hypothesis about how people work. They were
 chosen to include the shapes that ought to be hardest, but a second real
 history would be worth more than all eight of them.
+
+---
+
+## 6. The flicker, measured and removed
+
+Option 2 from the list above, taken up on the owner's decision, with the
+condition attached: measure the warning time on the weeks that exhaust, before
+and after, and drop the whole thing if any of them shortens.
+
+Everything below is reproducible. `./.build/ccwidget-replay <history.jsonl>`
+replays a real history; `Tests/EstimateProfilesTests.swift` builds and replays
+the eight synthetic weeks. The scripts behind section 4 were not committed and
+the tables there could not be re-derived — that is fixed here.
+
+The history replayed below is the one from section 1, at 183 lines and 119.3
+hours as of 3 August 2026. It is a live file and it goes on growing, so a
+replay run later will not match these tables to the decimal. The shape of the
+answer does not depend on that; the exact percentages do.
+
+### 6.1 What the eight changes actually were
+
+Replaying the 118 hours line by line, under the single 0.7 threshold:
+
+| When | Change | R² |
+|---|---|---:|
+| 29 Jul 13:58 | silent → lasts until reset | 0.730 |
+| 30 Jul 06:00 | lasts until reset → silent | **0.648** |
+| 30 Jul 06:00 | silent → lasts until reset | 0.719 |
+| 30 Jul 07:00 | weekly reset | — |
+| 31 Jul 08:23 | silent → lasts until reset | 0.710 |
+| 31 Jul 08:24 | lasts until reset → silent | **0.699** |
+| 31 Jul 10:01 | silent → rate only | 0.707 |
+| 3 Aug 09:15 | rate only → silent | 0.507 |
+
+Two of them are 36 seconds apart and two are one minute apart. The block was
+not responding to anything about the week; R² was sitting on the threshold —
+median 0.710 over 65 fits — and crossing it in both directions.
+
+(Section 5 quotes 0.719 for the same statistic. It was measured on the same
+file two days earlier and a hundred lines shorter. Every figure in this section
+is from the 183-line snapshot named above; the drift between the two is what a
+live file does, not a disagreement.)
+
+### 6.2 Where the second threshold goes
+
+Four times R² fell below 0.7 while a verdict was on screen. What separates them
+is not depth alone but what happened next:
+
+| Dip reached | Recovered after | What it was |
+|---:|---|---|
+| 0.648 | 36 seconds | the statistic wobbling |
+| 0.653 | 1.6 hours | the statistic wobbling |
+| 0.537 | 6.7 hours | (the gate was shut at the time) |
+| 0.507 | never, within the record | a 67-hour gap in the history; the line genuinely described nothing |
+
+So the exit threshold has to sit **below 0.653** — or the wobble still switches
+the block off — and **above 0.507** — or a fit that has actually stopped
+working keeps its verdict. **0.58 is the middle of that interval**, which is as
+far from both mistakes as one history can put it.
+
+Two things worth saying about that number. It is not a round one on purpose:
+the interval it centres came from measurement and rounding it to 0.6 or 0.55
+would move it towards one of the two errors for no reason. And its margin,
+0.073 either way, is about **0.8 of the standard error of R²** at this
+operating point — 0.089, from `2R(1−R²)/√n` with a median effective sample size
+of 32 behind those fits. One history does not support finer than that, and more
+digits would be invention. The effective sample size is the weights' own,
+`(Σw)²/Σw²`, not the number of lines: with a twelve-hour half-life the two
+differ by a factor of four.
+
+Sweeping the exit threshold over the same history confirms the interval rather
+than assuming it:
+
+| Exit threshold | State changes |
+|---:|---:|
+| 0.70 – 0.66 | 8 |
+| 0.64 – 0.52 | **5** |
+| 0.50 – 0.40 | 6 |
+
+A plateau, not a knife edge, and it ends exactly where the two dips said it
+would.
+
+### 6.3 The entry threshold does not move
+
+The instruction was to enter conservatively and leave with a delay. Measured,
+the first half of that costs warning time and buys nothing.
+
+Sweeping the entry threshold across the four weeks that exhaust:
+
+| Entry | steady | accelerating | quiet then a surge | bursty |
+|---:|---:|---:|---:|---:|
+| 0.70 | 118.8 h | 48.3 h | **4.7 h** | 114.2 h |
+| 0.76 | 118.8 h | 48.3 h | **4.7 h** | 114.2 h |
+| 0.78 | 118.8 h | 48.3 h | **4.5 h** | 114.2 h |
+| 0.80 | 118.8 h | 48.3 h | **3.8 h** | 114.2 h |
+| 0.86 | 118.8 h | 48.3 h | **0.3 h** | 114.2 h |
+
+Three of the four are insensitive because a week heavy enough to exhaust
+produces a high R² — the signal is large against the one-percent quantisation.
+The fourth is the one that matters: a week that stays quiet and then surges runs
+right along the gate, and every step up the entry threshold takes hours off the
+only warning it gets. There is apparent headroom to 0.76, and it is apparent
+only: it is the distance to a cliff that one invented profile happens to sit at.
+Fitting a constant to that would be fitting it to noise.
+
+So the asymmetry is made by letting the exit go, not by pulling the entry in.
+That is also the only direction that **cannot** cost warning time, which is what
+the condition on this work demanded.
+
+### 6.4 What it bought
+
+Same 118 hours, entry 0.70, exit 0.58:
+
+| | Before | After |
+|---|---:|---:|
+| **State changes** | **8** | **5** |
+| False dates | 0 | 0 |
+| Silent | 26.0 % | 24.7 % |
+| Rate without a date | 59.7 % | 60.9 % |
+| Correct "lasts until reset" | 14.3 % | 14.4 % |
+
+The three that went are exactly the three that were flicker. Each of the five
+that remain answers to something that happened: the first verdict of a window,
+the weekly reset, the first verdict of the next window, a move from "lasts until
+reset" to "rate only" as the weighted reach shrank, and the withdrawal at
+R² = 0.507 after the 67-hour gap. **There is no flicker left in this history**,
+which is a stronger statement than "three fewer".
+
+### 6.5 The condition: warning time before and after
+
+The four weeks that exhaust, replayed with the exit threshold set equal to the
+entry threshold — the rule exactly as it was — and then as it ships:
+
+| Profile | Runs out at | Warning before | Warning after | Date shown before → after |
+|---|---:|---:|---:|---|
+| steady, exhausts | 134 h | 118.83 h | **118.83 h** | 92.3 % → 92.7 % |
+| accelerating, exhausts | 135 h | 48.33 h | **48.33 h** | 38.4 % → 38.4 % |
+| quiet then a surge | 160 h | 4.67 h | **4.67 h** | 3.1 % → 3.1 % |
+| bursty, exhausts | 127 h | 114.15 h | **114.15 h** | 89.9 % → 89.9 % |
+
+Identical, to the sample. Not luck: the entry threshold did not move, so the
+moment a date first appears cannot move. That is now a check rather than an
+argument — `hysteresisOnlyEverAdds` asserts that whenever R² is at or above the
+entry threshold the gate admits a verdict, over every fit of all eight weeks.
+
+Two checks, and they cover different halves. That one covers the latch: nothing
+about the exit threshold, and no bug in the replay, can make the gate refuse
+what a single threshold at the same bar would have allowed. It says nothing
+about where the bar is, because it is written against the constant. The lead
+times themselves are recorded as floors and the false-date shares as ceilings,
+and those cover the bar: setting the entry threshold to 0.80 takes the surge
+week from 4.67 hours of warning to 3.83 and `leadTimeIsNotLost` fails on it —
+checked by doing it, not by expecting it to.
+
+What neither covers is an exit threshold set absurdly low. On the real history
+that shows up immediately — below 0.52 the state changes go back up, because a
+fit that has genuinely died keeps its verdict — but the synthetic weeks never
+put R² that low, so the suite would not notice. The replay tool is the check
+for that one, and it needs a history.
+
+**The cost side, stated.** Hysteresis holds a date slightly longer when the date
+was wrong too: on the decelerating week that survives, a date is shown 10.17 %
+of the time against 10.06 %, and on the steady week that exhausts 92.7 % against
+92.3 %. Tenths of a per cent, in the direction that costs something.
+
+### 6.6 What had to change about the profiles, and why it matters
+
+The eight weeks were rebuilt for this — the originals were never committed — and
+rebuilding them turned up something the first round hid. A profile generated
+from a smooth curve fits a straight line to three decimal places: pooled R²
+across all eight came out at a median of 0.93, against 0.71 for the real
+history. **A gate on R² is untestable on data whose R² is never near the gate.**
+Adding what real work has — sessions in unequal lumps, pauses inside them, whole
+nights with no lines at all — brings the profiles down to where the gate lives,
+and `theGateIsReached` now checks that all three gate states occur, so a future
+profile set that drifts back to being too clean says so instead of passing
+everything.
+
+The gap that remains is honest and worth writing down: even with the lumps, the
+weeks that exhaust sit well above the gate, because a week heavy enough to run
+out of quota moves the percentage fast enough for a line to describe it. The
+real history sits near the gate because it is a *light* week — 0.14 %/h against
+0.94 for the lightest exhausting profile. So the R² gate mostly binds on people
+who are in no danger, and mostly does not bind on the people the estimate is
+for. That is a finding about the gate, not about hysteresis, and it is the
+strongest argument in this document for revisiting R² later with more than one
+person's data.

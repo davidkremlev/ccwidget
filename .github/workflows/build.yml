@@ -160,6 +160,15 @@ jobs:
             Shared/Snapshot.swift Shared/SnapshotStore.swift \
             Shared/Formatters.swift Shared/Diagnostics.swift \
             Tools/ccwidget-dump/main.swift -o .build/ccwidget-dump
+          # The replay tool is how the figures in Docs/estimate-review.md are
+          # re-derived. A measurement nobody can repeat is an opinion, and the
+          # tool going stale would quietly turn it back into one.
+          swiftc -swift-version 6 -strict-concurrency=complete \
+            -target arm64-apple-macos14.0 \
+            Shared/Snapshot.swift Shared/SnapshotStore.swift \
+            Shared/Formatters.swift Shared/Diagnostics.swift \
+            Shared/HistoryStore.swift Shared/Forecast.swift \
+            Tools/ccwidget-replay/main.swift -o .build/ccwidget-replay
 
       - name: Upload logs
         if: always()

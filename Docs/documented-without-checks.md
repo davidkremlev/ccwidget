@@ -10,6 +10,10 @@ conditions stated in `SPEC` sections 2–8.
 **First pass: 33 items, one of them a live defect. This pass: 5 remain**, and
 none of the five can be closed by the kind of check the others were.
 
+Two more have been added since, by the hysteresis work in `SPEC` 7 — G4 and
+G5. Both are numbers rather than behaviour, and both name what stops a check
+from existing. The behaviour those numbers argued for is checked.
+
 ---
 
 ## What closed, and how
@@ -80,6 +84,24 @@ WidgetKit draws only on a logged-in user's desktop, and a widget cannot be
 placed there by any command or API — only by dragging it from the gallery. CI
 images have no desktop session. Tier 3 covers the views' rendering; it does not
 cover WidgetKit.
+
+**G4. The flicker figures on real history** — `SPEC` 7, hysteresis.
+Eight state changes becoming five, the dips at 0.648 and 0.653 against the one
+at 0.507, the median R² of 0.710 — every one of them is measured on one
+person's `history.jsonl`. That file is not in the repository and should not be:
+it is a record of when its owner was working. `./.build/ccwidget-replay <file>`
+re-derives the whole table from any such file in about a second, and CI builds
+the tool so it cannot rot. What the checks cover is the behaviour the figures
+argued for — the two thresholds, the latch, the lead times — in
+`ForecastTests` and `EstimateProfilesTests`. What they cannot cover is the
+figure itself, because the data is somebody's week.
+
+**G5. What replaying the gate costs** — `SPEC` 7, hysteresis.
+1.8 ms at 200 points, 26 ms at 1000, 98 ms at the two-thousand-line truncation
+limit, measured in an optimised build on an Apple silicon laptop. A check here
+would assert a wall-clock time on a shared runner whose speed nobody controls,
+which is how a suite learns to fail for no reason. Stated as measured, with the
+machine named, rather than checked.
 
 ---
 

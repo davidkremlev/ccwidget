@@ -394,6 +394,201 @@ struct ForecastTests {
         #expect(f.effectiveSpan > 0)
     }
 
+    // MARK: The gate has two thresholds
+
+    /// A clean rise, then a pause, then work again — the shape that made R²
+    /// wander across the threshold on the real history. Lengthening the pause
+    /// walks R² down through the band without changing anything else, which is
+    /// what these checks need and what a noise generator would not give.
+    private func pausing(rising: Int = 30, paused: Int, resumed: Int = 0,
+                         resets: Date, from start: Date) -> [HistoryEntry] {
+        let step = 20.0 * 60          // twenty minutes
+        var entries: [HistoryEntry] = []
+        var value = 20.0
+        var elapsed = 0.0
+        func write() {
+            entries.append(HistoryEntry(time: start.addingTimeInterval(elapsed),
+                                        sevenDayUsed: Int(value.rounded()), resetsAt: resets))
+            elapsed += step
+        }
+        for _ in 0..<rising { write(); value += 1 }
+        value -= 1
+        for _ in 0..<paused { write() }
+        for _ in 0..<resumed { value += 1; write() }
+        return entries
+    }
+
+    private func forecast(_ points: [HistoryEntry], resets: Date) -> Forecast {
+        let last = points[points.count - 1]
+        return Forecast.make(history: points,
+                             window: LimitWindow(usedPercentage: last.sevenDayUsed, resetsAt: resets),
+                             now: last.time)
+    }
+
+    /// The reason for the second threshold. On the real history R² sat at a
+    /// median of 0.719 against a bar of 0.7, so the block switched itself on
+    /// and off eight times in five days — once for a dip that lasted a single
+    /// minute. A reading that wobbles either side of one number is not a
+    /// reason to take a verdict back.
+    @Test("A dip that stays above the exit threshold does not withdraw the verdict")
+    func aShallowDipKeepsTheVerdict() {
+        let start = Date(timeIntervalSince1970: 1_785_000_000)
+        let resets = start.addingTimeInterval(300 * 3600)
+        let f = forecast(pausing(paused: 40, resets: resets, from: start), resets: resets)
+
+        let quality = try! #require(f.fitQuality)
+        #expect(quality < Forecast.minimumFitQuality && quality >= Forecast.minimumFitQualityToKeep,
+                "the fixture is wrong: R² = \(quality) has to land between the two thresholds")
+
+        #expect(f.gate == .held, "got \(f.gate.label)")
+        #expect(describe(f.outcome) == "runsOut",
+                "a verdict already on screen survives a dip; got \(describe(f.outcome))")
+    }
+
+    /// And the other edge. Hysteresis holds a verdict through a wobble, not
+    /// through a fit that has genuinely stopped describing anything — on the
+    /// real history that was a sixty-seven-hour gap, after which R² fell to
+    /// 0.507 and never came back.
+    @Test("A dip below the exit threshold does withdraw it")
+    func aDeepDipWithdrawsTheVerdict() {
+        let start = Date(timeIntervalSince1970: 1_785_000_000)
+        let resets = start.addingTimeInterval(300 * 3600)
+        let f = forecast(pausing(paused: 60, resets: resets, from: start), resets: resets)
+
+        let quality = try! #require(f.fitQuality)
+        #expect(quality < Forecast.minimumFitQualityToKeep,
+                "the fixture is wrong: R² = \(quality) has to fall below the exit threshold")
+
+        #expect(f.gate == .withdrawn, "got \(f.gate.label)")
+        #expect(describe(f.outcome) == "notEnoughData", "got \(describe(f.outcome))")
+        #expect(!f.hasRate, "and nothing is shown")
+    }
+
+    /// Withdrawn is not the same as never shown, and getting back in costs the
+    /// full entry price. Otherwise the band would be a trapdoor: one crossing
+    /// downwards and the block would spend the rest of the week toggling on
+    /// the lower threshold instead of the upper one.
+    @Test("Coming back needs the entry threshold, not the exit one")
+    func reEntryCostsTheEntryThreshold() {
+        let start = Date(timeIntervalSince1970: 1_785_000_000)
+        let resets = start.addingTimeInterval(300 * 3600)
+
+        let recovering = forecast(pausing(paused: 60, resumed: 15, resets: resets, from: start),
+                                  resets: resets)
+        let quality = try! #require(recovering.fitQuality)
+        #expect(quality < Forecast.minimumFitQuality && quality >= Forecast.minimumFitQualityToKeep,
+                "the fixture is wrong: R² = \(quality) has to recover into the band but not past it")
+        #expect(recovering.gate == .withdrawn,
+                "a withdrawn verdict came back on the exit threshold; gate = \(recovering.gate.label)")
+        #expect(describe(recovering.outcome) == "notEnoughData")
+
+        let recovered = forecast(pausing(paused: 60, resumed: 20, resets: resets, from: start),
+                                 resets: resets)
+        #expect((recovered.fitQuality ?? 0) >= Forecast.minimumFitQuality,
+                "the fixture is wrong: R² has to clear the entry threshold here")
+        #expect(recovered.gate == .open, "got \(recovered.gate.label)")
+        #expect(describe(recovered.outcome) == "runsOut")
+    }
+
+    /// The gate is not remembered anywhere, it is worked out again from the
+    /// file — so it has to be worked out from the *same* file the estimate
+    /// uses. A week that ended yesterday must not decide what this week shows.
+    @Test("A new window starts the gate over")
+    func theResetClosesTheGate() {
+        let start = Date(timeIntervalSince1970: 1_785_000_000)
+        let previous = start.addingTimeInterval(200 * 3600)
+        let current = start.addingTimeInterval(500 * 3600)
+
+        // Last week: a clean line that opened the gate.
+        let lastWeek = pausing(paused: 0, resets: previous, from: start)
+        #expect(forecast(lastWeek, resets: previous).gate == .open,
+                "the fixture is wrong: last week has to have opened the gate")
+
+        // This week: four points, nothing decidable yet.
+        let thisWeek = (0..<4).map { i in
+            HistoryEntry(time: start.addingTimeInterval(300 * 3600 + Double(i) * 1200),
+                         sevenDayUsed: 3 + i, resetsAt: current)
+        }
+        let f = Forecast.make(history: lastWeek + thisWeek,
+                              window: LimitWindow(usedPercentage: 6, resetsAt: current),
+                              now: thisWeek.last!.time)
+        #expect(f.gate == .closed, "last week's gate carried over; gate = \(f.gate.label)")
+        #expect(describe(f.outcome) == "notEnoughData")
+    }
+
+    /// The claim the design rests on, and therefore a claim that needs a
+    /// check: the same history gives the same verdict whenever it is asked.
+    ///
+    /// Hysteresis needs to know what was on screen a moment ago. Remembering it
+    /// would tie the answer to when the system happened to wake the provider —
+    /// two machines with the same file, or one machine with a busy afternoon,
+    /// would disagree. Working it out again from the file removes that, and
+    /// this is what removing it looks like from outside.
+    @Test("The verdict does not depend on when it was asked for")
+    func theVerdictIsAFunctionOfTheFile() {
+        let start = Date(timeIntervalSince1970: 1_785_000_000)
+        let resets = start.addingTimeInterval(300 * 3600)
+        let points = pausing(paused: 40, resets: resets, from: start)
+        let newest = points[points.count - 1]
+        let window = LimitWindow(usedPercentage: newest.sevenDayUsed, resetsAt: resets)
+
+        let atOnce = Forecast.make(history: points, window: window, now: newest.time)
+        let hoursLater = Forecast.make(history: points, window: window,
+                                       now: newest.time.addingTimeInterval(9 * 3600))
+
+        #expect(atOnce.gate == hoursLater.gate,
+                "the gate moved with the clock: \(atOnce.gate.label) then \(hoursLater.gate.label)")
+        #expect(describe(atOnce.outcome) == describe(hoursLater.outcome),
+                "\(describe(atOnce.outcome)) then \(describe(hoursLater.outcome))")
+        #expect(atOnce.fitQuality == hoursLater.fitQuality)
+    }
+
+    /// A pause is not evidence that the line stopped describing the data — it
+    /// is an absence of evidence, and the gate has to leave it alone. If a
+    /// plateau closed the gate, every quiet evening would take the verdict
+    /// away and hand the flicker back through the other door.
+    @Test("A plateau leaves the gate where it was")
+    func aPlateauDoesNotMoveTheGate() {
+        let start = Date(timeIntervalSince1970: 1_785_000_000)
+        let resets = start.addingTimeInterval(300 * 3600)
+
+        // A clean rise that opens the gate, then values that do not move at
+        // all — which is a plateau, and produces no R² to judge.
+        var points = pausing(paused: 0, resets: resets, from: start)
+        let held = points[points.count - 1].sevenDayUsed
+        var elapsed = points[points.count - 1].time.timeIntervalSince(start)
+        for _ in 0..<6 {
+            elapsed += 20 * 60
+            points.append(HistoryEntry(time: start.addingTimeInterval(elapsed),
+                                       sevenDayUsed: held, resetsAt: resets))
+        }
+
+        let f = forecast(points, resets: resets)
+        #expect(f.fitQuality != nil, "the fixture is wrong: the whole series still has a fit")
+        #expect(f.gate.admitsAVerdict, "a quiet stretch closed the gate; gate = \(f.gate.label)")
+    }
+
+    /// The log and the replay tool print these names, and a name that is
+    /// wrong or shared with another state is a diagnosis that sends the reader
+    /// somewhere else. `describe` here was written separately from `label`, so
+    /// the two agreeing means something.
+    @Test("Every state has its own name")
+    func statesAreNamedDistinctly() {
+        let gates: [Forecast.Gate] = [.closed, .open, .held, .withdrawn]
+        #expect(Set(gates.map(\.label)).count == gates.count,
+                "two gate states share a name: \(gates.map(\.label))")
+
+        let outcomes: [Forecast.Outcome] = [
+            .notEnoughData, .flat, .rateOnly, .lastsUntilReset, .runsOut(at: Date()),
+        ]
+        #expect(Set(outcomes.map(\.label)).count == outcomes.count,
+                "two outcomes share a name: \(outcomes.map(\.label))")
+        for outcome in outcomes {
+            #expect(outcome.label == describe(outcome),
+                    "\(outcome.label) is announced as \(describe(outcome))")
+        }
+    }
+
     /// Where the two always agreed they must go on agreeing. A base short
     /// against the half-life has near-uniform weights, so the fix must be
     /// invisible there — otherwise it is not a fix but a new rule.
