@@ -156,6 +156,25 @@ def main():
             "resetsAt": w.get("resets_at"),
         }
 
+    five_hour = window("five_hour")
+    seven_day = window("seven_day")
+
+    # A session's first redraw carries no rate_limits at all — no key, and a
+    # context window whose usage is null. Writing that snapshot replaces the
+    # numbers a person is looking at with nothing, which is what emptied the
+    # widget on every restart of Claude Code.
+    #
+    # The payload does not say the limits are zero. It says this redraw knows
+    # nothing about them, and that is not news: the snapshot on disk stays, its
+    # age goes on growing, and the age is what says how current it is. The
+    # first prompt of the session brings real numbers a moment later.
+    #
+    # Nothing is merged and nothing is preserved by hand — the write is simply
+    # skipped. Keeping old numbers under a fresh capturedAt would be the one
+    # outcome worse than either.
+    if five_hour is None and seven_day is None:
+        return
+
     # Section 4: write only what is displayed. There is no full project path
     # here — the widget never shows it, and it can name a client.
     session = d.get("session_id")
@@ -176,8 +195,8 @@ def main():
             or os.path.basename(ws.get("current_dir") or ""),
         },
         "limits": {
-            "fiveHour": window("five_hour"),
-            "sevenDay": window("seven_day"),
+            "fiveHour": five_hour,
+            "sevenDay": seven_day,
         },
         "context": {
             "usedPercentage": pct(cw.get("used_percentage")),

@@ -73,6 +73,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   costs nothing. `SPEC` 2.4 has the reasoning; README tells the reader before
   they file it as a bug.
 
+- **Restarting Claude Code emptied the widget.** A session's first status-line
+  redraw carries no `rate_limits` key at all and a context window whose usage
+  is `null` — two such lines in twenty-nine of a real log. The exporter
+  replaces the snapshot on every redraw, so the numbers a person was looking at
+  were overwritten with nothing until the first prompt of the new session. Every
+  restart, every time.
+
+  A payload without limits does not say the limits are zero; it says this
+  redraw knows nothing about them, which is not news. The write is skipped now.
+  The snapshot stays, its age goes on growing, and the age is what tells the
+  truth about how current it is.
+
+  One of the checks was holding the defect in place — it required an empty
+  input to produce a snapshot, and its own comment named the session-start
+  shape while doing so. Rewritten rather than joined by a second one.
+
+- **The window header was cut off at the widest badge.** "Usage Widget for
+  Claude C…" beside *Нужна проверка*, seen at an hour's age. Tier 1 passed it:
+  the check measured the badge against what was left after the title and
+  allowed the badge to shrink, but permission to scale is not an instruction —
+  the layout took the deficit out of the title. The header now says which one
+  gives way, and the check asserts the sum instead of one term, which is true
+  whichever piece the layout picks.
+
 - **The status badge was cut off in four of its twenty-four translations.**
   It was the only single-line text in the window with no shrink allowance, and
   "Einrichtung nötig", "Нужна настройка", "Requiere revisión" and "Нужна

@@ -248,48 +248,80 @@ struct TextMetricsTests {
     private static let windowPadding: CGFloat = 20
     private var windowContent: CGFloat { Self.windowWidth - 2 * Self.windowPadding }
 
-    /// The badge sits at the end of the header, after the app's name and a
-    /// minimum gap, inside a capsule with its own horizontal padding.
+    /// The header is the app's name, a gap of at least eight points, and the
+    /// badge inside a capsule with its own horizontal padding. All of it on
+    /// one line, in three hundred points.
     ///
-    /// What overflow does here is worth stating exactly, because it is not
-    /// truncation of the badge: the app's name carries no `lineLimit`, so an
-    /// oversized badge pushes the header onto two lines instead. Either way
-    /// the header stops being one line, which is the property asserted.
+    /// **The property is that the header renders whole, not that the badge
+    /// fits.** The first version of this asked the second question — it
+    /// measured the badge against what was left after the title, and allowed
+    /// the badge the fifth of shrink that `minimumScaleFactor` permits. Every
+    /// translation passed, and the live window showed "Usage Widget for Claude
+    /// C…" beside the widest badge of the four.
     ///
-    /// The badge had no `minimumScaleFactor` until this check went in. Four of
-    /// the twenty-four translations needed one.
-    private var badgeBudget: CGFloat {
-        let title = width("Usage Widget for Claude Code", font(.headline))
+    /// The mistake was assuming the shrink lands on the badge. Permission to
+    /// scale is not an instruction: the layout decides which view gets less
+    /// than it asked for, and it took the deficit out of the title. The header
+    /// now says which one gives way — `layoutPriority` on the badge — so the
+    /// allowance below is modelled on an instruction in the code rather than
+    /// on a guess about how the deficit gets shared.
+    ///
+    /// Read it as the sum it is: the title at its smallest, the badge at full
+    /// size, and everything fixed between them. If that does not fit, the
+    /// title is past its shrink and into truncation, which is the defect.
+    private func headerWidth(badge: String, titleScale: CGFloat) -> CGFloat {
+        let title = width("Usage Widget for Claude Code", font(.headline)) * titleScale
         let gap: CGFloat = 8            // Spacer(minLength: 8)
         let capsule: CGFloat = 8 * 2    // .padding(.horizontal, 8)
-        return windowContent - title - gap - capsule
+        return title + gap + capsule + width(badge, font(.caption1, weight: .medium))
     }
 
-    @Test("The window header stays on one line in every language")
-    func badgesFitTheHeader() throws {
+    /// Four badge states, six languages, twenty-four headers.
+    @Test("The whole window header fits on one line in every language")
+    func theHeaderRendersWhole() throws {
         let strings = try windowStrings()
-        let budget = badgeBudget
-        #expect(budget > 20, "the derived budget is implausible: \(budget)")
 
         for key in ["Working", "Waiting", "Setup needed", "Check needed"] {
             let translations = try #require(strings[key], "\(key) is not in the catalog")
             for (language, text) in translations.sorted(by: { $0.key < $1.key }) {
-                let shrunk = width(text, font(.caption1, weight: .medium)) * Self.minimumScale
-                #expect(shrunk <= budget,
-                        "\(language) \"\(text)\" needs \(Int(shrunk)) pt of \(Int(budget)) available")
+                let needed = headerWidth(badge: text, titleScale: Self.minimumScale)
+                #expect(needed <= windowContent,
+                        "\(language) \"\(text)\": the header needs \(Int(needed)) pt of \(Int(windowContent)) even with the title at its smallest")
             }
         }
     }
 
-    /// The negative control for that budget. Six points of margin separate the
-    /// widest real badge from the limit, so the control has to be well clear
-    /// of it rather than just over.
-    @Test("A badge that is too long is rejected")
+    /// How much of the shrink the worst case actually spends. A budget met by
+    /// a hair is one that the next translation breaks, and the number belongs
+    /// in the record rather than in somebody's head.
+    @Test("The widest badge does not spend the whole shrink")
+    func theWidestBadgeLeavesRoom() throws {
+        let strings = try windowStrings()
+        var worst: (badge: String, needed: CGFloat) = ("", 0)
+        for key in ["Working", "Waiting", "Setup needed", "Check needed"] {
+            for (_, text) in try #require(strings[key]) {
+                let needed = headerWidth(badge: text, titleScale: 1)
+                if needed > worst.needed { worst = (text, needed) }
+            }
+        }
+        // At full size the worst header overflows — that is the defect this
+        // was written for, and it has to stay true or the check is measuring
+        // a case that no longer exists.
+        #expect(worst.needed > windowContent,
+                "\"\(worst.badge)\" fits at full size now, so the shrink is no longer what saves the header")
+
+        let shrunk = headerWidth(badge: worst.badge, titleScale: Self.minimumScale)
+        #expect(shrunk <= windowContent - 20,
+                "\"\(worst.badge)\" leaves only \(Int(windowContent - shrunk)) pt of slack; a longer translation breaks the header")
+    }
+
+    /// The negative control. Without it the width is a number that has never
+    /// said no to anything.
+    @Test("A badge that leaves the title no room is rejected")
     func overlongBadgeIsRejected() {
-        let absurd = "Einrichtung wird benötigt"
-        let shrunk = width(absurd, font(.caption1, weight: .medium)) * Self.minimumScale
-        #expect(shrunk > badgeBudget,
-                "a 25-character badge fits the budget, so the budget is wrong")
+        #expect(headerWidth(badge: "Einrichtung wird benötigt", titleScale: Self.minimumScale)
+                    > windowContent,
+                "a 25-character badge fits even with the title shrunk, so the arithmetic is wrong")
     }
 
     /// The quiet line under the bars: when the week resets and how old the

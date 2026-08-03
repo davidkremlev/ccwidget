@@ -73,12 +73,27 @@ struct StatusView: View {
 
     // MARK: Header
 
+    /// The name gives way, the badge does not.
+    ///
+    /// Both are text in an `HStack`, and with nothing said about priorities
+    /// the layout decides which one gets less than it asked for. It decided on
+    /// the title, and truncated it: "Usage Widget for Claude C…" beside the
+    /// widest of the four badges, seen in the window at an hour's age.
+    ///
+    /// Which one should give way is not a layout question. The badge is the
+    /// thing that changed and the thing to act on; the name of the application
+    /// is something the reader already knows, being inside its window. So the
+    /// badge keeps its size and the title is allowed to shrink — section 9's
+    /// three tools, none of which this header used.
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("Usage Widget for Claude Code")
                 .font(.headline)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Spacer(minLength: 8)
             badge
+                .layoutPriority(1)
         }
     }
 
@@ -90,12 +105,12 @@ struct StatusView: View {
             .background(badgeColor.opacity(0.18), in: Capsule())
             .foregroundStyle(badgeColor)
             .lineLimit(1)
-            // The only single-line text in the window that had no shrink
-            // allowance, and four of the twenty-four badge translations do not
-            // fit the header without one: "Einrichtung nötig", "Нужна
-            // настройка", "Requiere revisión", "Нужна проверка". Measured, not
-            // guessed — `badgesFitTheHeader`.
-            .minimumScaleFactor(0.8)
+            // No shrink allowance on purpose: the badge is what the header is
+            // for. An earlier version gave it one, on the assumption that the
+            // layout would take the deficit out of the badge — permission to
+            // scale is not an instruction, and it took the deficit out of the
+            // title instead. `layoutPriority` above is what actually decides
+            // it; this stays at full size.
     }
 
     /// A hash mismatch raises the badge regardless of how fresh the data is:

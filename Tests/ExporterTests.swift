@@ -141,18 +141,23 @@ struct ExporterTests {
 
     /// Section 3: missing fields are normal. The status line sends a different
     /// shape in the first seconds of a session, and no lookup may fail on it.
-    @Test("An empty object produces a snapshot rather than an error")
+    ///
+    /// This used to end by loading the snapshot such an input produced and
+    /// checking its limits were nil — which is to say it required the exporter
+    /// to write a snapshot with no numbers in it. That is the shape a session
+    /// starts with, and writing it is what emptied the widget on every restart
+    /// of Claude Code. The check was holding the defect in place, so it is
+    /// rewritten rather than joined by a second one: no lookup fails, the
+    /// exporter says nothing, and nothing is written because there is nothing
+    /// to say.
+    @Test("An empty object is handled and produces nothing")
     func emptyObjectIsHandled() throws {
         let installed = try install()
         let result = try run(installed, stdin: Data("{}".utf8))
         #expect(result.status == 0)
-
-        let snapshot = try loadSnapshot(installed)
-        #expect(snapshot.schemaVersion == ccwidgetSupportedSchemaVersion)
-        #expect(snapshot.limits.fiveHour == nil)
-        #expect(snapshot.limits.sevenDay == nil)
-        #expect(snapshot.diagnostics.isEmpty,
-                "what the exporter writes for an empty input must parse cleanly: \(snapshot.diagnostics.map(\.summary))")
+        #expect(result.stdout.isEmpty && result.stderr.isEmpty)
+        #expect(!FileManager.default.fileExists(atPath: installed.snapshot.path),
+                "an input with no numbers in it wrote a snapshot with no numbers in it")
     }
 
     // MARK: Section 3 — the input cap
@@ -174,10 +179,14 @@ struct ExporterTests {
     @Test("Input just under the cap is accepted")
     func inputUnderTheCapIsAccepted() throws {
         let installed = try install()
-        // The wrapper is 25 bytes; stay well clear of the boundary so this
-        // checks the cap rather than an off-by-one in the fixture.
+        // Real numbers with padding around them. The padding alone used to do,
+        // when any payload produced a snapshot; now a snapshot is proof of
+        // acceptance only if there was something in it worth writing.
+        //
+        // Stay well clear of the boundary so this checks the cap rather than an
+        // off-by-one in the fixture.
         let filler = String(repeating: "x", count: (1 << 20) - 1024)
-        let result = try run(installed, stdin: Data(#"{"version":"\#(filler)"}"#.utf8))
+        let result = try run(installed, stdin: payload(extra: #","padding":"\#(filler)""#))
 
         #expect(result.status == 0)
         #expect(FileManager.default.fileExists(atPath: installed.snapshot.path),
@@ -426,5 +435,62 @@ struct ExporterTests {
         #expect(result.status == 0)
         #expect(!FileManager.default.fileExists(atPath: exchange.path),
                 "the exporter created a container it must not create")
+    }
+
+    // MARK: A session that has only just started
+
+    /// What Claude Code sends before the first prompt of a session: no
+    /// `rate_limits` key at all, and a context window whose usage is `null`.
+    /// Taken from a real status-line log — every session begins with one of
+    /// these, and there are two in twenty-nine lines of it.
+    private func sessionStartPayload() -> Data {
+        Data("""
+        {"version":"2.1.220","session_id":"fedcba9876543210",
+         "model":{"id":"claude-opus-5","display_name":"Opus 5"},
+         "context_window":{"used_percentage":null,"current_usage":null,
+                           "context_window_size":1000000},
+         "workspace":{"current_dir":"/Users/someone/Documents/app"}}
+        """.utf8)
+    }
+
+    /// Restarting Claude Code emptied the widget.
+    ///
+    /// The exporter replaces `snapshot.json` on every status-line redraw, and
+    /// a session's first redraw carries no limits. So the numbers a person was
+    /// looking at were overwritten with nothing, and stayed that way until the
+    /// first prompt of the new session — every restart, every time.
+    ///
+    /// A payload without `rate_limits` does not say the limits are zero. It
+    /// says this redraw knows nothing about them, which is not news and must
+    /// not replace what is known. The snapshot keeps ageing meanwhile, and the
+    /// age is what tells the truth about how current it is.
+    @Test("A session starting does not wipe the numbers")
+    func sessionStartKeepsTheLastNumbers() throws {
+        let installed = try install()
+
+        try run(installed, stdin: payload(fiveHour: 21, sevenDay: 9))
+        let before = try loadSnapshot(installed)
+        #expect(before.limits.sevenDay?.usedPercentage == 9, "the fixture is wrong")
+
+        try run(installed, stdin: sessionStartPayload())
+
+        let after = try loadSnapshot(installed)
+        #expect(after.limits.sevenDay?.usedPercentage == 9,
+                "a session start replaced the weekly number with nothing")
+        #expect(after.limits.fiveHour?.usedPercentage == 21,
+                "a session start replaced the five-hour number with nothing")
+        #expect(after.context?.usedPercentage == 25,
+                "and the context with nothing")
+    }
+
+    /// The same payload before anything has ever been written leaves no
+    /// snapshot at all, which is the state the window already has words for —
+    /// rather than a snapshot full of dashes that looks like data.
+    @Test("A session starting before any data writes nothing")
+    func sessionStartOnAnEmptyExchangeWritesNothing() throws {
+        let installed = try existingExchange()
+        try run(installed, stdin: sessionStartPayload())
+        #expect(!FileManager.default.fileExists(atPath: installed.snapshot.path),
+                "a snapshot with no numbers in it was written")
     }
 }
