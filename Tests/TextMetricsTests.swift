@@ -381,6 +381,63 @@ struct TextMetricsTests {
         }
     }
 
+    // MARK: The setup screen
+
+    /// The setup screen is 460 points wide with 24 of padding either side, and
+    /// its paragraphs wrap. The one row that cannot wrap is the buttons: two
+    /// of them side by side, each as wide as its title needs.
+    ///
+    /// Same defect class as the window header, which is why it is measured
+    /// rather than trusted — that one passed a check that asked the wrong
+    /// question and was cut off on screen anyway.
+    @Test("Both buttons of a setup step fit on one row in every language")
+    func setupButtonsFitTheRow() throws {
+        let content: CGFloat = 460 - 2 * 24
+        let spacing: CGFloat = 8          // the HStack's default
+        let chrome: CGFloat = 12 * 2      // a push button's own padding, each side
+        // The first step pairs a `Link` with a `Button`, and a link has no
+        // capsule of its own — counting one for it overstates that row by 24
+        // pt. Overstating is the safe direction here, and the row it affects
+        // is the roomiest of the four.
+        //
+        // Measured when this was written, worst first: es "Configurar
+        // automáticamente + Ver instrucciones manuales" 395 pt of 412, de 354,
+        // ru 348, en 334, zh-Hans 184. Seventeen points is what the widest
+        // translation has left, so the next one to be reworded is worth
+        // measuring rather than eyeballing.
+
+        let strings = try windowStrings()
+
+        // Which buttons stand side by side is the step's business; how wide
+        // they are is the translation's. The first comes from the script, the
+        // second from the catalog on disk — `String(localized:)` does not
+        // translate inside the test bundle, which is what
+        // `theCatalogIsAbsentFromTheTestBundle` pins down. A first version of
+        // this measured the script's own strings and reported the same 77 pt
+        // of headroom in all six languages, which is what a check that has
+        // stopped looking at anything looks like.
+        for step in [OnboardingStep.checkClaudeCode, .install] {
+            for containerExists in [true, false] {
+                let keys = step.script(claudeCodeIsPresent: false,
+                                       widgetContainerExists: containerExists).actions
+                guard keys.count > 1 else { continue }
+                for language in Self.languages {
+                    let titles = try keys.map { key -> String in
+                        if language == "en" { return key }
+                        let translations = try #require(strings[key],
+                                                        "\(key) is not in the catalog")
+                        return try #require(translations[language],
+                                            "\(key) has no \(language)")
+                    }
+                    let needed = titles.reduce(0.0) { $0 + width($1, font(.body)) + chrome }
+                        + spacing * CGFloat(titles.count - 1)
+                    #expect(needed <= content,
+                            "\(language) \"\(titles.joined(separator: " + "))\" needs \(Int(needed)) pt of \(Int(content))")
+                }
+            }
+        }
+    }
+
     /// The same absurdity guard the widget's strings have, over the window's.
     @Test("No window string is wildly longer than its English source")
     func noWindowStringIsAbsurdlyLong() throws {

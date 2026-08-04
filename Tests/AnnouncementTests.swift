@@ -297,4 +297,112 @@ struct ViewStateTests {
         #expect(step.afterCheckingClaudeCode(present: true) == .ready)
         #expect(step.afterFirstSnapshot() == .ready)
     }
+
+    /// Pinned so the file is the same on any machine — but for this baseline
+    /// that is insurance, not an effect, and saying otherwise would be the
+    /// false rationale `CLAUDE.md` warns about.
+    ///
+    /// The announcements' locale does work: they carry percentages and
+    /// countdowns, which Foundation formats from its own locale data. The
+    /// setup screen carries nothing but catalog strings, and the test bundle
+    /// does not ship `Localizable.xcstrings` — the checks read the catalog off
+    /// disk instead. So `String(localized:)` here returns the source string
+    /// whatever locale it is handed, and this baseline records the English.
+    /// `theCatalogIsAbsentFromTheTestBundle` is the guard on that sentence.
+    private static let baselineLocale = Locale(identifier: "en_US_POSIX")
+
+    /// The fact the baseline above rests on, stated so it cannot rot quietly.
+    ///
+    /// If the catalog is ever added to the test bundle this fails, and it
+    /// should: the baseline would start depending on the runner's language,
+    /// and the width checks in `TextMetricsTests` — which take translations
+    /// from disk precisely because of this — would have a second source of
+    /// truth to disagree with.
+    @Test("Localized strings are not translated inside the test bundle")
+    func theCatalogIsAbsentFromTheTestBundle() {
+        let ru = OnboardingStep.install.script(locale: Locale(identifier: "ru"))
+        let en = OnboardingStep.install.script(locale: Locale(identifier: "en"))
+        #expect(ru == en, "the catalog reached the test bundle: \(ru.actions) vs \(en.actions)")
+    }
+
+    // MARK: The setup screen
+
+    /// Tier 2 for the last enum that had no reachable consequence.
+    ///
+    /// `OnboardingStep` decided which of four views the setup screen showed,
+    /// and the views were the only difference between the cases — so nothing
+    /// could tell them apart, and a wrong one would have looked like a right
+    /// one to every check in the project. What each step says is a value now,
+    /// and this is the baseline of it.
+    ///
+    /// Two of the four ask about the world first, so both answers are in here:
+    /// a reader with Claude Code installed and one without, a desktop with the
+    /// widget on it and one without.
+    private static let onboardingBaselineURL = URL(filePath: #filePath)
+        .deletingLastPathComponent()
+        .appending(path: "Baselines/onboarding.txt")
+
+    private func onboardingScript() -> String {
+        var lines: [String] = []
+
+        func show(_ title: String, _ script: OnboardingStep.Script) {
+            lines.append("── \(title)")
+            lines.append("headline     \(script.headline)")
+            lines.append("explanation  \(script.explanation ?? "—")")
+            lines.append("actions      \(script.actions.isEmpty ? "—" : script.actions.joined(separator: " | "))")
+            lines.append("")
+        }
+
+        let locale = Self.baselineLocale
+        show("step 1, Claude Code not found",
+             OnboardingStep.checkClaudeCode.script(claudeCodeIsPresent: false, locale: locale))
+        show("step 1, Claude Code found",
+             OnboardingStep.checkClaudeCode.script(claudeCodeIsPresent: true, locale: locale))
+        show("step 2, no widget on the desktop yet",
+             OnboardingStep.install.script(widgetContainerExists: false, locale: locale))
+        show("step 2, ready to write",
+             OnboardingStep.install.script(widgetContainerExists: true, locale: locale))
+        show("step 3, waiting for the first snapshot",
+             OnboardingStep.waitingForData.script(locale: locale))
+        show("step 4, done",
+             OnboardingStep.ready.script(locale: locale))
+
+        return lines.joined(separator: "\n")
+    }
+
+    @Test("What the setup screen says matches the baseline")
+    func onboardingMatchesBaseline() throws {
+        let produced = onboardingScript().trimmingCharacters(in: .newlines)
+        guard let existing = try? String(contentsOf: Self.onboardingBaselineURL, encoding: .utf8) else {
+            try FileManager.default.createDirectory(
+                at: Self.onboardingBaselineURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true)
+            try produced.write(to: Self.onboardingBaselineURL, atomically: true, encoding: .utf8)
+            Issue.record("no baseline yet; written, read it before trusting it")
+            return
+        }
+        if produced != existing.trimmingCharacters(in: .newlines) {
+            let rejected = Self.onboardingBaselineURL.appendingPathExtension("actual")
+            try? produced.write(to: rejected, atomically: true, encoding: .utf8)
+            Issue.record("the setup screen changed; compare Baselines/onboarding.txt with .actual beside it")
+        }
+    }
+
+    /// And the steps have to differ from each other, or the baseline is six
+    /// copies of one screen.
+    @Test("No two setup steps say the same thing")
+    func onboardingStepsDiffer() {
+        let locale = Self.baselineLocale
+        let scripts = [
+            OnboardingStep.checkClaudeCode.script(claudeCodeIsPresent: false, locale: locale),
+            OnboardingStep.checkClaudeCode.script(claudeCodeIsPresent: true, locale: locale),
+            OnboardingStep.install.script(widgetContainerExists: false, locale: locale),
+            OnboardingStep.install.script(widgetContainerExists: true, locale: locale),
+            OnboardingStep.waitingForData.script(locale: locale),
+            OnboardingStep.ready.script(locale: locale),
+        ]
+        let headlines = scripts.map { $0.headline }
+        #expect(Set(headlines).count == headlines.count,
+                "two steps open with the same line: \(headlines)")
+    }
 }

@@ -158,4 +158,71 @@ enum OnboardingStep: Equatable {
     func afterFirstSnapshot() -> OnboardingStep {
         self == .waitingForData ? .ready : self
     }
+
+    // MARK: What the step says
+
+    /// What the setup screen puts on the reader at one step: the line in bold,
+    /// the paragraph under it, and the things they can press.
+    ///
+    /// Composed here rather than in the view for the reason the window's badge
+    /// was: four steps whose only difference is a `Text` are four steps nothing
+    /// can tell apart, and this was the last enum in the project whose
+    /// consequence no check could reach.
+    ///
+    /// Two of the steps ask about the world before they know what to say —
+    /// whether Claude Code is installed, whether the widget's container exists
+    /// — so those arrive as parameters. A step is not always enough on its own,
+    /// and pretending otherwise would make this a smaller truth than the
+    /// screen's.
+    struct Script: Equatable {
+        let headline: String
+        let explanation: String?
+        /// Button and link titles, in the order they are offered.
+        let actions: [String]
+    }
+
+    func script(claudeCodeIsPresent: Bool = true,
+                widgetContainerExists: Bool = true,
+                locale: Locale = .autoupdatingCurrent) -> Script {
+        func t(_ resource: LocalizedStringResource) -> String {
+            var copy = resource
+            copy.locale = locale
+            return String(localized: copy)
+        }
+
+        switch self {
+        case .checkClaudeCode where claudeCodeIsPresent:
+            return Script(headline: t("Claude Code detected."),
+                          explanation: nil,
+                          actions: [t("Continue")])
+        case .checkClaudeCode:
+            return Script(
+                headline: t("Claude Code was not found."),
+                explanation: t("This widget reads the Claude Code status line, so the terminal version has to be installed and used at least once."),
+                actions: [t("Install Claude Code"), t("Check again")])
+
+        case .install where !widgetContainerExists:
+            return Script(
+                headline: t("Add the widget to your desktop first."),
+                explanation: t("The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Usage Widget for Claude Code, then come back."),
+                actions: [t("Check again")])
+        case .install:
+            return Script(
+                headline: t("Setup writes the exporter to ~/.claude/ and adds one key to settings.json. Only that key changes — your formatting and key order are kept."),
+                explanation: nil,
+                actions: [t("Set up automatically"), t("Show manual instructions")])
+
+        case .waitingForData:
+            return Script(
+                headline: t("Launch Claude Code and send any message."),
+                explanation: t("The status line runs on every redraw, so the first numbers appear within seconds of the model replying."),
+                actions: [])
+
+        case .ready:
+            return Script(
+                headline: t("Live data is coming in."),
+                explanation: t("If the widget is not on your desktop yet, right-click the desktop and choose Edit Widgets."),
+                actions: [])
+        }
+    }
 }

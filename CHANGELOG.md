@@ -34,6 +34,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Russian setup screen had a button cut off: "Показать инструкцию по
+  ручн…".** The two buttons of the second step sit in one `HStack` inside a
+  460-point window, and that pair needs 498 points of the 412 available. The
+  title now names the sheet it opens — "Настройка вручную", the same words as
+  that sheet's heading — and the pair comes to 348.
+
+  Found by the check written for the step, not by looking: the setup screen is
+  only reachable before setup, which is exactly when nobody is running the app
+  from a working install. What made it findable was fixing the check first —
+  the earlier version measured the strings `String(localized:)` returns inside
+  the test bundle, and reported the same 77 points of headroom in all six
+  languages. There is no catalog in that bundle, so those were six copies of
+  the English. Widths now come from the catalog on disk, the way the window
+  header's already did, and the assumption underneath is a check of its own.
+
+  The widest translation left is Spanish at 395 points of 412. The numbers for
+  all six are in the check, because seventeen points is not a margin anyone
+  should have to rediscover.
+
 - **The widget kept showing an age from a snapshot it no longer had.** The
   window read "updated now" while both widgets beside it read "2 minutes ago",
   off the same file. A message had gone out, the context had grown by a
@@ -311,6 +330,20 @@ modifier lists, and confirmed the same way afterwards.
   single screen could mix two languages.
 
 ### Added
+
+- **What the setup screen says is now a baseline, not four `Text`s in a view.**
+  `OnboardingStep` was the last enum in the project whose consequence no check
+  could reach: the four steps differed only in literals inside
+  `OnboardingView`, so nothing could tell whether a step said anything at all,
+  let alone something different from its neighbour. The wording moved into
+  `OnboardingStep.script`, which returns the headline, the paragraph and the
+  button titles for a step and the two facts about the world it needs — whether
+  Claude Code is installed, whether the widget's container exists.
+
+  Six screens come out of four steps, and `Baselines/onboarding.txt` records
+  all six. A second check requires the six to differ from each other; a third
+  measures the button rows. That third one found the truncated Russian button
+  above.
 
 - **An application icon**, built in Icon Composer from two layers over a dark
   background: the grey ring track and the green arc at seventy per cent. The

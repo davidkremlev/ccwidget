@@ -53,23 +53,33 @@ struct OnboardingView: View {
 
     // MARK: Step 1 — detection
 
+    /// What this step says comes from `OnboardingStep.script`; what stays here
+    /// is the furniture around it — which symbol, which colour, what the
+    /// buttons do.
+    private var script: OnboardingStep.Script {
+        step.script(claudeCodeIsPresent: installer.isClaudeCodePresent,
+                    widgetContainerExists: installer.widgetContainerExists)
+    }
+
     @ViewBuilder
     private var checkStep: some View {
         if installer.isClaudeCodePresent {
-            Label("Claude Code detected.", systemImage: "checkmark.circle.fill")
+            Label(script.headline, systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
-            Button("Continue") { step = .install }
+            Button(script.actions[0]) { step = .install }
                 .keyboardShortcut(.defaultAction)
         } else {
-            Label("Claude Code was not found.", systemImage: "questionmark.circle")
+            Label(script.headline, systemImage: "questionmark.circle")
                 .foregroundStyle(.secondary)
-            Text("This widget reads the Claude Code status line, so the terminal version has to be installed and used at least once.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if let explanation = script.explanation {
+                Text(verbatim: explanation)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack {
-                Link("Install Claude Code", destination: URL(string: "https://claude.com/claude-code")!)
-                Button("Check again") { advanceFromCheck() }
+                Link(script.actions[0], destination: URL(string: "https://claude.com/claude-code")!)
+                Button(script.actions[1]) { advanceFromCheck() }
             }
         }
     }
@@ -85,19 +95,21 @@ struct OnboardingView: View {
         // Section 2.2: with no extension container there is no path to
         // substitute.
         if !installer.widgetContainerExists {
-            Label("Add the widget to your desktop first.", systemImage: "square.grid.2x2")
+            Label(script.headline, systemImage: "square.grid.2x2")
                 .font(.callout.weight(.medium))
-            Text("The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Usage Widget for Claude Code, then come back.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button("Check again") { failure = nil }
+            if let explanation = script.explanation {
+                Text(verbatim: explanation)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Button(script.actions[0]) { failure = nil }
         } else {
             existingStatusLineWarning
             preflightNotes
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Setup writes the exporter to ~/.claude/ and adds one key to settings.json. Only that key changes — your formatting and key order are kept.")
+                Text(verbatim: script.headline)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("A copy is saved as \(installer.backupNamePattern) next to it first.")
                     .foregroundStyle(.tertiary)
@@ -106,10 +118,10 @@ struct OnboardingView: View {
             .foregroundStyle(.secondary)
 
             HStack {
-                Button("Set up automatically") { runInstall() }
+                Button(script.actions[0]) { runInstall() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(installer.preflight().interpreter == nil)
-                Button("Show manual instructions") { showsManual = true }
+                Button(script.actions[1]) { showsManual = true }
             }
         }
     }
@@ -184,13 +196,15 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
-                Text("Launch Claude Code and send any message.")
+                Text(verbatim: script.headline)
                     .font(.callout)
             }
-            Text("The status line runs on every redraw, so the first numbers appear within seconds of the model replying.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if let explanation = script.explanation {
+                Text(verbatim: explanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let backupPath {
                 Text("Settings backed up as \(backupPath)")
                     .font(.caption)
@@ -225,7 +239,7 @@ struct OnboardingView: View {
 
     @ViewBuilder
     private var readyStep: some View {
-        Label("Live data is coming in.", systemImage: "checkmark.circle.fill")
+        Label(script.headline, systemImage: "checkmark.circle.fill")
             .foregroundStyle(.green)
 
         if let snapshot = firstSnapshot {
@@ -243,10 +257,12 @@ struct OnboardingView: View {
             }
         }
 
-        Text("If the widget is not on your desktop yet, right-click the desktop and choose Edit Widgets.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        if let explanation = script.explanation {
+            Text(verbatim: explanation)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     // MARK: Manual instructions
