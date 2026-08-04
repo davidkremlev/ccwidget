@@ -37,26 +37,19 @@ struct MediumView: View {
         VStack(spacing: 7) {
             GaugeRow(
                 caption: "5-hour used",
-                metric: entry.limitMetric(snapshot.limits.fiveHour),
+                reading: entry.limitReading(snapshot.limits.fiveHour),
                 dimmed: entry.isDimmed
             )
             GaugeRow(
                 caption: "Week used",
-                metric: entry.limitMetric(snapshot.limits.sevenDay),
+                reading: entry.limitReading(snapshot.limits.sevenDay),
                 dimmed: entry.isDimmed
             )
             GaugeRow(
                 caption: "Context used",
                 // The project name lives here: the context belongs to a
                 // session.
-                metric: entry.contextMetric.map {
-                    GaugeMetric(
-                        fraction: $0.fraction,
-                        value: $0.value,
-                        auxiliary: entry.projectName ?? $0.auxiliary,
-                        level: $0.level
-                    )
-                },
+                reading: entry.contextReading.withAuxiliary(entry.projectName),
                 dimmed: entry.isDimmed
             )
         }

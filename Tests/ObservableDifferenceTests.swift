@@ -317,6 +317,38 @@ struct ObservableDifferenceTests {
         }
     }
 
+    // MARK: GaugeReading — what one row shows and says
+
+    /// Responsible for what a row draws and what it announces.
+    ///
+    /// The case for the third state was that two of them used to be one:
+    /// a row whose window had ended drew exactly like a row that never got
+    /// data, and said the same thing out loud. Those are different facts —
+    /// something did arrive, it is simply about a period that is over — and a
+    /// listener told "no data" would go hunting a fault that is not there.
+    @Test("Every row state shows and says something different")
+    func rowStatesDiffer() {
+        let metric = GaugeMetric(fraction: 0.19, value: "19 %", auxiliary: "3 hr", level: .healthy)
+        let readings: [GaugeReading] = [.measured(metric), .missing, .closed]
+
+        allDistinct("GaugeReading", readings) { reading in
+            Fingerprint(parts: [reading.metric?.value ?? "—",
+                                reading.auxiliary(locale: Self.locale) ?? "—",
+                                gaugeAnnouncement("Week used", reading, locale: Self.locale)])
+        }
+    }
+
+    /// And the pair that used to collide, named.
+    @Test("A closed window does not read as missing data")
+    func closedIsNotMissing() {
+        let missing = gaugeAnnouncement("5-hour used", .missing, locale: Self.locale)
+        let closed = gaugeAnnouncement("5-hour used", .closed, locale: Self.locale)
+        #expect(missing != closed, "both announce as \"\(missing)\"")
+        #expect(GaugeReading.closed.auxiliary(locale: Self.locale) != nil,
+                "a closed row has nothing beside the dash, so nothing on screen says why")
+        #expect(GaugeReading.missing.auxiliary(locale: Self.locale) == nil)
+    }
+
     // MARK: JSONValue — what the log says the field was
 
     /// Responsible for the text in the parse diagnostics. A field that arrived

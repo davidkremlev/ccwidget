@@ -3,7 +3,7 @@ import WidgetKit
 
 /// One measured quantity, ready to draw. The bar always matches the number
 /// beside it — otherwise the eye catches the discrepancy.
-struct GaugeMetric {
+struct GaugeMetric: Equatable {
     let fraction: Double
     let value: String
     let auxiliary: String?
@@ -18,6 +18,57 @@ struct GaugeMetric {
     /// the default, which is the reader's own locale.
     func spokenValue(locale: Locale = .autoupdatingCurrent) -> String {
         fraction.formatted(.percent.locale(locale))
+    }
+}
+
+/// What one gauge row has to show.
+///
+/// Three states, because there are three different things to say and two of
+/// them used to be one. A row with no metric meant "nothing arrived"; a row
+/// whose window had ended was given the same nothing, plus a countdown floored
+/// at zero that read as "resets any moment now". The reset was in the past.
+///
+/// `closed` is not a degree of staleness. The rows age at different rates: a
+/// weekly percentage twelve hours old is roughly right, a five-hour one
+/// describes a window that has closed twice over, and dimming the whole
+/// snapshot cannot tell those apart. Section 8.
+enum GaugeReading: Equatable {
+    case measured(GaugeMetric)
+    /// Nothing arrived for this row, or the snapshot is old enough that no
+    /// digits are shown at all.
+    case missing
+    /// The window this row describes has ended. Something did arrive; it is
+    /// simply about a period that is over, and what the current one holds is
+    /// unknown.
+    case closed
+
+    var metric: GaugeMetric? {
+        if case .measured(let metric) = self { return metric }
+        return nil
+    }
+
+    /// The same reading with something else beside the number. Only a
+    /// measured row has anything to put there — a closed one already uses that
+    /// place to say so.
+    func withAuxiliary(_ auxiliary: String?) -> GaugeReading {
+        guard case .measured(let metric) = self else { return self }
+        return .measured(GaugeMetric(fraction: metric.fraction, value: metric.value,
+                                     auxiliary: auxiliary ?? metric.auxiliary,
+                                     level: metric.level))
+    }
+
+    /// What sits to the right of the number. For a closed window this is the
+    /// only place that says so, which is why the word is short enough for the
+    /// medium tile's slot in every language — measured, see `TextMetricsTests`.
+    func auxiliary(locale: Locale = .autoupdatingCurrent) -> String? {
+        switch self {
+        case .measured(let metric): return metric.auxiliary
+        case .missing: return nil
+        case .closed:
+            var resource = LocalizedStringResource("closed")
+            resource.locale = locale
+            return String(localized: resource)
+        }
     }
 }
 
@@ -43,18 +94,30 @@ struct GaugeMetric {
 /// pass: the order came right and the content went missing, so a listener
 /// heard "five-hour used, 49 %" where a reader saw "49 % · 3 hr 59 min".
 /// Whatever is on the tile is said.
+/// A closed window is announced as closed rather than as "no data": something
+/// did arrive for that row, and a listener told "no data" would go looking for
+/// a fault that is not there.
 func gaugeAnnouncement(_ caption: LocalizedStringResource,
-                       _ metric: GaugeMetric?,
+                       _ reading: GaugeReading,
                        detail: String? = nil,
                        locale: Locale = .autoupdatingCurrent) -> String {
-    var resource = caption
-    resource.locale = locale
-    var missing = LocalizedStringResource("no data")
-    missing.locale = locale
+    func localized(_ resource: LocalizedStringResource) -> String {
+        var copy = resource
+        copy.locale = locale
+        return String(localized: copy)
+    }
 
-    let name = String(localized: resource)
-    let value = metric?.spokenValue(locale: locale) ?? String(localized: missing)
-    return [name, value, detail].compactMap { $0 }.joined(separator: ", ")
+    let name = localized(caption)
+    let value: String
+    switch reading {
+    case .measured(let metric): value = metric.spokenValue(locale: locale)
+    case .missing: value = localized(LocalizedStringResource("no data"))
+    case .closed: value = localized(LocalizedStringResource("closed"))
+    }
+    // A closed row carries no countdown to append, so the detail it would have
+    // shown is the word itself and is already the value.
+    let extra = reading == .closed ? nil : detail
+    return [name, value, extra].compactMap { $0 }.joined(separator: ", ")
 }
 
 extension CCWidgetEntry {
@@ -64,29 +127,34 @@ extension CCWidgetEntry {
     /// All three rows show consumption — see section 8. The bar fills as
     /// usage grows, just like the context's, and matches the Usage panel
     /// without subtracting from a hundred.
-    func limitMetric(_ window: LimitWindow?) -> GaugeMetric? {
-        guard !hidesNumbers, let window else { return nil }
-        return GaugeMetric(
+    func limitReading(_ window: LimitWindow?) -> GaugeReading {
+        guard !hidesNumbers, let window else { return .missing }
+        // Asked before the number is built, not after: once the window has
+        // ended its percentage describes a period that is over, and the
+        // current one is unknown.
+        guard !window.hasClosed(at: date) else { return .closed }
+        return .measured(GaugeMetric(
             fraction: Double(window.usedPercentage) / 100,
             value: CCWidgetFormat.percent(window.usedPercentage),
             auxiliary: CCWidgetFormat.countdown(window.timeUntilReset(at: date)),
             level: window.level
-        )
+        ))
     }
 
-    /// The context already showed how full it was — nothing to change.
-    var contextMetric: GaugeMetric? {
+    /// The context has no window of its own to close — it belongs to the
+    /// session, not to a period the account resets.
+    var contextReading: GaugeReading {
         guard !hidesNumbers,
               let context = snapshot?.context,
               let used = context.usedPercentage,
               let level = context.level
-        else { return nil }
-        return GaugeMetric(
+        else { return .missing }
+        return .measured(GaugeMetric(
             fraction: Double(used) / 100,
             value: CCWidgetFormat.percent(used),
             auxiliary: context.totalInputTokens.map(CCWidgetFormat.tokens),
             level: level
-        )
+        ))
     }
 }
 
@@ -147,13 +215,14 @@ extension CCWidgetEntry {
 
 struct GaugeRow: View {
     let caption: LocalizedStringResource
-    /// `nil` means no data: a dash instead of digits and an empty bar.
-    let metric: GaugeMetric?
+    /// Anything but `.measured` draws a dash and an empty bar; what stands to
+    /// the right of it is what tells the two apart.
+    let reading: GaugeReading
     let dimmed: Bool
 
     var body: some View {
         HStack(spacing: 6) {
-            LevelGlyph(level: metric?.level, dimmed: dimmed)
+            LevelGlyph(level: reading.metric?.level, dimmed: dimmed)
 
             Text(caption)
                 .font(.caption)
@@ -161,15 +230,15 @@ struct GaugeRow: View {
                 .minimumScaleFactor(0.8)
                 .layoutPriority(1)
 
-            Bar(fraction: metric?.fraction ?? 0, tint: tint)
+            Bar(fraction: reading.metric?.fraction ?? 0, tint: tint)
 
-            Text(verbatim: metric?.value ?? "—")
+            Text(verbatim: reading.metric?.value ?? "—")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(dimmed ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                 .lineLimit(1)
                 .layoutPriority(2)
 
-            if let auxiliary = metric?.auxiliary {
+            if let auxiliary = reading.auxiliary() {
                 Text(verbatim: auxiliary)
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
@@ -179,24 +248,24 @@ struct GaugeRow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement(caption, metric, detail: metric?.auxiliary))
+        .accessibilityLabel(gaugeAnnouncement(caption, reading, detail: reading.auxiliary()))
     }
 
-    private var tint: Color { metricTint(metric, dimmed: dimmed) }
+    private var tint: Color { metricTint(reading, dimmed: dimmed) }
 }
 
 // MARK: - Detailed row (large size)
 
 struct DetailGaugeRow: View {
     let caption: LocalizedStringResource
-    let metric: GaugeMetric?
+    let reading: GaugeReading
     let detail: String?
     let dimmed: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                LevelGlyph(level: metric?.level, dimmed: dimmed)
+                LevelGlyph(level: reading.metric?.level, dimmed: dimmed)
 
                 Text(caption)
                     .font(.subheadline)
@@ -205,14 +274,15 @@ struct DetailGaugeRow: View {
 
                 Spacer(minLength: 4)
 
-                Text(verbatim: metric?.value ?? "—")
+                Text(verbatim: reading.metric?.value ?? "—")
                     .font(.subheadline.weight(.medium).monospacedDigit())
                     .foregroundStyle(dimmed ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                     .lineLimit(1)
                     .layoutPriority(2)
             }
 
-            Bar(fraction: metric?.fraction ?? 0, tint: metricTint(metric, dimmed: dimmed), height: 8)
+            Bar(fraction: reading.metric?.fraction ?? 0,
+                tint: metricTint(reading, dimmed: dimmed), height: 8)
 
             if let detail {
                 Text(verbatim: detail)
@@ -223,7 +293,7 @@ struct DetailGaugeRow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement(caption, metric, detail: detail))
+        .accessibilityLabel(gaugeAnnouncement(caption, reading, detail: detail))
     }
 }
 
@@ -244,8 +314,8 @@ struct LevelGlyph: View {
     }
 }
 
-func metricTint(_ metric: GaugeMetric?, dimmed: Bool) -> Color {
-    guard let metric else { return .secondary }
+func metricTint(_ reading: GaugeReading, dimmed: Bool) -> Color {
+    guard let metric = reading.metric else { return .secondary }
     return dimmed ? .secondary : metric.level.color
 }
 

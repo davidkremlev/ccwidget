@@ -20,6 +20,11 @@ context  Context used, no data
 5-hour   5-hour used, 21%, 3 hr 59 min
 context  Context used, 63%, ccwidget
 
+── a window that has ended
+5-hour   5-hour used, closed
+week     Week used, 28%
+context  Context used, 90%
+
 ── the boundaries
   0 %    5-hour used, 0%
  50 %    5-hour used, 50%

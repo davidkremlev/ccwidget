@@ -42,14 +42,14 @@ struct LargeView: View {
         VStack(alignment: .leading, spacing: 0) {
             DetailGaugeRow(
                 caption: "5-hour used",
-                metric: entry.limitMetric(snapshot.limits.fiveHour),
+                reading: entry.limitReading(snapshot.limits.fiveHour),
                 detail: limitDetail(snapshot.limits.fiveHour),
                 dimmed: entry.isDimmed
             )
             Spacer(minLength: 6)
             DetailGaugeRow(
                 caption: "Week used",
-                metric: entry.limitMetric(snapshot.limits.sevenDay),
+                reading: entry.limitReading(snapshot.limits.sevenDay),
                 detail: limitDetail(snapshot.limits.sevenDay),
                 dimmed: entry.isDimmed
             )
@@ -58,7 +58,7 @@ struct LargeView: View {
                 caption: "Context used",
                 // The project name belongs here: the context is per-session,
                 // while the two windows above are account-wide.
-                metric: entry.contextMetric,
+                reading: entry.contextReading,
                 detail: entry.projectName,
                 dimmed: entry.isDimmed
             )
@@ -68,7 +68,12 @@ struct LargeView: View {
     private func limitDetail(_ window: LimitWindow?) -> String? {
         guard !entry.hidesNumbers, let window else { return nil }
         let moment = CCWidgetFormat.resetMoment(window.resetsAt)
-        let until = CCWidgetFormat.countdown(window.timeUntilReset(at: entry.date))
+        // Naming the moment still helps when the window has ended — it says
+        // when it ended. What must not be named is a countdown to it, which
+        // floors at zero and reads as a reset about to happen.
+        let until = window.hasClosed(at: entry.date)
+            ? String(localized: "closed")
+            : CCWidgetFormat.countdown(window.timeUntilReset(at: entry.date))
         // No remaining figure here, deliberately. Section 8 forbids two
         // polarities in one column, and "35% left" under "Week used 65%" is
         // exactly that, one directly beneath the other: anyone checking

@@ -12,7 +12,7 @@ struct SmallView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var valueSize: CGFloat = 34
 
     private var window: LimitWindow? { entry.snapshot?.limits.sevenDay }
-    private var metric: GaugeMetric? { entry.limitMetric(window) }
+    private var reading: GaugeReading { entry.limitReading(window) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -29,20 +29,20 @@ struct SmallView: View {
                 MessageView.abandoned(entry: entry, compact: true)
                 Spacer(minLength: 0)
             } else {
-                Text(verbatim: metric?.value ?? "—")
+                Text(verbatim: reading.metric?.value ?? "—")
                     .font(.system(size: valueSize, weight: .medium))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .foregroundStyle(entry.isDimmed ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
 
-                Bar(fraction: metric?.fraction ?? 0, tint: metricTint(metric, dimmed: entry.isDimmed))
+                Bar(fraction: reading.metric?.fraction ?? 0, tint: metricTint(reading, dimmed: entry.isDimmed))
 
                 caption
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement("Week used", metric, detail: spokenCaption))
+        .accessibilityLabel(gaugeAnnouncement("Week used", reading, detail: spokenCaption))
     }
 
     /// The same sentence the caption shows, as a string. Without it a listener
@@ -52,12 +52,17 @@ struct SmallView: View {
         if entry.snapshot == nil { return String(localized: "no data") }
         if entry.hidesNumbers { return String(localized: "Launch Claude Code") }
         guard let window else { return String(localized: "waiting for limits") }
+        // The one line this tile has for it: a window that has ended says so
+        // instead of naming a reset that already happened.
+        if window.hasClosed(at: entry.date) {
+            return String(localized: "closed · \(CCWidgetFormat.resetMoment(window.resetsAt))")
+        }
         return String(localized: "used · resets \(CCWidgetFormat.resetMoment(window.resetsAt))")
     }
 
     private var header: some View {
         HStack(spacing: 5) {
-            LevelGlyph(level: metric?.level, dimmed: entry.isDimmed, font: .caption)
+            LevelGlyph(level: reading.metric?.level, dimmed: entry.isDimmed, font: .caption)
             Text("Week used")
                 .font(.caption.weight(.medium))
                 .lineLimit(1)

@@ -40,6 +40,24 @@ struct AnnouncementTests {
         return CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: nil)
     }
 
+    /// A snapshot whose five-hour window ended before the moment it is drawn
+    /// at. Nothing about the snapshot's own age says so — that is the point.
+    private func closedWindowEntry() -> CCWidgetEntry {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = Snapshot(
+            schemaVersion: 1, capturedAt: now.addingTimeInterval(-60),
+            sessionId: nil, claudeCodeVersion: nil, model: nil, project: nil,
+            limits: Limits(
+                fiveHour: LimitWindow(usedPercentage: 19,
+                                      resetsAt: now.addingTimeInterval(-12 * 3600)),
+                sevenDay: LimitWindow(usedPercentage: 28,
+                                      resetsAt: now.addingTimeInterval(86_400))),
+            context: ContextInfo(usedPercentage: 90, totalInputTokens: nil,
+                                 windowSize: nil, cacheHitRatio: nil),
+            cost: nil)
+        return CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: nil)
+    }
+
     private func emptyEntry() -> CCWidgetEntry {
         CCWidgetEntry(date: Date(timeIntervalSince1970: 1_700_000_000),
                       snapshot: nil, failure: nil, forecast: nil)
@@ -51,9 +69,9 @@ struct AnnouncementTests {
     /// baseline nobody trusts.
     private static let baselineLocale = Locale(identifier: "en_US_POSIX")
 
-    private func announcement(_ caption: LocalizedStringResource, _ metric: GaugeMetric?,
+    private func announcement(_ caption: LocalizedStringResource, _ reading: GaugeReading,
                               detail: String? = nil) -> String {
-        gaugeAnnouncement(caption, metric, detail: detail, locale: Self.baselineLocale)
+        gaugeAnnouncement(caption, reading, detail: detail, locale: Self.baselineLocale)
     }
 
     // MARK: The baseline
@@ -69,28 +87,28 @@ struct AnnouncementTests {
 
         section("normal data") {
             let e = entry(fiveHour: 21, sevenDay: 9, context: 63)
-            lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
-            lines.append("week     " + (announcement("Week used", e.limitMetric(e.snapshot?.limits.sevenDay))))
-            lines.append("context  " + (announcement("Context used", e.contextMetric)))
+            lines.append("5-hour   " + (announcement("5-hour used", e.limitReading(e.snapshot?.limits.fiveHour))))
+            lines.append("week     " + (announcement("Week used", e.limitReading(e.snapshot?.limits.sevenDay))))
+            lines.append("context  " + (announcement("Context used", e.contextReading)))
         }
 
         section("a limit the source has not sent yet") {
             let e = entry(fiveHour: nil, sevenDay: 9, context: 63)
-            lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
-            lines.append("week     " + (announcement("Week used", e.limitMetric(e.snapshot?.limits.sevenDay))))
+            lines.append("5-hour   " + (announcement("5-hour used", e.limitReading(e.snapshot?.limits.fiveHour))))
+            lines.append("week     " + (announcement("Week used", e.limitReading(e.snapshot?.limits.sevenDay))))
         }
 
         section("no snapshot at all") {
             let e = emptyEntry()
-            lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(nil))))
-            lines.append("context  " + (announcement("Context used", e.contextMetric)))
+            lines.append("5-hour   " + (announcement("5-hour used", e.limitReading(nil))))
+            lines.append("context  " + (announcement("Context used", e.contextReading)))
         }
 
         section("a snapshot old enough to be abandoned") {
             let e = entry(fiveHour: 21, sevenDay: 9, context: 63, age: 48 * 3600)
-            lines.append("5-hour   " + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
-            lines.append("week     " + (announcement("Week used", e.limitMetric(e.snapshot?.limits.sevenDay))))
-            lines.append("context  " + (announcement("Context used", e.contextMetric)))
+            lines.append("5-hour   " + (announcement("5-hour used", e.limitReading(e.snapshot?.limits.fiveHour))))
+            lines.append("week     " + (announcement("Week used", e.limitReading(e.snapshot?.limits.sevenDay))))
+            lines.append("context  " + (announcement("Context used", e.contextReading)))
         }
 
         // What sits beside the number on the tile has to be said as well.
@@ -103,16 +121,26 @@ struct AnnouncementTests {
             // nobody trusts. How the countdown itself is formatted belongs to
             // FormattersTests; what belongs here is that it is said at all.
             let e = entry(fiveHour: 21, sevenDay: 9, context: 63)
-            let five = e.limitMetric(e.snapshot?.limits.fiveHour)
+            let five = e.limitReading(e.snapshot?.limits.fiveHour)
             lines.append("5-hour   " + announcement("5-hour used", five, detail: "3 hr 59 min"))
-            lines.append("context  " + announcement("Context used", e.contextMetric, detail: "ccwidget"))
+            lines.append("context  " + announcement("Context used", e.contextReading, detail: "ccwidget"))
+        }
+
+        // The third state of a row. It must not be read out as "no data":
+        // something did arrive for that row, and a listener told there is no
+        // data would go looking for a fault that is not there.
+        section("a window that has ended") {
+            let e = closedWindowEntry()
+            lines.append("5-hour   " + announcement("5-hour used", e.limitReading(e.snapshot?.limits.fiveHour)))
+            lines.append("week     " + announcement("Week used", e.limitReading(e.snapshot?.limits.sevenDay)))
+            lines.append("context  " + announcement("Context used", e.contextReading))
         }
 
         section("the boundaries") {
             for used in [0, 50, 81, 100] {
                 let e = entry(fiveHour: used, sevenDay: nil, context: nil)
                 lines.append(String(format: "%3d %%    ", used)
-                             + (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour))))
+                             + (announcement("5-hour used", e.limitReading(e.snapshot?.limits.fiveHour))))
             }
         }
 
@@ -154,7 +182,7 @@ struct AnnouncementTests {
     @Test("The caption is announced before the value")
     func labelPrecedesValue() {
         let e = entry(fiveHour: 21, sevenDay: nil, context: nil)
-        let text = (announcement("5-hour used", e.limitMetric(e.snapshot?.limits.fiveHour)))
+        let text = (announcement("5-hour used", e.limitReading(e.snapshot?.limits.fiveHour)))
 
         let caption = try? #require(text.range(of: "5-hour used"))
         let percent = try? #require(text.range(of: "21"))
@@ -170,7 +198,7 @@ struct AnnouncementTests {
     @Test("A row with no data says so")
     func missingDataIsAnnounced() {
         let e = emptyEntry()
-        let text = (announcement("Week used", e.limitMetric(nil)))
+        let text = (announcement("Week used", e.limitReading(nil)))
         #expect(text.contains("no data"), "got \"\(text)\"")
         #expect(!text.contains("0"), "an absent measurement must not read as zero: \"\(text)\"")
     }

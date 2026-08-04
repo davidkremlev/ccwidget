@@ -73,6 +73,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   costs nothing. `SPEC` 2.4 has the reasoning; README tells the reader before
   they file it as a bug.
 
+- **A row whose window had ended counted down to "0 min".** Seen in the
+  morning: the five-hour row read *resets Tue 00:30 · 0 min* twelve hours after
+  that reset had happened. The countdown floors at zero, so a reset in the past
+  reads as one about to happen.
+
+  A row now knows whether the window it describes has ended, and says so
+  instead: a dash, an empty bar, and *closed* where the countdown was. Not
+  another degree of staleness — freshness answers how long ago we looked, this
+  answers whether what we looked at is still in force, and the two are
+  independent. The rows also age at different rates, which is the reason it is
+  per row: a weekly percentage twelve hours old is roughly right, a five-hour
+  one describes a window that has closed twice over, and dimming the whole
+  snapshot cannot tell those apart.
+
+  Spoken as *closed* rather than *no data*, because data did arrive — it is
+  about a period that is over. The word is one word by measurement: the slot it
+  shares with the countdown is 66 points, and "window closed" needs 82 in
+  Russian.
+
+  Accepted with it: during active work the row blinks to *closed* for a second
+  or two at each five-hour boundary, until the next snapshot brings the new
+  window. That is honest — the window really did end. While idle it stays
+  closed until work resumes, which is exactly when the old number would
+  mislead.
+
 - **Restarting Claude Code emptied the widget.** A session's first status-line
   redraw carries no `rate_limits` key at all and a context window whose usage
   is `null` — two such lines in twenty-nine of a real log. The exporter

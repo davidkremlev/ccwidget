@@ -60,8 +60,20 @@ struct FormattersTests {
         #expect(!digits(text).contains("4"), "the third unit leaked in: \(text)")
     }
 
-    /// A window that has already reset can arrive with a negative interval
-    /// before the next snapshot lands. "-1 h" beside a full bar is nonsense.
+    /// Defends against a case that has not been observed: in 218 written
+    /// history entries no snapshot ever carried a `resetsAt` that had already
+    /// passed at the moment it was written, and the closest any of them came
+    /// to a reset was three and a half minutes before it.
+    ///
+    /// The floor stays — "-1 h" beside a full bar would be nonsense however it
+    /// arrived — but the reason is written as what it is. It was previously
+    /// stated as a fact ("a window that has already reset can arrive with a
+    /// negative interval"), and nothing had seen that happen.
+    ///
+    /// What *is* observed is the other route to a past `resetsAt`: a snapshot
+    /// old enough that the window it describes has since closed. The floor
+    /// turns that into "0 min", which reads as an imminent reset. See section
+    /// 8 for what is being done about it.
     @Test("A countdown never goes negative")
     func countdownFloorsAtZero() {
         let past = CCWidgetFormat.countdown(-5000)

@@ -132,6 +132,22 @@ public struct LimitWindow: Codable, Sendable {
     public func timeUntilReset(at now: Date = Date()) -> TimeInterval {
         resetsAt.timeIntervalSince(now)
     }
+
+    /// Whether the period this window describes has ended.
+    ///
+    /// **Not freshness, and the difference is the point.** Freshness answers
+    /// "how long ago did we look" — `now` minus `capturedAt`. This answers
+    /// "is what we looked at still in force". The two are independent: a
+    /// snapshot one second old can carry a five-hour window that closes one
+    /// second later, and a second after that the window is over while the
+    /// snapshot is still two seconds old.
+    ///
+    /// It needs nothing the row does not already know — `resetsAt` is on this
+    /// type — so it introduces no second notion of age, only a question about
+    /// the datum rather than about its age.
+    public func hasClosed(at now: Date = Date()) -> Bool {
+        resetsAt <= now
+    }
 }
 
 public struct ContextInfo: Codable, Sendable {

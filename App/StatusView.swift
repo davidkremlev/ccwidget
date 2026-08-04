@@ -162,13 +162,13 @@ struct StatusView: View {
         let entry = CCWidgetEntry(date: Date(), snapshot: snapshot, failure: nil, forecast: nil)
         return VStack(spacing: 8) {
             GaugeRow(caption: "5-hour used",
-                     metric: entry.limitMetric(snapshot.limits.fiveHour),
+                     reading: entry.limitReading(snapshot.limits.fiveHour),
                      dimmed: entry.isDimmed)
             GaugeRow(caption: "Week used",
-                     metric: entry.limitMetric(snapshot.limits.sevenDay),
+                     reading: entry.limitReading(snapshot.limits.sevenDay),
                      dimmed: entry.isDimmed)
             GaugeRow(caption: "Context used",
-                     metric: entry.contextMetric,
+                     reading: entry.contextReading,
                      dimmed: entry.isDimmed)
         }
     }

@@ -117,6 +117,26 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Simplified Chinese | Claude Code %@ |
 
 
+**`closed`**
+
+| | |
+|---|---|
+| German | beendet |
+| Spanish | cerrada |
+| Japanese | 終了 |
+| Simplified Chinese | 已结束 |
+
+
+**`closed · %@`**
+
+| | |
+|---|---|
+| German | beendet · %@ |
+| Spanish | cerrada · %@ |
+| Japanese | 終了 · %@ |
+| Simplified Chinese | 已结束 · %@ |
+
+
 **`Context used`**
 
 | | |
@@ -519,6 +539,16 @@ Seen after clicking the widget, and during setup.
 | Spanish | No se encontró Claude Code. |
 | Japanese | Claude Code が見つかりません。 |
 | Simplified Chinese | 未找到 Claude Code。 |
+
+
+**`closed`**
+
+| | |
+|---|---|
+| German | beendet |
+| Spanish | cerrada |
+| Japanese | 終了 |
+| Simplified Chinese | 已结束 |
 
 
 **`collapsed`** — Whether the Details section of the window is open
@@ -1213,4 +1243,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-114 strings in total.
+117 strings in total.

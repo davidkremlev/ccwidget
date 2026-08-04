@@ -158,4 +158,64 @@ struct ThresholdsTests {
         let colours = [Level.healthy, .warning, .critical, .depleted].map(\.color)
         #expect(Set(colours).count == colours.count, "\(colours)")
     }
+
+    // MARK: Windows that have closed
+
+    /// Not a degree of staleness. Freshness answers "how long ago did we
+    /// look"; this answers "is what we looked at still in force". The two are
+    /// independent, and the boundary here belongs to the datum rather than to
+    /// its age.
+    @Test("A window is closed from its reset onwards, and not before",
+          arguments: [(-1.0, false), (0.0, true), (1.0, true), (-3600.0, false), (43_200.0, true)])
+    func closedBoundary(offset: TimeInterval, expected: Bool) {
+        let now = Date(timeIntervalSince1970: 1_785_000_000)
+        let window = LimitWindow(usedPercentage: 19, resetsAt: now.addingTimeInterval(-offset))
+        #expect(window.hasClosed(at: now) == expected,
+                "reset \(offset) s from now reads as \(window.hasClosed(at: now) ? "closed" : "open")")
+    }
+
+    /// The guard against the failure this rule could invent.
+    ///
+    /// A live snapshot whose window closes a second from now must keep its
+    /// number. Losing it there would be the rule firing on data that is
+    /// perfectly current — the one way "a passed reset means a closed window"
+    /// could be wrong, and the reason `SPEC` 8 names a sign to watch for.
+    @Test("A window about to close still shows its number")
+    func aWindowAboutToCloseKeepsItsNumber() {
+        let now = Date(timeIntervalSince1970: 1_785_000_000)
+        let snapshot = Snapshot(
+            schemaVersion: 1, capturedAt: now, sessionId: nil, claudeCodeVersion: nil,
+            model: nil, project: nil,
+            limits: Limits(fiveHour: LimitWindow(usedPercentage: 19,
+                                                 resetsAt: now.addingTimeInterval(1)),
+                           sevenDay: nil),
+            context: nil, cost: nil)
+        let entry = CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: nil)
+
+        guard case .measured(let metric) = entry.limitReading(snapshot.limits.fiveHour) else {
+            Issue.record("a window with a second left was called closed")
+            return
+        }
+        #expect(metric.value.filter(\.isNumber) == "19")
+    }
+
+    /// And the row it is on is the only one affected: the rows age at
+    /// different rates, which is the whole reason this is per row and not per
+    /// snapshot.
+    @Test("A closed five-hour window leaves the weekly row alone")
+    func closingIsPerRow() {
+        let now = Date(timeIntervalSince1970: 1_785_000_000)
+        let snapshot = Snapshot(
+            schemaVersion: 1, capturedAt: now.addingTimeInterval(-60),
+            sessionId: nil, claudeCodeVersion: nil, model: nil, project: nil,
+            limits: Limits(
+                fiveHour: LimitWindow(usedPercentage: 19, resetsAt: now.addingTimeInterval(-12 * 3600)),
+                sevenDay: LimitWindow(usedPercentage: 28, resetsAt: now.addingTimeInterval(86_400))),
+            context: nil, cost: nil)
+        let entry = CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: nil)
+
+        #expect(entry.limitReading(snapshot.limits.fiveHour) == .closed)
+        #expect(entry.limitReading(snapshot.limits.sevenDay).metric?.value.filter(\.isNumber) == "28",
+                "the weekly row lost its number because the five-hour one closed")
+    }
 }

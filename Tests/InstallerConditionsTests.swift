@@ -226,10 +226,10 @@ struct PolarityTests {
     func barMatchesTheNumber(used: Int) throws {
         let e = entry(fiveHour: used, sevenDay: used, context: used)
 
-        for (name, metric) in [("5-hour", e.limitMetric(e.snapshot?.limits.fiveHour)),
-                               ("week", e.limitMetric(e.snapshot?.limits.sevenDay)),
-                               ("context", e.contextMetric)] {
-            let m = try #require(metric, "\(name) has no metric at \(used) %")
+        for (name, reading) in [("5-hour", e.limitReading(e.snapshot?.limits.fiveHour)),
+                               ("week", e.limitReading(e.snapshot?.limits.sevenDay)),
+                               ("context", e.contextReading)] {
+            let m = try #require(reading.metric, "\(name) has no metric at \(used) %")
             #expect(abs(m.fraction - Double(used) / 100) < 0.0001,
                     "\(name): bar \(m.fraction) against \(used) %")
             #expect(m.value.filter(\.isNumber) == String(used),
@@ -245,12 +245,12 @@ struct PolarityTests {
         let high = entry(fiveHour: 90, sevenDay: 90, context: 90)
 
         for (name, a, b) in [
-            ("5-hour", low.limitMetric(low.snapshot?.limits.fiveHour), high.limitMetric(high.snapshot?.limits.fiveHour)),
-            ("week", low.limitMetric(low.snapshot?.limits.sevenDay), high.limitMetric(high.snapshot?.limits.sevenDay)),
-            ("context", low.contextMetric, high.contextMetric),
+            ("5-hour", low.limitReading(low.snapshot?.limits.fiveHour), high.limitReading(high.snapshot?.limits.fiveHour)),
+            ("week", low.limitReading(low.snapshot?.limits.sevenDay), high.limitReading(high.snapshot?.limits.sevenDay)),
+            ("context", low.contextReading, high.contextReading),
         ] {
-            let quiet = try #require(a)
-            let loud = try #require(b)
+            let quiet = try #require(a.metric)
+            let loud = try #require(b.metric)
             #expect(loud.fraction > quiet.fraction, "\(name): the bar does not grow")
             #expect(loud.level != .healthy, "\(name): 90 % used is not healthy")
             #expect(quiet.level == .healthy, "\(name): 10 % used is not healthy")
@@ -263,7 +263,7 @@ struct PolarityTests {
     func abandonedSnapshotHasNoMetrics() {
         let e = entry(fiveHour: 50, sevenDay: 50, context: 50, age: 48 * 3600)
         #expect(e.hidesNumbers)
-        #expect(e.limitMetric(e.snapshot?.limits.fiveHour) == nil)
-        #expect(e.contextMetric == nil)
+        #expect(e.limitReading(e.snapshot?.limits.fiveHour) == .missing)
+        #expect(e.contextReading == .missing)
     }
 }
