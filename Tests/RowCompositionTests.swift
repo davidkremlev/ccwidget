@@ -103,6 +103,64 @@ struct RowCompositionTests {
         return widest
     }
 
+    /// Where the ink sits in the row: the bar, and how much is drawn on either
+    /// side of it.
+    ///
+    /// The bar alone is not enough to describe the row, and finding that out
+    /// cost a second report from the desktop. With `minWidth` the bar survives
+    /// whatever the line does — so a row can pass "the bar is 40 points wide"
+    /// while the caption beside it has been squeezed out of existence, which is
+    /// exactly what shipped: `25 %` and a full reset line, and no caption at
+    /// all. What the row is made of is three quantities, not one.
+    private func inkProfile(_ view: some View, width: CGFloat)
+        -> (caption: CGFloat, bar: CGFloat, trailing: CGFloat) {
+        let renderer = ImageRenderer(content: view.frame(width: width))
+        renderer.scale = 1
+        guard let cg = renderer.cgImage else { return (0, 0, 0) }
+        let rep = NSBitmapImageRep(cgImage: cg)
+
+        func isInk(_ x: Int, _ y: Int) -> Bool {
+            guard let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { return false }
+            return c.alphaComponent > 0.15
+        }
+
+        // The bar is the longest horizontal run of ink anywhere in the row.
+        var bar = (length: 0, start: 0)
+        for y in 0..<rep.pixelsHigh {
+            var run = 0
+            for x in 0..<rep.pixelsWide {
+                if isInk(x, y) {
+                    run += 1
+                    if run > bar.length { bar = (run, x - run + 1) }
+                } else {
+                    run = 0
+                }
+            }
+        }
+        guard bar.length > 0 else { return (0, 0, 0) }
+
+        // Everything left of the bar is the glyph and the caption; everything
+        // right of it is the percentage and the line. Measured as extent, not
+        // as pixel count: a caption is letters with gaps between them.
+        func extent(_ range: Range<Int>) -> CGFloat {
+            var first = -1, last = -1
+            for x in range {
+                var any = false
+                for y in 0..<rep.pixelsHigh where isInk(x, y) { any = true; break }
+                if any {
+                    if first < 0 { first = x }
+                    last = x
+                }
+            }
+            return first < 0 ? 0 : CGFloat(last - first + 1)
+        }
+
+        let leading = extent(0..<bar.start)
+        let trailing = extent((bar.start + bar.length)..<rep.pixelsWide)
+        // The glyph is a fixed 13 points or so; the caption is what is left.
+        return (caption: max(0, leading - 16), bar: CGFloat(bar.length), trailing: trailing)
+    }
+
     /// A limit row at full usage, in every language, with a reset far enough
     /// out that the line beside it is at its longest.
     @Test("A limit row keeps its bar in every language")
@@ -120,9 +178,70 @@ struct RowCompositionTests {
             )
             .environment(\.locale, locale)
 
-            let width = barWidth(row, width: Self.mediumContent)
-            #expect(width >= Self.minimumBarWidth,
-                    "\(language): the bar is \(Int(width)) pt wide, below the \(Int(Self.minimumBarWidth)) pt minimum")
+            let ink = inkProfile(row, width: Self.mediumContent)
+            #expect(ink.bar >= Self.minimumBarWidth,
+                    "\(language): the bar is \(Int(ink.bar)) pt wide, below the \(Int(Self.minimumBarWidth)) pt minimum")
+            // The caption is the row's name. Squeezed below this it is an
+            // abbreviation nobody asked for; gone entirely, as it was on the
+            // tile, the row says a percentage about nothing.
+            #expect(ink.caption >= 40,
+                    "\(language): the caption is \(Int(ink.caption)) pt wide — squeezed out")
+            // The compact line plus the percentage. A full "сброс Чт 07:00 ·
+            // 5 дн 18 ч" runs past this, which is how a row that draws the
+            // uncompacted line is caught even when the bar holds its minimum.
+            #expect(ink.trailing <= 120,
+                    "\(language): \(Int(ink.trailing)) pt to the right of the bar — the line is not compact")
+        }
+    }
+
+    /// The bar is not the only thing that was wrong on the tile. The row also
+    /// printed **both** the reset moment and the countdown — "сброс Чт 07:00 ·
+    /// 5 дн 18 ч" — where the compact form prints only the countdown. Width
+    /// alone cannot see that: a row can hold its bar and still say twice as
+    /// much as it should.
+    ///
+    /// So this asks the compact form directly. `spokenDetail` is the same
+    /// switch `DetailLine` draws from, and it returns a `String`, which is the
+    /// whole reason the spoken form is not a `Text`.
+    @Test("The compact row says the countdown and not the moment")
+    func compactRowOmitsTheMoment() {
+        let entry = entry(resetsIn: 5 * 86_400 + 18 * 3600)
+
+        for language in Self.languages {
+            let locale = Locale(identifier: language)
+            let detail = entry.limitDetail(entry.snapshot?.limits.sevenDay, locale: locale)
+            guard case .reset(let moment, _) = detail else {
+                Issue.record("\(language): an open window must produce .reset"); continue
+            }
+
+            let compact = spokenDetail(detail, at: entry.date, compact: true, locale: locale)
+            let full = spokenDetail(detail, at: entry.date, compact: false, locale: locale)
+
+            #expect(compact?.contains(moment) == false,
+                    "\(language): the compact row still names the reset moment: \(compact ?? "nil")")
+            #expect(full?.contains(moment) == true,
+                    "\(language): the large tile's line lost the moment: \(full ?? "nil")")
+            #expect(compact != full, "\(language): compact and full forms are identical")
+        }
+    }
+
+    /// The same for a window that has already closed — the case the five-hour
+    /// row was in when the defect was reported, and the reason that row kept
+    /// its bar while the weekly one did not: "closed" is short in any language,
+    /// so it never squeezed anything.
+    @Test("A closed window says one word when compact")
+    func compactClosedRowIsOneWord() {
+        let entry = entry(resetsIn: -3600)
+
+        for language in Self.languages {
+            let locale = Locale(identifier: language)
+            let detail = entry.limitDetail(entry.snapshot?.limits.fiveHour, locale: locale)
+            guard case .closed(let moment) = detail else {
+                Issue.record("\(language): a past window must produce .closed"); continue
+            }
+            let compact = spokenDetail(detail, at: entry.date, compact: true, locale: locale)
+            #expect(compact?.contains(moment) == false,
+                    "\(language): the compact closed row names the moment: \(compact ?? "nil")")
         }
     }
 
