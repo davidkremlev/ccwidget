@@ -61,5 +61,21 @@ sleep 3
 echo "==> Restarting the widget daemon"
 killall chronod 2>/dev/null || true
 
+# The extension crashed on every render for five hours on 7 August while all
+# 221 checks were green: they run in a test process, and there is no WidgetKit
+# in one. A crash does not blank the tile — the system keeps showing the last
+# frame that rendered — so from the desktop it looks like stale data. Nothing
+# short of watching a real machine catches that, so the install watches.
+if [ "${1:-}" != "--no-health" ] && [ "${2:-}" != "--no-health" ]; then
+    echo "==> Waiting 45s for the system to render the widget, then checking"
+    sleep 45
+    if ! "$ROOT/Scripts/check-widget-health.sh"; then
+        echo
+        echo "!! Installed, but the extension is not healthy. The tile will keep"
+        echo "   showing its last good frame, which looks like stale data."
+        exit 1
+    fi
+fi
+
 echo "==> Done. Logs:"
 echo "    log stream --predicate 'subsystem == \"dev.illvminat.ccwidget\"' --level info"

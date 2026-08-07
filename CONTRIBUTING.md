@@ -146,6 +146,13 @@ log stream --predicate 'subsystem == "dev.illvminat.ccwidget"' --level info
   goes through `Text(verbatim:)` so it is not looked up as a translation key.
 - **Nothing user-identifying in the log as `.public`.** Paths, project names
   and raw field values are `.private`.
+- **A change to the widget's views is not done until a real machine says so.**
+  `./Scripts/reinstall.sh` now waits and runs `Scripts/check-widget-health.sh`
+  before it reports success. Every automated check in this repository runs in a
+  test process where there is no WidgetKit; on 7 August 2026 the extension
+  crashed on every render for five hours with all of them green, and because a
+  crashing extension leaves its last good frame on the desktop, it looked like
+  stale data rather than a crash.
 - **A claim about someone else's system cites a source.** "WidgetKit reloads
   at most N times", "the sandbox allows this path", "the field is always an
   integer" — `SOURCES.md` lists what those claims are checked against, and
