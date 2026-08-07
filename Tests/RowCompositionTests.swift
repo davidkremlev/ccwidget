@@ -42,11 +42,12 @@ struct RowCompositionTests {
     /// carries (measured, `SPEC` 2.3). Pinning `now` to 2023 made the row print
     /// "2 г. 8 мес" — a string the tile will never show — so the check would
     /// have been measuring a case that does not exist.
-    private func entry(resetsIn seconds: TimeInterval) -> CCWidgetEntry {
+    private func entry(resetsIn seconds: TimeInterval,
+                       project: ProjectInfo? = ProjectInfo(name: "ccwidget")) -> CCWidgetEntry {
         let now = Date()
         let snapshot = Snapshot(
             schemaVersion: 1, capturedAt: now, sessionId: nil, claudeCodeVersion: nil,
-            model: nil, project: ProjectInfo(name: "ccwidget"),
+            model: nil, project: project,
             // Everything at 100 %: the measurement below counts pixels of the
             // bar's tint, and only a full bar has tint across its whole width.
             // The first version of this check used realistic percentages and
@@ -243,6 +244,32 @@ struct RowCompositionTests {
             #expect(compact?.contains(moment) == false,
                     "\(language): the compact closed row names the moment: \(compact ?? "nil")")
         }
+    }
+
+    /// The other two cases of `RowDetail`, and the reason they are worth a
+    /// check of their own: until `contextDetail` existed, neither was produced
+    /// by anything a check could call. They were built by an expression in
+    /// `LargeView`'s body, so nothing could ask for one — and a case nobody
+    /// asks for is wrong for as long as it exists, by construction.
+    ///
+    /// The difference asked for here is the one the enum owes: `.text` puts the
+    /// project on the line, `.none` puts nothing there. Producing the case is
+    /// not enough on its own — a case can be produced and still mean nothing.
+    @Test("A session in a project names it; a session without one says nothing")
+    func contextDetailNamesTheProject() {
+        let named = entry(resetsIn: 3600)          // the fixture is in "ccwidget"
+        guard case .text(let project) = named.contextDetail else {
+            Issue.record("a snapshot with a project must produce .text"); return
+        }
+        #expect(project == "ccwidget")
+        #expect(spokenDetail(named.contextDetail, at: named.date) == "ccwidget")
+
+        let anonymous = entry(resetsIn: 3600, project: nil)
+        #expect(anonymous.contextDetail == .none,
+                "a snapshot with no project must produce .none, got \(anonymous.contextDetail)")
+        #expect(anonymous.contextDetail.isEmpty)
+        #expect(spokenDetail(anonymous.contextDetail, at: named.date) == nil,
+                "the empty detail must speak nothing, or VoiceOver announces a line that is not drawn")
     }
 
     /// A structural check, and it is here for want of a better instrument.

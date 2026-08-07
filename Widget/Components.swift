@@ -164,6 +164,19 @@ extension CCWidgetEntry {
             : .reset(moment: moment, at: window.resetsAt)
     }
 
+    /// The line under the context row: the project the session is in, when
+    /// there is one.
+    ///
+    /// It is a property rather than the expression it replaces — which stood
+    /// twice in `LargeView`, spelled out in the view body — because a decision
+    /// made inside a view body cannot be asked a question. `RowDetail.text` and
+    /// `.none` were the two cases of the enum no check produced, and they were
+    /// unproducible: the only code that built them was layout. Both are now
+    /// answers to a call, and `RowCompositionTests` holds them.
+    var contextDetail: RowDetail {
+        projectName.map(RowDetail.text) ?? .none
+    }
+
     /// All three rows show consumption — see section 8. The bar fills as
     /// usage grows, just like the context's, and matches the Usage panel
     /// without subtracting from a hundred.

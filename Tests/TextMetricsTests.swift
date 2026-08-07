@@ -33,9 +33,14 @@ struct TextMetricsTests {
     private static let padding: CGFloat = 14
     private static let smallTile: CGFloat = 164
     private static let mediumTile: CGFloat = 344
+    /// 344×344 — the large tile is as wide as the medium one and only taller,
+    /// which is why the panel message has room for three lines and the row
+    /// captions gain nothing from the extra size.
+    private static let largeTile: CGFloat = 344
 
     private var smallContent: CGFloat { Self.smallTile - 2 * Self.padding }
     private var mediumContent: CGFloat { Self.mediumTile - 2 * Self.padding }
+    private var largeContent: CGFloat { Self.largeTile - 2 * Self.padding }
 
     /// A bar narrower than this conveys nothing: at 30 points a percentage
     /// point is a third of a pixel, and the row would be a number with a
@@ -233,6 +238,97 @@ struct TextMetricsTests {
         let absurd = "verbraucht · Zurücksetzung am Mittwoch um sieben Uhr morgens Ortszeit"
         #expect(height(absurd, caption2, wrappingAt: smallContent) > twoLines,
                 "a three-line footer fits the budget, so the budget is wrong")
+    }
+
+    // MARK: The message panels
+
+    /// Every panel that replaces the digits — no data, stale data, no limits —
+    /// is built from the same two strings, and until now neither was measured
+    /// anywhere. The panels are the surface a person meets when the widget has
+    /// nothing to show, which is exactly when a truncated sentence costs the
+    /// most: the tile has stopped explaining itself and the explanation is the
+    /// only content left on it.
+    ///
+    /// The two roles are measured separately because they appear on different
+    /// tiles. The title shows everywhere, so it is measured against the
+    /// narrowest tile that shows it; the message is dropped on the small and
+    /// medium tiles (`compact`), so it is measured against the large one, the
+    /// only place it is drawn.
+    private var panelTitleBudget: CGFloat {
+        get throws {
+            // The panel's glyph, at the size the panel asks for. Measured from
+            // the symbol rather than from a private-use code point, so the
+            // number follows the symbol if the symbol is ever changed.
+            let configuration = NSImage.SymbolConfiguration(textStyle: .caption1)
+            let symbol = try #require(
+                NSImage(systemSymbolName: "exclamationmark.circle", accessibilityDescription: nil)?
+                    .withSymbolConfiguration(configuration),
+                "exclamationmark.circle is missing from the system symbol set"
+            )
+            return smallContent - 5 - symbol.size.width   // HStack(spacing: 5)
+        }
+    }
+
+    @Test("Every panel title fits the small tile in every language")
+    func panelTitlesFitSmall() throws {
+        let strings = try widgetStrings()
+        let budget = try panelTitleBudget
+        #expect(budget > 40, "the derived budget is implausible: \(budget)")
+
+        for key in ["Limits have not arrived", "No data yet", "Data is stale"] {
+            let translations = try #require(strings[key], "\(key) is not in the catalog")
+            for (language, text) in translations.sorted(by: { $0.key < $1.key }) {
+                let shrunk = width(text, font(.caption1, weight: .medium)) * Self.minimumScale
+                #expect(shrunk <= budget,
+                        "\(language) \"\(text)\" needs \(Int(shrunk)) pt of \(Int(budget)) available")
+            }
+        }
+    }
+
+    @Test("A panel title that is too long is rejected")
+    func overlongPanelTitleIsRejected() throws {
+        let absurd = "Die Nutzungsgrenzen sind noch nicht eingetroffen"
+        let shrunk = width(absurd, font(.caption1, weight: .medium)) * Self.minimumScale
+        #expect(shrunk > (try panelTitleBudget),
+                "a 47-character title fits the budget, so the budget is wrong")
+    }
+
+    /// Measured at the full point size, not at the shrunk one: the panel's
+    /// message carries `.lineLimit(3)` before `.minimumScaleFactor`, so SwiftUI
+    /// wraps at full size first and only shrinks if three lines are not enough.
+    /// Measuring the shrunk text would report the state after the fallback and
+    /// call a sentence comfortable when it is in fact already degraded — today
+    /// German needs two lines of the three, and at 0.8 it would look like one.
+    @Test("Every panel message fits three lines of the large tile in every language")
+    func panelMessagesFitLarge() throws {
+        let strings = try widgetStrings()
+        let caption2 = font(.caption2)
+        let threeLines = NSLayoutManager().defaultLineHeight(for: caption2) * 3
+
+        for key in [
+            "Claude Code sends them to Pro and Max accounts, after the first reply.",
+            "Launch Claude Code in the terminal and send a message.",
+            "Launch Claude Code in the terminal to refresh.",
+        ] {
+            let translations = try #require(strings[key], "\(key) is not in the catalog")
+            for (language, text) in translations.sorted(by: { $0.key < $1.key }) {
+                let used = height(text, caption2, wrappingAt: largeContent)
+                #expect(used <= threeLines,
+                        "\(language) \"\(text)\" needs \(Int(used)) pt of \(Int(threeLines)) available")
+            }
+        }
+    }
+
+    @Test("A panel message that needs four lines is rejected")
+    func overlongPanelMessageIsRejected() {
+        let caption2 = font(.caption2)
+        let threeLines = NSLayoutManager().defaultLineHeight(for: caption2) * 3
+        let absurd = String(
+            repeating: "Claude Code sendet die Nutzungsgrenzen an Pro- und Max-Konten. ",
+            count: 3
+        )
+        #expect(height(absurd, caption2, wrappingAt: largeContent) > threeLines,
+                "a four-line message fits the budget, so the budget is wrong")
     }
 
     // MARK: Everything else the widget shows

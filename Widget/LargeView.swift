@@ -31,7 +31,7 @@ struct LargeView: View {
                 DetailGaugeRow(
                     caption: "Context used",
                     reading: entry.contextReading,
-                    detail: entry.projectName.map(RowDetail.text) ?? .none,
+                    detail: entry.contextDetail,
                     dimmed: entry.isDimmed
                 )
                 Divider()
@@ -80,7 +80,7 @@ struct LargeView: View {
                 // The project name belongs here: the context is per-session,
                 // while the two windows above are account-wide.
                 reading: entry.contextReading,
-                detail: entry.projectName.map(RowDetail.text) ?? .none,
+                detail: entry.contextDetail,
                 dimmed: entry.isDimmed
             )
         }
