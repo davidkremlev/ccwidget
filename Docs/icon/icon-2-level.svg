@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- What is left in it, a little over a third. Dark on cream rather than
+       cream on amber: the level has to survive being shrunk to 16 pt, and a
+       dark band inside a light shape is the strongest edge available. -->
+  <path fill="#783702"
+        d="M 307 573 L 717 573 L 717 737
+           Q 717 819 635 819 L 389 819
+           Q 307 819 307 737 Z"/>
+</svg>

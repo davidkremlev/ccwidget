@@ -67,8 +67,13 @@ targets:
     type: application
     platform: macOS
     sources:
-      # Icon Composer, two layers over a dark background: the grey ring track
-      # and the green arc at seventy per cent. The sources are in Docs/icon/.
+      # Icon Composer, two layers over an amber background: the vessel and
+      # what is left in it. The sources are in Docs/icon/.
+      #
+      # It replaced a grey ring with a green arc — a gauge, which is the one
+      # thing Apple's icon guidance asks not to draw: "don't just replicate
+      # standard UI components". The vessel says the same thing without being
+      # the component the widget itself draws.
       #
       # It belongs to the application and not to the extension. Measured: with
       # no icon of its own the extension is already served the app's icon by
