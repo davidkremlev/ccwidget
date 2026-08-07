@@ -259,3 +259,17 @@ jobs:
               sys.exit(1)
           print("every catalog key is reachable")
           PY
+
+      - name: Check the documentation sources
+        run: |
+          # Warns, never fails: a source past its date is a reason to re-read
+          # it, not a reason to stop the build.
+          #
+          # What this proves here and what it does not. The cached documents
+          # live in ~/Documents/refdocs on a developer's machine and are not
+          # on this runner, so what runs here is only the half that needs no
+          # store: that SOURCES.md still parses as a table and says how many
+          # sources it claims. Staleness and drift between the table and the
+          # store are caught by running this locally — the script says out
+          # loud which half it skipped rather than passing in silence.
+          ./Scripts/check-sources.py

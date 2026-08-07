@@ -112,6 +112,11 @@ struct ForecastChart: View {
     let forecast: Forecast
     let window: LimitWindow
 
+    /// For the spoken description below: the same environment locale the
+    /// block's own captions format against, so what is heard and what is drawn
+    /// cannot come from two different locales.
+    @Environment(\.locale) private var locale
+
     var body: some View {
         GeometryReader { geo in
             let size = geo.size
@@ -137,7 +142,7 @@ struct ForecastChart: View {
                 }
             }
         }
-        .accessibilityHidden(true)
+        .accessibilityLabel(Text(verbatim: chartAnnouncement(forecast, window: window, locale: locale)))
     }
 
     // MARK: Geometry
@@ -197,6 +202,53 @@ struct ForecastChart: View {
 
 // MARK: - The estimate block
 
+/// What VoiceOver should say for the estimate chart, in one piece.
+///
+/// The chart used to be `accessibilityHidden(true)`. Hiding is for decoration:
+/// Apple's VoiceOver guidance asks for infographics to carry a concise
+/// description of what they convey, and excludes only images that convey
+/// nothing. The large tile is the only size that draws the estimate, so a
+/// listener had the verdict beneath the chart and no idea what the picture
+/// above it showed.
+///
+/// The verdict itself is not repeated here — it is a `Text` of its own right
+/// below, and VoiceOver reads it. What the picture adds is the shape: how much
+/// of the week is already spent, and how fast it is going.
+///
+/// A `String` and not a `Text`, for the same reason `gaugeAnnouncement` is:
+/// a spoken form that cannot be read back is one nobody can check, and this
+/// project has already shipped a backwards announcement that survived exactly
+/// that way.
+func chartAnnouncement(_ forecast: Forecast,
+                       window: LimitWindow,
+                       locale: Locale = .autoupdatingCurrent) -> String {
+    func localized(_ resource: LocalizedStringResource) -> String {
+        var copy = resource
+        copy.locale = locale
+        return String(localized: copy)
+    }
+
+    let name = localized(LocalizedStringResource("Week usage chart"))
+    let used = Double(window.usedPercentage) / 100
+    let value = used.formatted(.percent.locale(locale))
+
+    guard forecast.hasRate, let rate = forecast.percentPerHour else {
+        return [name, value].joined(separator: ", ")
+    }
+    return [name, value, rateCaption(rate, locale: locale)].joined(separator: ", ")
+}
+
+/// "0.7 %/h". The unit goes through the catalog like every other unit, and the
+/// number through the environment's locale — the same pair the block prints on
+/// screen, so the spoken rate and the drawn rate cannot drift apart.
+func rateCaption(_ rate: Double, locale: Locale) -> String {
+    let number = rate.formatted(.number.precision(.fractionLength(1)).locale(locale))
+    var resource = LocalizedStringResource("\(number) %/h",
+                                           comment: "Usage rate: a number followed by percent per hour")
+    resource.locale = locale
+    return String(localized: resource)
+}
+
 struct ForecastBlock: View {
     let forecast: Forecast
     let window: LimitWindow
@@ -217,7 +269,7 @@ struct ForecastBlock: View {
                     .font(.caption.weight(.medium))
                 Spacer(minLength: 4)
                 if forecast.hasRate, let rate = forecast.percentPerHour {
-                    Text(verbatim: rateCaption(rate))
+                    Text(verbatim: rateCaption(rate, locale: locale))
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -245,10 +297,4 @@ struct ForecastBlock: View {
     /// "0.7 %/h". The unit goes through the catalog like everything else: an
     /// hour is not "h" in most of the six languages, and a caption that is
     /// half translated reads worse than one that is not translated at all.
-    private func rateCaption(_ rate: Double) -> String {
-        let number = rate.formatted(.number.precision(.fractionLength(1)).locale(locale))
-        return String(localized: "\(number) %/h",
-                      comment: "Usage rate: a number followed by percent per hour")
-    }
-
 }

@@ -157,32 +157,48 @@ struct StatusView: View {
 
     // MARK: Bars
 
-    /// The same captions, order and level calculation as the widget.
+    /// The same captions, order, level calculation **and countdown** as the
+    /// widget — the rows are literally the same type, and the countdown is a
+    /// dynamic date inside it.
+    ///
+    /// That last part replaced an agreement rather than implementing one. The
+    /// two surfaces used to compute an age each and were held to printing the
+    /// same characters by a check; now neither computes anything and both hand
+    /// the same instant to the system. Agreement by construction beats
+    /// agreement by assertion — see section 2.4.
     private func rows(_ snapshot: Snapshot) -> some View {
         let entry = CCWidgetEntry(date: Date(), snapshot: snapshot, failure: nil, forecast: nil)
         return VStack(spacing: 8) {
             GaugeRow(caption: "5-hour used",
                      reading: entry.limitReading(snapshot.limits.fiveHour),
-                     dimmed: entry.isDimmed)
+                     dimmed: entry.isDimmed,
+                     detail: entry.limitDetail(snapshot.limits.fiveHour),
+                     moment: entry.date)
             GaugeRow(caption: "Week used",
                      reading: entry.limitReading(snapshot.limits.sevenDay),
-                     dimmed: entry.isDimmed)
+                     dimmed: entry.isDimmed,
+                     detail: entry.limitDetail(snapshot.limits.sevenDay),
+                     moment: entry.date)
             GaugeRow(caption: "Context used",
                      reading: entry.contextReading,
                      dimmed: entry.isDimmed)
         }
     }
 
-    /// One quiet line instead of two: when the reset happens and how old the
-    /// snapshot is.
+    /// One quiet line instead of two: when the reset happens and when the
+    /// snapshot was taken.
+    ///
+    /// A capture moment rather than an age, for the reason in section 2.4: an
+    /// age is true only at the instant it is computed, and this window
+    /// recomputes on a timer while the widget beside it does not.
     @ViewBuilder
     private func quietLine(_ snapshot: Snapshot) -> some View {
-        let age = CCWidgetFormat.relativeAge(of: snapshot.capturedAt, at: model.now)
+        let captured = CCWidgetFormat.capturedMoment(snapshot.capturedAt)
         Group {
             if let week = snapshot.limits.sevenDay {
-                Text("Week resets \(CCWidgetFormat.resetMoment(week.resetsAt)) · updated \(age)")
+                Text("Week resets \(CCWidgetFormat.resetMoment(week.resetsAt)) · updated at \(captured)")
             } else {
-                Text("Updated \(age)")
+                Text("Updated at \(captured)")
             }
         }
         .font(.caption)

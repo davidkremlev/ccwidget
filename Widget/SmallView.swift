@@ -28,6 +28,12 @@ struct SmallView: View {
                 // the digits.
                 MessageView.abandoned(entry: entry, compact: true)
                 Spacer(minLength: 0)
+            } else if entry.snapshot?.limitsAvailability == .absentAfterReply {
+                // This tile is the weekly window and nothing else, so an
+                // account that is never sent one has nothing to show here. A
+                // dash would read as "not yet".
+                MessageView.noLimits(compact: true)
+                Spacer(minLength: 0)
             } else {
                 Text(verbatim: reading.metric?.value ?? "—")
                     .font(.system(size: valueSize, weight: .medium))

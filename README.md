@@ -96,24 +96,28 @@ models"** is the weekly window.
 A one-percent difference is fine: the exporter rounds fractional values. More
 than that is a bug — please [open an issue](../../issues).
 
-### The window and the widget can be a minute apart
+### The window and the widget can hold different snapshots
 
-While an agent is working you may see the window say *updated now* and the
-widgets beside it say *1 minute ago*. That is expected and it is not a bug.
+While an agent is working, the window may show figures the widget has not
+caught up with yet. That is expected and it is not a bug.
 
 The window reads the file the moment it changes; the widget is redrawn only
-when macOS is asked to reload it, and that is rationed to once a minute so the
-reload budget lasts. So the widget can be holding a snapshot up to a minute
-old. The gap does not accumulate — it is the age of the snapshot the widget is
-holding, and that is capped by the same minute.
+when macOS is asked to reload it, and that is rationed so the reload budget
+lasts. So the widget can be holding a snapshot up to a minute old.
+
+What does **not** differ any more is what they say about the snapshot they are
+holding. Both print the time it was taken — *updated at 11:50* — rather than
+how long ago that was, and both hand the countdown to a reset straight to the
+system rather than computing it. Neither is doing arithmetic the other could
+do differently.
 
 The percentages are whole numbers and move slowly, so in practice they agree.
-In the minute where one of them crosses a whole point they can differ too, for
-the same reason and no longer. The other places it shows are the exact token
-count on the large tile and the *Snapshot* row under Details in the window.
+In the minute where one of them crosses a whole point they can differ, for the
+reason above and no longer. The other places it shows are the exact token count
+on the large tile and the *Snapshot* row under Details in the window.
 
-Worth an issue if the gap is bigger than a minute, or if it does not close
-while Claude Code is running.
+Worth an issue if the widget stays behind for more than a minute while Claude
+Code is running.
 
 ## Languages
 
@@ -138,7 +142,7 @@ Chinese, and follows your system language.
 
 ## Requirements
 
-- macOS 14 or later (desktop widgets arrived there)
+- macOS 14 or later (the oldest version the checks run on)
 - Claude Code, terminal version, used at least once
 - A Claude subscription that reports rate limits
 

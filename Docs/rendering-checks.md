@@ -268,7 +268,65 @@ than a matrix.
 
 ---
 
-## Order of work
+## Where tier 1 went blind, and what took over
+
+Tier 1 measures strings. The countdown to a reset stopped being one: it is now
+`Text(date, style: .relative)`, formatted by the system while the extension is
+asleep, and the code never sees the characters. That line — "resets Fri 11:50 ·
+3 hr 38 min" — is the widest thing on a medium row and the one that overflowed
+in German twice. **The cheap trap no longer covers it.** Saying so plainly
+matters more than the replacement: a check that quietly stops covering
+something is worse than one that was never written.
+
+What covers it now is `Tests/DynamicDateWidthTests.swift`, in the render tier.
+It renders the real `DetailLine` through `ImageRenderer` at scale 1 and takes
+the width of the resulting image, which is the width of the laid-out text. Six
+languages, six intervals from forty-five seconds to nearly a week, both the
+counting and the closed form, measured against the same tile geometry tier 1
+uses.
+
+Three ways this is weaker than what it replaced, all of them worth knowing
+before trusting it:
+
+- **It costs a render per case.** Seventy-eight renders where tier 1 did string
+  arithmetic. Still seconds, not minutes, but it is no longer free.
+- **It cannot pin the wording.** The dynamic styles read the system clock and
+  ignore the date the surrounding view was stamped with — measured, section 2.3
+  of `SPEC.md`. An interval of "22 h 59 min" prints as two units just before the
+  hour and one just after, so the check asserts fitting, never equality.
+- **It measures the line, not the row.** Tier 1 derived what was left after the
+  glyph, caption and percentage had taken their share. Here the budget is a
+  fraction of the tile, which is a judgement rather than a derivation.
+
+A guard against the failure mode that would make all of it meaningless — a
+render producing nothing and every width coming out as zero — sits in the same
+file and asserts the instrument returns pixels.
+
+---
+
+## Manual pass before a release
+
+What no tier can reach, listed so that it is done deliberately rather than
+remembered. Everything here has the same shape: the check exists, it passes,
+and it still cannot see the last step between what the code composes and what
+the person gets.
+
+**The estimate chart speaks.** Put the large widget on the desktop, turn
+VoiceOver on (⌘F5), and move to the chart. Expected: it says the chart's name,
+the week's reading and — when a rate is measured — the rate, e.g. *"Week usage
+chart, 62 %, 0.7 %/h"*. Then it moves on to the verdict beneath it.
+
+Two ways this fails, and only one of them any check can see. If the wording is
+wrong, `AnnouncementTests` catches it. **If the label is not attached to the
+view at all, nothing catches it** — the chart simply falls silent and VoiceOver
+skips to the next element, which is exactly how the chart behaved for months
+while it was `accessibilityHidden(true)`. The tree is built lazily and only for
+an attached assistive client, so a test process sees `AXGroup` with no children
+(measured, section 2 above). Listening is the only instrument.
+
+Worth doing in one non-English locale as well: the name comes from the catalog
+and the numbers from the environment's locale, and those are two different
+sources that can disagree.
 
 0. Render the same fixture on both runners in CI and compare. One job,
    answers the feasibility question with a fact instead of this prediction.

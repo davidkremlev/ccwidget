@@ -88,6 +88,37 @@ public struct ProjectInfo: Codable, Sendable {
     // that is always nil suggests something somewhere does fill it in.
 }
 
+/// Why the subscription windows are not on screen.
+///
+/// Two absences that look identical on a tile and mean different things. One is
+/// a wait of a few seconds; the other has lasted past the point where waiting
+/// helps, and a person staring at two dashes has no way to tell which they are
+/// in.
+///
+/// **The names describe what was observed, not what it means.** The status line
+/// documentation says `rate_limits` arrives for Claude.ai Pro and Max
+/// subscribers after the first API response in a session
+/// (`claude-code/statusline.md` in the reference store, section 2.1). From "a
+/// reply has happened and the windows are absent" the likely conclusion is that
+/// this account is not sent them — but it is a conclusion, drawn from an
+/// indirect signal, and it is about the reader's own subscription. Told
+/// confidently and wrongly, it is the kind of statement that makes a Pro
+/// subscriber distrust everything else on the tile.
+///
+/// So the case is called what it is — absent, after a reply — and the panel
+/// reports the observation and the rule and leaves the conclusion to the person
+/// who knows which plan they are on.
+public enum LimitsAvailability: String, Sendable, CaseIterable {
+    /// At least one window arrived.
+    case present
+    /// No windows yet, and no reply has come back in this session either.
+    /// Seconds old at most; nothing to say about it.
+    case notYetInSession
+    /// A reply has come back — there are context figures to prove it — and the
+    /// windows are still not here.
+    case absentAfterReply
+}
+
 public struct Limits: Codable, Sendable {
     public let fiveHour: LimitWindow?
     public let sevenDay: LimitWindow?
@@ -147,6 +178,20 @@ public struct LimitWindow: Codable, Sendable {
     /// the datum rather than about its age.
     public func hasClosed(at now: Date = Date()) -> Bool {
         resetsAt <= now
+    }
+}
+
+public extension Snapshot {
+    /// Which of the three absences this snapshot is in.
+    ///
+    /// The evidence that a reply has happened is the context: `context_window`
+    /// is filled from the model's response, so a figure there means the session
+    /// has been round the loop at least once. If it has, and the windows are
+    /// still missing, waiting will not bring them.
+    var limitsAvailability: LimitsAvailability {
+        if limits.fiveHour != nil || limits.sevenDay != nil { return .present }
+        let sawAReply = context?.usedPercentage != nil || context?.totalInputTokens != nil
+        return sawAReply ? .absentAfterReply : .notYetInSession
     }
 }
 

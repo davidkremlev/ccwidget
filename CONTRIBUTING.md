@@ -146,6 +146,12 @@ log stream --predicate 'subsystem == "dev.illvminat.ccwidget"' --level info
   goes through `Text(verbatim:)` so it is not looked up as a translation key.
 - **Nothing user-identifying in the log as `.public`.** Paths, project names
   and raw field values are `.private`.
+- **A claim about someone else's system cites a source.** "WidgetKit reloads
+  at most N times", "the sandbox allows this path", "the field is always an
+  integer" — `SOURCES.md` lists what those claims are checked against, and
+  says which of them have no source and are marked unverified instead. A
+  reason that reads "because this other API works that way" is the shape of
+  the mistake this is here to catch.
 
 ## Things that will be pushed back on
 

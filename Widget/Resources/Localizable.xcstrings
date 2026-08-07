@@ -142,6 +142,42 @@
         }
       }
     },
+    "Claude Code sends them to Pro and Max accounts, after the first reply.": {
+      "comment": "The rule, quoted so the reader can draw their own conclusion",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code sendet sie an Pro- und Max-Konten, nach der ersten Antwort."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code los envía a las cuentas Pro y Max, tras la primera respuesta."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code は Pro と Max のアカウントに、最初の応答のあとで送信します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code присылает их аккаунтам Pro и Max после первого ответа."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code 会在首次回复之后，向 Pro 和 Max 账户发送。"
+          }
+        }
+      }
+    },
     "Context used": {
       "extractionState": "manual",
       "localizations": {
@@ -422,6 +458,42 @@
         }
       }
     },
+    "Limits have not arrived": {
+      "comment": "Shown when a reply has happened and rate_limits is still absent. States the observation, not a conclusion about the reader's plan",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limits sind nicht eingetroffen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los límites no han llegado"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限データが届いていません"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лимиты не пришли"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "额度数据尚未送达"
+          }
+        }
+      }
+    },
     "No data yet": {
       "extractionState": "manual",
       "localizations": {
@@ -562,41 +634,6 @@
         }
       }
     },
-    "Subscription limits, context window and cost at a glance.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abo-Limits, Kontextfenster und Kosten auf einen Blick."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Límites de suscripción, ventana de contexto y coste de un vistazo."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サブスクリプションの上限、コンテキストウィンドウ、コストをひと目で。"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Лимиты подписки, окно контекста и стоимость — одним взглядом."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "订阅限额、上下文窗口与费用一目了然。"
-          }
-        }
-      }
-    },
     "This session": {
       "extractionState": "manual",
       "localizations": {
@@ -667,6 +704,42 @@
         }
       }
     },
+    "Track how much of your Claude subscription you have used, with the context window and cost.": {
+      "comment": "Widget gallery description. Begins with an action verb, per Apple's widget guidance",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verfolgen Sie, wie viel Ihres Claude-Abos Sie verbraucht haben — samt Kontextfenster und Kosten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigue cuánto has consumido de tu suscripción a Claude, con la ventana de contexto y el coste."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claudeサブスクリプションの使用量を、コンテキストウィンドウとコストとともに把握できます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следите за тем, сколько израсходовано от подписки Claude, вместе с окном контекста и стоимостью."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟踪你已用掉多少 Claude 订阅额度，并查看上下文窗口与费用。"
+          }
+        }
+      }
+    },
     "Usage Widget for Claude Code": {
       "extractionState": "manual",
       "localizations": {
@@ -733,6 +806,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "用量持平"
+          }
+        }
+      }
+    },
+    "Week usage chart": {
+      "comment": "Spoken by VoiceOver for the estimate chart: names what the picture shows",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagramm des Wochenverbrauchs"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gráfico de uso semanal"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "週間使用量のグラフ"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "График недельного расхода"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每周用量图表"
           }
         }
       }
@@ -913,37 +1022,38 @@
         }
       }
     },
-    "outdated · %@": {
+    "outdated · updated at %@": {
+      "comment": "The same caption once the snapshot is over an hour old",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "veraltet · %@"
+            "value": "veraltet · aktualisiert um %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "obsoleto · %@"
+            "value": "desactualizado · actualizado a las %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "古い · %@"
+            "value": "古いデータ · %@ に更新"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "устарело · %@"
+            "value": "данные устарели · обновлено в %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已过时 · %@"
+            "value": "数据已过时 · %@ 更新"
           }
         }
       }
@@ -1014,6 +1124,42 @@
           "stringUnit": {
             "state": "translated",
             "value": "本次会话："
+          }
+        }
+      }
+    },
+    "updated at %@": {
+      "comment": "Caption under the tile: the clock time the snapshot was taken at",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aktualisiert um %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "actualizado a las %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ に更新"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "обновлено в %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 更新"
           }
         }
       }

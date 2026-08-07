@@ -7,6 +7,10 @@ import WidgetKit
 struct LargeView: View {
     let entry: CCWidgetEntry
 
+    /// Passed down to the rows so the drawn line and the spoken one format
+    /// against the same locale.
+    @Environment(\.locale) private var locale
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             WidgetHeader(entry: entry)
@@ -19,6 +23,21 @@ struct LargeView: View {
                     MessageView.abandoned(entry: entry)
                 }
                 Spacer(minLength: 0)
+            } else if let snapshot = entry.snapshot,
+                      snapshot.limitsAvailability == .absentAfterReply {
+                Divider()
+                MessageView.noLimits()
+                Divider()
+                DetailGaugeRow(
+                    caption: "Context used",
+                    reading: entry.contextReading,
+                    detail: entry.projectName.map(RowDetail.text) ?? .none,
+                    dimmed: entry.isDimmed
+                )
+                Divider()
+                details(snapshot)
+                Divider()
+                footer
             } else if let snapshot = entry.snapshot {
                 Divider()
                 rows(snapshot)
@@ -43,15 +62,17 @@ struct LargeView: View {
             DetailGaugeRow(
                 caption: "5-hour used",
                 reading: entry.limitReading(snapshot.limits.fiveHour),
-                detail: limitDetail(snapshot.limits.fiveHour),
-                dimmed: entry.isDimmed
+                detail: entry.limitDetail(snapshot.limits.fiveHour, locale: locale),
+                dimmed: entry.isDimmed,
+                moment: entry.date
             )
             Spacer(minLength: 6)
             DetailGaugeRow(
                 caption: "Week used",
                 reading: entry.limitReading(snapshot.limits.sevenDay),
-                detail: limitDetail(snapshot.limits.sevenDay),
-                dimmed: entry.isDimmed
+                detail: entry.limitDetail(snapshot.limits.sevenDay, locale: locale),
+                dimmed: entry.isDimmed,
+                moment: entry.date
             )
             Spacer(minLength: 6)
             DetailGaugeRow(
@@ -59,27 +80,12 @@ struct LargeView: View {
                 // The project name belongs here: the context is per-session,
                 // while the two windows above are account-wide.
                 reading: entry.contextReading,
-                detail: entry.projectName,
+                detail: entry.projectName.map(RowDetail.text) ?? .none,
                 dimmed: entry.isDimmed
             )
         }
     }
 
-    private func limitDetail(_ window: LimitWindow?) -> String? {
-        guard !entry.hidesNumbers, let window else { return nil }
-        let moment = CCWidgetFormat.resetMoment(window.resetsAt)
-        // Naming the moment still helps when the window has ended — it says
-        // when it ended. What must not be named is a countdown to it, which
-        // floors at zero and reads as a reset about to happen.
-        let until = window.hasClosed(at: entry.date)
-            ? String(localized: "closed")
-            : CCWidgetFormat.countdown(window.timeUntilReset(at: entry.date))
-        // No remaining figure here, deliberately. Section 8 forbids two
-        // polarities in one column, and "35% left" under "Week used 65%" is
-        // exactly that, one directly beneath the other: anyone checking
-        // against the Usage panel grabbed the wrong number.
-        return String(localized: "resets \(moment) · \(until)")
-    }
 
     // MARK: Footer details
 
@@ -137,7 +143,7 @@ struct LargeView: View {
                     .minimumScaleFactor(0.8)
             }
             Spacer(minLength: 4)
-            AgeCaption(entry: entry).layoutPriority(1)
+            CaptureCaption(entry: entry).layoutPriority(1)
         }
         .font(.caption2)
         .foregroundStyle(.secondary)

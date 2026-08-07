@@ -19,29 +19,48 @@ struct CCWidgetEntry: TimelineEntry {
 }
 
 struct CCWidgetProvider: TimelineProvider {
-    /// Timeline step and length from section 2.3: thirty entries a minute
-    /// apart. The countdown ticks for half an hour without touching disk.
+    /// The closest two entries may sit, from Apple's guidance on keeping a
+    /// widget up to date: entries should be "at least about 5 minutes apart".
+    /// See `apple/widgetkit-keeping-up-to-date.md` in the reference store.
     ///
-    /// The step is `AgeClock.step` and not a 60 that happens to match it: the
-    /// timeline step is what stops the widget from knowing the time any better
-    /// than a minute, so it is the same number by definition, not by
-    /// coincidence.
-    static let step: TimeInterval = AgeClock.step
-    static let count = 30
+    /// This project used to place them a minute apart, thirty at a time, so
+    /// that a computed countdown would tick. Nothing computes a countdown any
+    /// more — SwiftUI's dynamic date does it while the extension sleeps — so
+    /// entries are needed only where what is *drawn* actually changes.
+    static let minimumSpacing: TimeInterval = 5 * 60
 
-    /// The moments the entries are stamped with — the widget's whole notion of
-    /// "now", since it never asks the clock.
+    /// Where the tile changes by itself, with no new data: the two freshness
+    /// thresholds, and the moment each window closes.
     ///
-    /// Aligned to the minute rather than to the moment the timeline happened
-    /// to be built. Off that grid the entry on screen and the window's clock
-    /// land in different minutes about half the time, and the two surfaces
-    /// print different ages off one file.
+    /// Everything else — the countdown, and the countdown alone — moves on its
+    /// own. The age no longer moves at all: section 2.4 prints the capture
+    /// moment, which is the same string forever.
     ///
     /// Separate from `makeTimeline` because it is the half that can be
     /// checked: `makeTimeline` reads the store, and these are arithmetic.
-    static func entryDates(from now: Date) -> [Date] {
-        let anchor = AgeClock.anchor(now)
-        return (0..<count).map { anchor.addingTimeInterval(Double($0) * step) }
+    static func entryDates(from now: Date, snapshot: Snapshot?) -> [Date] {
+        var moments: [Date] = [now]
+
+        if let captured = snapshot?.capturedAt {
+            // An hour old: the figures dim and gain the word "outdated".
+            // A day old: the figures go away entirely.
+            moments.append(captured.addingTimeInterval(60 * 60))
+            moments.append(captured.addingTimeInterval(24 * 60 * 60))
+        }
+        for window in [snapshot?.limits.fiveHour, snapshot?.limits.sevenDay].compactMap({ $0 }) {
+            // The row switches to "closed" here, and the countdown stops.
+            moments.append(window.resetsAt)
+        }
+
+        // Only what is still ahead, in order, and never two closer than the
+        // minimum: the system is entitled to ignore entries it considers too
+        // dense, and an ignored entry is a threshold that arrives late.
+        var kept: [Date] = []
+        for moment in moments.sorted() where moment >= now {
+            if let last = kept.last, moment.timeIntervalSince(last) < minimumSpacing { continue }
+            kept.append(moment)
+        }
+        return kept.isEmpty ? [now] : kept
     }
 
     func placeholder(in context: Context) -> CCWidgetEntry {
@@ -64,8 +83,10 @@ struct CCWidgetProvider: TimelineProvider {
     /// cannot be constructed from outside — without this the timeline could
     /// not be checked at all.
     func makeTimeline(now: Date) -> Timeline<CCWidgetEntry> {
-        let dates = Self.entryDates(from: now)
-        let base = Self.load(at: dates[0])
+        // One disk read, then the moments are derived from what it holds: the
+        // thresholds belong to this snapshot, not to the clock.
+        let base = Self.load(at: now)
+        let dates = Self.entryDates(from: now, snapshot: base.snapshot)
 
         // One disk read per timeline. The entries differ only in their
         // moment; the snapshot inside them is the same one.
@@ -80,6 +101,11 @@ struct CCWidgetProvider: TimelineProvider {
 
         // .after the last entry: the system comes back for more on its own.
         // The watcher reloads it early when the snapshot actually changes.
+        //
+        // With entries now sitting on thresholds rather than on a minute grid,
+        // the last one can be a day out — which is correct. Nothing on the tile
+        // changes in between except the countdown, and the countdown is the
+        // system's to redraw.
         let last = entries.last?.date ?? now
         return Timeline(entries: entries, policy: .after(last))
     }

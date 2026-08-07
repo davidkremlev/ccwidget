@@ -367,6 +367,44 @@ struct ObservableDifferenceTests {
         allDistinct("JSONValue", cases) { $0.compactDescription }
     }
 
+    // MARK: LimitsAvailability — what the tile says instead of the windows
+
+    /// Responsible for what stands where the two subscription bars would be.
+    /// Every case has to be produced by a real snapshot, not just exist: an
+    /// absence nobody can reach is an explanation nobody will ever see.
+    @Test("Every reason the windows are missing is produced by a snapshot")
+    func limitsAvailabilityIsProduced() {
+        func snapshot(fiveHour: LimitWindow?, context: ContextInfo?) -> Snapshot {
+            Snapshot(schemaVersion: 1, capturedAt: Date(timeIntervalSince1970: 1_785_000_000),
+                     sessionId: nil, claudeCodeVersion: nil, model: nil, project: nil,
+                     limits: Limits(fiveHour: fiveHour, sevenDay: nil),
+                     context: context, cost: nil)
+        }
+        let window = LimitWindow(usedPercentage: 20,
+                                 resetsAt: Date(timeIntervalSince1970: 1_785_003_600))
+        let withContext = ContextInfo(usedPercentage: 40, totalInputTokens: 1000,
+                                      windowSize: nil, cacheHitRatio: nil)
+        let emptyContext = ContextInfo(usedPercentage: nil, totalInputTokens: nil,
+                                       windowSize: nil, cacheHitRatio: nil)
+
+        #expect(snapshot(fiveHour: window, context: withContext).limitsAvailability == .present)
+        #expect(snapshot(fiveHour: nil, context: emptyContext).limitsAvailability == .notYetInSession)
+        #expect(snapshot(fiveHour: nil, context: nil).limitsAvailability == .notYetInSession)
+        // The one the batch exists for: a reply has been and gone, and the
+        // windows never came with it.
+        #expect(snapshot(fiveHour: nil, context: withContext).limitsAvailability == .absentAfterReply)
+
+        // And nothing is left unproduced: if a fourth case is added, this fails
+        // until something in the list above makes it.
+        let produced: Set<LimitsAvailability> = [
+            snapshot(fiveHour: window, context: withContext).limitsAvailability,
+            snapshot(fiveHour: nil, context: emptyContext).limitsAvailability,
+            snapshot(fiveHour: nil, context: withContext).limitsAvailability,
+        ]
+        #expect(produced.count == LimitsAvailability.allCases.count,
+                "unproduced cases: \(Set(LimitsAvailability.allCases).subtracting(produced))")
+    }
+
     /// A hashable tuple of strings, so a collision prints as itself.
     private struct Fingerprint: Hashable, CustomStringConvertible {
         let parts: [String]

@@ -405,4 +405,53 @@ struct ViewStateTests {
         #expect(Set(headlines).count == headlines.count,
                 "two steps open with the same line: \(headlines)")
     }
+
+    // MARK: The estimate chart
+
+    /// The chart was `accessibilityHidden(true)` until Apple's VoiceOver
+    /// guidance was read: hiding is for decoration, and an infographic owes the
+    /// listener a description of what it conveys. The large tile is the only
+    /// size that draws the estimate, so what was hidden was the whole feature.
+    ///
+    /// These hold the two properties the description exists for — that it says
+    /// how much of the week is gone, and that a measured rate reaches the
+    /// listener the same way it reaches the eye. Both are checkable only
+    /// because the description is a `String`; as a `Text` it would be exactly
+    /// as invisible as the chart was.
+    @Test("The chart describes itself with the week's usage")
+    func chartAnnouncementCarriesTheReading() {
+        let locale = Self.baselineLocale
+        let window = LimitWindow(usedPercentage: 62,
+                                 resetsAt: Date(timeIntervalSince1970: 1_700_086_400))
+        let flat = Forecast(outcome: .flat, points: [], slope: nil, exhaustionAt: nil,
+                            fitQuality: nil, observationSpan: 0, effectiveSpan: 0,
+                            gate: .closed)
+        let spoken = chartAnnouncement(flat, window: window, locale: locale)
+
+        #expect(!spoken.isEmpty)
+        #expect(spoken.contains("62"), "the week's reading is missing from \(spoken)")
+    }
+
+    @Test("A measured rate is spoken, and its absence is not faked")
+    func chartAnnouncementSpeaksTheRate() {
+        let locale = Self.baselineLocale
+        let window = LimitWindow(usedPercentage: 40,
+                                 resetsAt: Date(timeIntervalSince1970: 1_700_086_400))
+        let withRate = Forecast(outcome: .rateOnly, points: [], slope: 0.7 / 3600,
+                                exhaustionAt: nil, fitQuality: 0.9,
+                                observationSpan: 7200, effectiveSpan: 7200,
+                                gate: .open)
+        let withoutRate = Forecast(outcome: .notEnoughData, points: [], slope: nil,
+                                   exhaustionAt: nil, fitQuality: nil,
+                                   observationSpan: 0, effectiveSpan: 0,
+                                   gate: .closed)
+
+        let spokenWithRate = chartAnnouncement(withRate, window: window, locale: locale)
+        let spokenWithout = chartAnnouncement(withoutRate, window: window, locale: locale)
+
+        #expect(spokenWithRate != spokenWithout,
+                "a widget with a measured rate says the same as one without it")
+        #expect(spokenWithRate.contains("0.7"),
+                "the rate is missing from \(spokenWithRate)")
+    }
 }

@@ -8,7 +8,7 @@ import Testing
 ///
 /// The defect class is one this project has already shipped twice — a caption
 /// that fits in English and ends in an ellipsis somewhere else. German runs
-/// about a third longer than English and the small tile is 158 points wide,
+/// about a third longer than English and the small tile is 164 points wide,
 /// which is the whole problem in one sentence.
 ///
 /// No images and no baselines. Every localized string is measured against the
@@ -24,9 +24,15 @@ struct TextMetricsTests {
 
     /// Tile sizes are fixed by WidgetKit; the padding is ours, applied once in
     /// `CCWidgetBundle`.
+    ///
+    /// The widths are measured, not quoted. Apple publishes no widget size
+    /// table for macOS, and the numbers that stood here until now — 158 and
+    /// 338 — came from the iOS table for a 393-point phone. Real values from
+    /// `TimelineProviderContext.displaySize` on macOS 26.6, section 9 of
+    /// `SPEC.md`: 164×164 and 344×164.
     private static let padding: CGFloat = 14
-    private static let smallTile: CGFloat = 158
-    private static let mediumTile: CGFloat = 338
+    private static let smallTile: CGFloat = 164
+    private static let mediumTile: CGFloat = 344
 
     private var smallContent: CGFloat { Self.smallTile - 2 * Self.padding }
     private var mediumContent: CGFloat { Self.mediumTile - 2 * Self.padding }
@@ -343,15 +349,19 @@ struct TextMetricsTests {
                 "a 25-character badge fits even with the title shrunk, so the arithmetic is wrong")
     }
 
-    /// The quiet line under the bars: when the week resets and how old the
-    /// data is, on one line, with a fifth of shrink allowed before it
-    /// truncates. Both halves are substituted with what they actually produce
-    /// rather than with a guess — the reset moment through its own formatter,
-    /// the age through `relativeAge`, in the language being measured.
+    /// The quiet line under the bars: when the week resets and when the
+    /// snapshot was taken, on one line, with a fifth of shrink allowed before
+    /// it truncates. Both halves are substituted with what they actually
+    /// produce rather than with a guess, in the language being measured.
+    ///
+    /// The second half used to be a relative age, whose wording varied by
+    /// language and by magnitude — hence the search for the widest one below.
+    /// A capture moment has one shape, so the widest case is simply the one
+    /// the formatter gives.
     @Test("The quiet line fits the window in every language")
     func quietLineFitsTheWindow() throws {
         let strings = try windowStrings()
-        let key = "Week resets %@ · updated %@"
+        let key = "Week resets %@ · updated at %@"
         let translations = try #require(strings[key], "\(key) is not in the catalog")
 
         // A Wednesday at 03:00, and the widest age the line can hold: the
@@ -360,17 +370,16 @@ struct TextMetricsTests {
         components.year = 2026; components.month = 8; components.day = 5
         components.hour = 3; components.minute = 0
         let reset = Calendar(identifier: .gregorian).date(from: components)!
-        let captured = Date(timeIntervalSince1970: 1_785_000_000)
-        let ages: [TimeInterval] = [0, 60, 45 * 60, 3600, 22 * 3600, 3 * 86_400]
+        // 23:59 rather than a round hour: the widest a captured moment gets in
+        // a 24-hour locale, and "11:59 PM" in a 12-hour one.
+        var capturedComponents = components
+        capturedComponents.hour = 23; capturedComponents.minute = 59
+        let captured = Calendar(identifier: .gregorian).date(from: capturedComponents)!
 
         for (language, template) in translations.sorted(by: { $0.key < $1.key }) {
             let locale = Locale(identifier: language)
             let moment = CCWidgetFormat.resetMoment(reset, locale: locale)
-            let widest = ages
-                .map { CCWidgetFormat.relativeAge(of: captured,
-                                                  at: captured.addingTimeInterval($0),
-                                                  locale: locale) }
-                .max(by: { width($0, font(.caption1)) < width($1, font(.caption1)) }) ?? ""
+            let widest = CCWidgetFormat.capturedMoment(captured, locale: locale)
 
             let line = template
                 .replacingOccurrences(of: "%@", with: moment, range: template.range(of: "%@"))

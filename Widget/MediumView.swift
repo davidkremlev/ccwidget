@@ -5,6 +5,9 @@ import WidgetKit
 struct MediumView: View {
     let entry: CCWidgetEntry
 
+    /// So the drawn line and the spoken one share a locale.
+    @Environment(\.locale) private var locale
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             WidgetHeader(entry: entry)
@@ -21,7 +24,16 @@ struct MediumView: View {
                 // Symmetric spacers: the block of rows sits centred in the
                 // free space instead of being pinned under the header.
                 Spacer(minLength: 0)
-                rows(snapshot)
+                if snapshot.limitsAvailability == .absentAfterReply {
+                    // The context row still means something, so it stays and
+                    // the two windows are explained rather than dashed out.
+                    MessageView.noLimits(compact: true)
+                    GaugeRow(caption: "Context used",
+                             reading: entry.contextReading.withAuxiliary(entry.projectName),
+                             dimmed: entry.isDimmed)
+                } else {
+                    rows(snapshot)
+                }
                 Spacer(minLength: 0)
                 Divider()
                 footer(snapshot)
@@ -38,12 +50,16 @@ struct MediumView: View {
             GaugeRow(
                 caption: "5-hour used",
                 reading: entry.limitReading(snapshot.limits.fiveHour),
-                dimmed: entry.isDimmed
+                dimmed: entry.isDimmed,
+                detail: entry.limitDetail(snapshot.limits.fiveHour, locale: locale),
+                moment: entry.date
             )
             GaugeRow(
                 caption: "Week used",
                 reading: entry.limitReading(snapshot.limits.sevenDay),
-                dimmed: entry.isDimmed
+                dimmed: entry.isDimmed,
+                detail: entry.limitDetail(snapshot.limits.sevenDay, locale: locale),
+                moment: entry.date
             )
             GaugeRow(
                 caption: "Context used",
@@ -93,7 +109,7 @@ struct MediumView: View {
 
             Spacer(minLength: 4)
 
-            AgeCaption(entry: entry).layoutPriority(1)
+            CaptureCaption(entry: entry).layoutPriority(1)
         }
         .font(.caption2)
         .foregroundStyle(.secondary)

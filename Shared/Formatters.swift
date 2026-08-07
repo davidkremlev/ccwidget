@@ -23,28 +23,25 @@ public enum CCWidgetFormat {
     /// stamped after the entry currently on screen, and the numeric wording for
     /// a negative age is "in 0 seconds" — a widget promising that the data is
     /// about to arrive.
+    /// When the snapshot was taken: "11:50".
+    ///
+    /// This replaced a ticking age ("2 minutes ago") in the batch that moved
+    /// the countdown onto dynamic dates. The reason is not that Apple asked
+    /// for fewer reloads — it is that a ticking age is wrong between updates
+    /// and a capture moment is right forever. A widget redrawn every five
+    /// minutes and printing "1 minute ago" is not imprecise, it is untrue for
+    /// four minutes out of five; "11:50" stays true whenever it is read.
+    ///
+    /// How old that is remains visible, but in colour and in words rather than
+    /// in a number: `Freshness` dims the tile past an hour and replaces the
+    /// figures past a day. Section 2.4.
+    ///
     /// The locale is a parameter for the same reason `resetMoment`'s is: a
     /// view rendering against `.environment(\.locale, …)` and a string
-    /// formatted against the process locale disagree with each other. It is
-    /// also the only way to measure how wide this gets in German without
-    /// rebuilding the formatter in the check and hoping the two agree.
-    public static func relativeAge(of date: Date, at now: Date = Date(),
-                                   locale: Locale = .autoupdatingCurrent) -> String {
-        let anchor = AgeClock.anchor(now)
-        let minutes = max(0, (anchor.timeIntervalSince(date) / 60).rounded(.down))
-
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = locale
-        formatter.unitsStyle = .full
-        // Under a minute there is no duration to name — the statement is "this
-        // is current", and every locale we ship has a word for it. Above a
-        // minute the numeric wording is the one to keep: `.named` turns a day
-        // into "yesterday" and a week into "last week", which are facts about
-        // the calendar rather than about how old the data is, and section 2.4
-        // wants stale data to look its age.
-        formatter.dateTimeStyle = minutes == 0 ? .named : .numeric
-        return formatter.localizedString(for: anchor.addingTimeInterval(-minutes * 60),
-                                         relativeTo: anchor)
+    /// formatted against the process locale disagree with each other.
+    public static func capturedMoment(_ date: Date,
+                                      locale: Locale = .autoupdatingCurrent) -> String {
+        date.formatted(.dateTime.hour().minute().locale(locale))
     }
 
     /// Countdown to the window reset. Two largest units, abbreviated.

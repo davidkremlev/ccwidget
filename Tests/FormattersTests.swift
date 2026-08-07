@@ -22,30 +22,32 @@ struct FormattersTests {
 
     /// A fixed moment on a minute boundary. `Date()` used to do here, and
     /// stopped: the age is now measured from the start of the minute `now`
-    /// falls in, so two minutes before an arbitrary instant is between one and
-    /// two whole minutes and the wording is whichever the clock felt like.
-    /// Section 2.4, "Возраст меряется по одной сетке", and the agreement it
-    /// exists for is checked in `AgeAgreementTests`.
+    /// falls in — kept because `resetMoment` and `capturedMoment` are both
+    /// checked against it.
     private static let onTheMinute = Date(timeIntervalSince1970: 1_785_000_000)
 
-    @Test("A relative age names a unit and does not read as a date")
-    func relativeAge() {
-        let text = CCWidgetFormat.relativeAge(of: Self.onTheMinute.addingTimeInterval(-120),
-                                              at: Self.onTheMinute)
-        #expect(!text.isEmpty)
-        #expect(digits(text).contains("2"), "\(text)")
+    /// The capture moment replaced a relative age in the batch that moved
+    /// countdowns onto dynamic dates. Its defining property is the one the age
+    /// did not have: the same instant reads the same however long ago it was.
+    @Test("A capture moment is the same string whenever it is read")
+    func captureMomentIsStable() {
+        let locale = Locale(identifier: "en_US_POSIX")
+        let first = CCWidgetFormat.capturedMoment(Self.onTheMinute, locale: locale)
+        let second = CCWidgetFormat.capturedMoment(Self.onTheMinute, locale: locale)
+        #expect(first == second)
+        #expect(!first.isEmpty)
+        #expect(digits(first).count >= 3, "a time of day has digits: \(first)")
     }
 
-    /// The window renders its age against a clock the watcher advances, so the
-    /// formatter has to take that clock rather than reach for `Date()`.
-    @Test("The age is measured against the moment it is given")
-    func relativeAgeUsesTheGivenNow() {
-        let captured = Self.onTheMinute
-        let early = CCWidgetFormat.relativeAge(of: captured,
-                                               at: captured.addingTimeInterval(60))
-        let late = CCWidgetFormat.relativeAge(of: captured,
-                                              at: captured.addingTimeInterval(3600))
-        #expect(early != late, "\(early) vs \(late)")
+    /// Two different instants must not print the same moment, or the caption
+    /// stops telling one snapshot from another.
+    @Test("Different capture instants print differently")
+    func captureMomentDistinguishes() {
+        let locale = Locale(identifier: "en_US_POSIX")
+        let early = CCWidgetFormat.capturedMoment(Self.onTheMinute, locale: locale)
+        let later = CCWidgetFormat.capturedMoment(Self.onTheMinute.addingTimeInterval(3600),
+                                                  locale: locale)
+        #expect(early != later, "\(early) vs \(later)")
     }
 
     // MARK: Countdowns

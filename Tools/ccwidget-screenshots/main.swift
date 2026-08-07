@@ -90,7 +90,8 @@ let cornerRadius: CGFloat = 20
 /// Pinned so the images are Retina-sized, and pinned rather than defaulted so
 /// nothing silently halves them.
 ///
-/// `ImageRenderer.scale` defaults to **1.0** — measured on both a 1× and a 2×
+/// `ImageRenderer.scale` defaults to **1.0** — measured, not documented: Apple
+/// publishes the property and not its default. Measured on both a 1× and a 2×
 /// main display, and it is 1.0 on each. It does *not* follow the screen, which
 /// is the thing this comment used to claim; the claim was inherited from how
 /// `NSImage` behaves and never checked. Removing the pin does not make the
@@ -142,9 +143,15 @@ func shoot(_ name: String, _ size: CGSize, _ scheme: ColorScheme, @ViewBuilder _
     print("\(url.lastPathComponent)  \(Int(size.width))×\(Int(size.height))")
 }
 
-let small = CGSize(width: 158, height: 158)
-let medium = CGSize(width: 338, height: 158)
-let large = CGSize(width: 338, height: 354)
+// Measured on macOS 26.6 through `TimelineProviderContext.displaySize`, not
+// taken from a table: Apple publishes widget dimensions for iOS, iPadOS,
+// visionOS and watchOS, and none for macOS. The previous numbers here —
+// 158×158, 338×158, 338×354 — were the iOS row for a 393-point phone. Note
+// that the large tile on a Mac is square, where on iOS it is taller than wide.
+// See section 9 of SPEC.md.
+let small = CGSize(width: 164, height: 164)
+let medium = CGSize(width: 344, height: 164)
+let large = CGSize(width: 344, height: 344)
 
 for (suffix, scheme) in [("light", ColorScheme.light), ("dark", ColorScheme.dark)] {
     shoot("small-\(suffix)", small, scheme) { SmallView(entry: entry) }

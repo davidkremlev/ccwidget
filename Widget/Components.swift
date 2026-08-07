@@ -120,9 +120,49 @@ func gaugeAnnouncement(_ caption: LocalizedStringResource,
     return [name, value, extra].compactMap { $0 }.joined(separator: ", ")
 }
 
+/// What goes under a row's bar.
+///
+/// Two kinds, and they are not interchangeable. A context row's line is a
+/// string the code computed — a token count, a project name — and it stays
+/// whatever it was when the entry was built. A limit row's line contains a
+/// countdown, and a countdown built as a string is wrong the moment after it
+/// is built: the widget is redrawn on thresholds now, not every minute, so a
+/// computed "3 hr 38 min" would sit on screen for hours saying the same thing.
+///
+/// So the countdown is not computed at all. `.reset` carries the moment, and
+/// the view hands it to SwiftUI's dynamic date, which keeps counting while the
+/// extension is not running. Section 2.3.
+///
+/// An enum rather than an optional string because the difference has to be
+/// askable: a check can hold that a limit row produces `.reset` and never a
+/// frozen `.text`, and that a closed window produces `.closed` rather than a
+/// countdown flooring at zero.
+enum RowDetail: Equatable {
+    case none
+    /// A line computed once: tokens, a project name.
+    case text(String)
+    /// "resets Fri 11:50 · <counting down>" — the moment plus a live interval.
+    case reset(moment: String, at: Date)
+    /// The window ended. Naming when it ended still helps; counting to it does
+    /// not, because the count floors at zero and reads as a reset about to
+    /// happen.
+    case closed(moment: String)
+
+    var isEmpty: Bool { self == .none }
+}
+
 extension CCWidgetEntry {
     var isDimmed: Bool { freshness?.isDimmed ?? false }
     var hidesNumbers: Bool { freshness?.hidesNumbers ?? false }
+
+    /// The line under a limit row, as data rather than as a view.
+    func limitDetail(_ window: LimitWindow?, locale: Locale = .autoupdatingCurrent) -> RowDetail {
+        guard !hidesNumbers, let window else { return .none }
+        let moment = CCWidgetFormat.resetMoment(window.resetsAt, locale: locale)
+        return window.hasClosed(at: date)
+            ? .closed(moment: moment)
+            : .reset(moment: moment, at: window.resetsAt)
+    }
 
     /// All three rows show consumption — see section 8. The bar fills as
     /// usage grows, just like the context's, and matches the Usage panel
@@ -136,7 +176,9 @@ extension CCWidgetEntry {
         return .measured(GaugeMetric(
             fraction: Double(window.usedPercentage) / 100,
             value: CCWidgetFormat.percent(window.usedPercentage),
-            auxiliary: CCWidgetFormat.countdown(window.timeUntilReset(at: date)),
+            // No countdown in here any more: it lives in `RowDetail.reset`
+            // and is drawn by SwiftUI's dynamic date, not computed.
+            auxiliary: nil,
             level: window.level
         ))
     }
@@ -155,6 +197,63 @@ extension CCWidgetEntry {
             auxiliary: context.totalInputTokens.map(CCWidgetFormat.tokens),
             level: level
         ))
+    }
+}
+
+/// The line under a bar. The one place a dynamic date enters the widget.
+///
+/// `Text("… \(date, style: .relative)")` keeps counting while the extension is
+/// asleep, which is what lets the timeline hold entries at thresholds instead
+/// of one a minute. What it costs: the string is built by the system and the
+/// code never sees it, so its width cannot be measured in the fast tier — that
+/// check moved to the render tier, see `Docs/rendering-checks.md`.
+struct DetailLine: View {
+    let detail: RowDetail
+
+    var body: some View {
+        switch detail {
+        case .none:
+            EmptyView()
+        case .text(let value):
+            line { Text(verbatim: value) }
+        case .reset(let moment, let at):
+            line { Text("resets \(moment) · \(at, style: .relative)") }
+        case .closed(let moment):
+            line { Text("resets \(moment) · \(String(localized: "closed"))") }
+        }
+    }
+
+    private func line(@ViewBuilder _ content: () -> Text) -> some View {
+        content()
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+}
+
+/// What the row says out loud where the dynamic date is drawn.
+///
+/// VoiceOver cannot be handed a `Text`, so the countdown is computed here for
+/// the moment the entry was built — and drifts from the drawn one as the entry
+/// ages. Accepted deliberately: a listener hearing "3 hr 38 min" when the tile
+/// reads "3 hr 12 min" is told the truth about a different minute, whereas a
+/// listener told nothing at all learns nothing. Section 2.4.
+func spokenDetail(_ detail: RowDetail, at moment: Date,
+                  locale: Locale = .autoupdatingCurrent) -> String? {
+    func localized(_ resource: LocalizedStringResource) -> String {
+        var copy = resource
+        copy.locale = locale
+        return String(localized: copy)
+    }
+    switch detail {
+    case .none: return nil
+    case .text(let value): return value
+    case .closed(let when):
+        return localized(LocalizedStringResource("resets \(when) · \(localized(LocalizedStringResource("closed")))"))
+    case .reset(let when, let at):
+        let left = CCWidgetFormat.countdown(at.timeIntervalSince(moment))
+        return localized(LocalizedStringResource("resets \(when) · \(left)"))
     }
 }
 
@@ -219,6 +318,14 @@ struct GaugeRow: View {
     /// the right of it is what tells the two apart.
     let reading: GaugeReading
     let dimmed: Bool
+    /// The line beside the number. `.none` keeps the old behaviour — whatever
+    /// the reading itself carries.
+    var detail: RowDetail = .none
+    /// The moment the entry was stamped with. Only the spoken form needs it:
+    /// the drawn countdown asks the system clock, the announcement cannot.
+    var moment: Date = Date()
+
+    @Environment(\.locale) private var locale
 
     var body: some View {
         HStack(spacing: 6) {
@@ -238,17 +345,25 @@ struct GaugeRow: View {
                 .lineLimit(1)
                 .layoutPriority(2)
 
-            if let auxiliary = reading.auxiliary() {
-                Text(verbatim: auxiliary)
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+            if case .none = detail {
+                if let auxiliary = reading.auxiliary() {
+                    Text(verbatim: auxiliary)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .layoutPriority(2)
+                }
+            } else {
+                DetailLine(detail: detail)
                     .layoutPriority(2)
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement(caption, reading, detail: reading.auxiliary()))
+        .accessibilityLabel(gaugeAnnouncement(
+            caption, reading,
+            detail: spokenDetail(detail, at: moment, locale: locale) ?? reading.auxiliary(locale: locale),
+            locale: locale))
     }
 
     private var tint: Color { metricTint(reading, dimmed: dimmed) }
@@ -259,8 +374,12 @@ struct GaugeRow: View {
 struct DetailGaugeRow: View {
     let caption: LocalizedStringResource
     let reading: GaugeReading
-    let detail: String?
+    let detail: RowDetail
     let dimmed: Bool
+    /// See `GaugeRow.moment`.
+    var moment: Date = Date()
+
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -284,16 +403,13 @@ struct DetailGaugeRow: View {
             Bar(fraction: reading.metric?.fraction ?? 0,
                 tint: metricTint(reading, dimmed: dimmed), height: 8)
 
-            if let detail {
-                Text(verbatim: detail)
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
+            DetailLine(detail: detail)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement(caption, reading, detail: detail))
+        .accessibilityLabel(gaugeAnnouncement(
+            caption, reading,
+            detail: spokenDetail(detail, at: moment, locale: locale),
+            locale: locale))
     }
 }
 
@@ -319,20 +435,27 @@ func metricTint(_ reading: GaugeReading, dimmed: Bool) -> Color {
     return dimmed ? .secondary : metric.level.color
 }
 
-/// The snapshot's age. Section 2.4: stale data must look stale, so past an
-/// hour the age gets an explicit word in front of it.
-struct AgeCaption: View {
+/// When the snapshot was taken. Section 2.4.
+///
+/// This printed a ticking age until the batch that moved countdowns onto
+/// dynamic dates. Two reasons it does not any more, and the second is the one
+/// that matters. The widget is now redrawn on thresholds rather than every
+/// minute, so a computed age would be stale between redraws — but more than
+/// that, an age is only ever true at the instant it is computed, while a
+/// capture moment is true whenever it is read. How old it is still shows: the
+/// tile dims past an hour and drops its figures past a day.
+struct CaptureCaption: View {
     let entry: CCWidgetEntry
     @Environment(\.locale) private var locale
 
     var body: some View {
         if let captured = entry.snapshot?.capturedAt {
-            let age = CCWidgetFormat.relativeAge(of: captured, at: entry.date, locale: locale)
+            let moment = CCWidgetFormat.capturedMoment(captured, locale: locale)
             Group {
                 if entry.freshness?.isDimmed == true {
-                    Text("outdated · \(age)")
+                    Text("outdated · updated at \(moment)")
                 } else {
-                    Text(verbatim: age)
+                    Text("updated at \(moment)")
                 }
             }
             .lineLimit(1)
@@ -393,13 +516,38 @@ extension MessageView {
         )
     }
 
+    /// The subscription windows have not arrived, and a reply already has.
+    ///
+    /// **States the observation and the rule; does not draw the conclusion.**
+    /// The likely reason is a plan that is not sent them, and that is a
+    /// statement about the reader's own subscription made from an indirect
+    /// signal — the context figures being filled in. If a Pro subscriber is
+    /// missing their windows for some other reason, a confident sentence about
+    /// their plan is simply false, and told to the person best placed to know
+    /// it is false. So the panel says what did not arrive and what the rule is,
+    /// and the reader, who knows which plan they are on, draws the rest.
+    ///
+    /// Not the same panel as `noData`, and the difference is the reason it
+    /// exists: `noData` asks the person to do something, and here there may be
+    /// nothing they can do. What is on the tile is still worth reading — the
+    /// context and the cost come from the same snapshot and are unaffected.
+    static func noLimits(compact: Bool = false) -> MessageView {
+        MessageView(
+            title: "Limits have not arrived",
+            message: "Claude Code sends them to Pro and Max accounts, after the first reply.",
+            compact: compact
+        )
+    }
+
     /// The snapshot is over a day old. Section 2.4: an invitation replaces
     /// the digits.
     static func abandoned(entry: CCWidgetEntry, compact: Bool = false) -> MessageView {
         MessageView(
             title: "Data is stale",
             message: "Launch Claude Code in the terminal to refresh.",
-            age: entry.snapshot.map { CCWidgetFormat.relativeAge(of: $0.capturedAt, at: entry.date) },
+            age: entry.snapshot.map {
+                String(localized: "updated at \(CCWidgetFormat.capturedMoment($0.capturedAt))")
+            },
             compact: compact
         )
     }

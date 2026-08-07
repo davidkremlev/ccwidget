@@ -2292,40 +2292,41 @@
         }
       }
     },
-    "Updated %@": {
+    "Updated at %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aktualisiert %@"
+            "value": "Aktualisiert um %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Actualizado %@"
+            "value": "Actualizado a las %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "最終更新 %@"
+            "value": "%@ に更新"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Обновлено %@"
+            "value": "Обновлено в %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "更新于 %@"
+            "value": "%@ 更新"
           }
         }
-      }
+      },
+      "comment": "Quiet line when there is no weekly window: the clock time of the snapshot"
     },
     "Usage Widget for Claude Code": {
       "extractionState": "manual",
@@ -2467,40 +2468,41 @@
         }
       }
     },
-    "Week resets %@ · updated %@": {
+    "Week resets %@ · updated at %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wochen-Reset %@ · aktualisiert %@"
+            "value": "Woche endet %@ · aktualisiert um %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reinicio semanal %@ · actualizado %@"
+            "value": "La semana se reinicia %@ · actualizado a las %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "週のリセット %@ · 更新 %@"
+            "value": "週のリセット %@ · %@ に更新"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сброс недели %@ · обновлено %@"
+            "value": "Неделя сбрасывается %@ · обновлено в %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "周重置 %@ · 更新于 %@"
+            "value": "本周重置于 %@ · %@ 更新"
           }
         }
-      }
+      },
+      "comment": "Quiet line: when the week resets, and the clock time the snapshot was taken at"
     },
     "Week used": {
       "extractionState": "manual",

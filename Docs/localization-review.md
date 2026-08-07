@@ -117,6 +117,16 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Simplified Chinese | Claude Code %@ |
 
 
+**`Claude Code sends them to Pro and Max accounts, after the first reply.`** — The rule, quoted so the reader can draw their own conclusion
+
+| | |
+|---|---|
+| German | Claude Code sendet sie an Pro- und Max-Konten, nach der ersten Antwort. |
+| Spanish | Claude Code los envía a las cuentas Pro y Max, tras la primera respuesta. |
+| Japanese | Claude Code は Pro と Max のアカウントに、最初の応答のあとで送信します。 |
+| Simplified Chinese | Claude Code 会在首次回复之后，向 Pro 和 Max 账户发送。 |
+
+
 **`closed`**
 
 | | |
@@ -217,6 +227,16 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Simplified Chinese | 在终端中启动 Claude Code 以刷新。 |
 
 
+**`Limits have not arrived`** — Shown when a reply has happened and rate_limits is still absent. States the observation, not a conclusion about the reader's plan
+
+| | |
+|---|---|
+| German | Limits sind nicht eingetroffen |
+| Spanish | Los límites no han llegado |
+| Japanese | 上限データが届いていません |
+| Simplified Chinese | 额度数据尚未送达 |
+
+
 **`no data`**
 
 | | |
@@ -247,14 +267,14 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Simplified Chinese | 数据尚不足 |
 
 
-**`outdated · %@`**
+**`outdated · updated at %@`** — The same caption once the snapshot is over an hour old
 
 | | |
 |---|---|
-| German | veraltet · %@ |
-| Spanish | obsoleto · %@ |
-| Japanese | 古い · %@ |
-| Simplified Chinese | 已过时 · %@ |
+| German | veraltet · aktualisiert um %@ |
+| Spanish | desactualizado · actualizado a las %@ |
+| Japanese | 古いデータ · %@ に更新 |
+| Simplified Chinese | 数据已过时 · %@ 更新 |
 
 
 **`Rate only — too little history for a date`**
@@ -287,16 +307,6 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Simplified Chinese | ~%@ 用尽 |
 
 
-**`Subscription limits, context window and cost at a glance.`**
-
-| | |
-|---|---|
-| German | Abo-Limits, Kontextfenster und Kosten auf einen Blick. |
-| Spanish | Límites de suscripción, ventana de contexto y coste de un vistazo. |
-| Japanese | サブスクリプションの上限、コンテキストウィンドウ、コストをひと目で。 |
-| Simplified Chinese | 订阅限额、上下文窗口与费用一目了然。 |
-
-
 **`This session`**
 
 | | |
@@ -325,6 +335,26 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Spanish | Tokens |
 | Japanese | トークン |
 | Simplified Chinese | 令牌 |
+
+
+**`Track how much of your Claude subscription you have used, with the context window and cost.`** — Widget gallery description. Begins with an action verb, per Apple's widget guidance
+
+| | |
+|---|---|
+| German | Verfolgen Sie, wie viel Ihres Claude-Abos Sie verbraucht haben — samt Kontextfenster und Kosten. |
+| Spanish | Sigue cuánto has consumido de tu suscripción a Claude, con la ventana de contexto y el coste. |
+| Japanese | Claudeサブスクリプションの使用量を、コンテキストウィンドウとコストとともに把握できます。 |
+| Simplified Chinese | 跟踪你已用掉多少 Claude 订阅额度，并查看上下文窗口与费用。 |
+
+
+**`updated at %@`** — Caption under the tile: the clock time the snapshot was taken at
+
+| | |
+|---|---|
+| German | aktualisiert um %@ |
+| Spanish | actualizado a las %@ |
+| Japanese | %@ に更新 |
+| Simplified Chinese | %@ 更新 |
 
 
 **`Usage is flat`**
@@ -365,6 +395,16 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Spanish | esperando límites |
 | Japanese | 制限を待っています |
 | Simplified Chinese | 等待限额 |
+
+
+**`Week usage chart`** — Spoken by VoiceOver for the estimate chart: names what the picture shows
+
+| | |
+|---|---|
+| German | Diagramm des Wochenverbrauchs |
+| Spanish | Gráfico de uso semanal |
+| Japanese | 週間使用量のグラフ |
+| Simplified Chinese | 每周用量图表 |
 
 
 **`Week used`**
@@ -1151,14 +1191,14 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 该小组件读取 Claude Code 的状态行，因此需要安装终端版并至少使用一次。 |
 
 
-**`Updated %@`**
+**`Updated at %@`** — Quiet line when there is no weekly window: the clock time of the snapshot
 
 | | |
 |---|---|
-| German | Aktualisiert %@ |
-| Spanish | Actualizado %@ |
-| Japanese | 最終更新 %@ |
-| Simplified Chinese | 更新于 %@ |
+| German | Aktualisiert um %@ |
+| Spanish | Actualizado a las %@ |
+| Japanese | %@ に更新 |
+| Simplified Chinese | %@ 更新 |
 
 
 **`Usage Widget for Claude Code`**
@@ -1201,14 +1241,14 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 监视器 |
 
 
-**`Week resets %@ · updated %@`**
+**`Week resets %@ · updated at %@`** — Quiet line: when the week resets, and the clock time the snapshot was taken at
 
 | | |
 |---|---|
-| German | Wochen-Reset %@ · aktualisiert %@ |
-| Spanish | Reinicio semanal %@ · actualizado %@ |
-| Japanese | 週のリセット %@ · 更新 %@ |
-| Simplified Chinese | 周重置 %@ · 更新于 %@ |
+| German | Woche endet %@ · aktualisiert um %@ |
+| Spanish | La semana se reinicia %@ · actualizado a las %@ |
+| Japanese | 週のリセット %@ · %@ に更新 |
+| Simplified Chinese | 本周重置于 %@ · %@ 更新 |
 
 
 **`Week used`**
@@ -1243,4 +1283,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-117 strings in total.
+121 strings in total.
