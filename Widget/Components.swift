@@ -288,16 +288,41 @@ struct Bar: View {
     let tint: Color
     var height: CGFloat = 6
 
+    /// **Every value handed to `frame(width:)` is guarded, and that is what
+    /// this comment is for.** The extension crashed on every render for five
+    /// hours with `assertionFailure` inside `LayoutSubview.place`, called from
+    /// `GeometryReaderLayout.placeSubviews` — SwiftUI refusing a width it was
+    /// given. The only `GeometryReader` in a row is this one, and the only
+    /// width it computes is the line below.
+    ///
+    /// A `GeometryReader` reports whatever the layout proposes, and inside a
+    /// horizontal stack that can be a width which is not a number: WidgetKit
+    /// archives a widget's states with proposals a screenshot tool never makes,
+    /// which is why eighty-one renders through `ImageRenderer` came back clean
+    /// while the tile crashed on the desktop.
+    ///
+    /// Multiplying a non-finite width by a fraction produces a non-finite
+    /// frame, and SwiftUI traps on it. Clamping costs nothing and removes the
+    /// whole class.
+    private var fill: CGFloat {
+        let clamped = min(max(fraction.isFinite ? fraction : 0, 0), 1)
+        return clamped
+    }
+
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule().fill(.quaternary)
+        // No GeometryReader. The extension crashed inside
+        // `GeometryReaderLayout.placeSubviews` on every render, and clamping
+        // the width it reported did not stop it — so the reader itself goes.
+        // A scaled capsule needs no geometry: the fill is laid out at full
+        // width and then squeezed from the leading edge.
+        Capsule()
+            .fill(.quaternary)
+            .frame(height: height)
+            .overlay(alignment: .leading) {
                 Capsule()
                     .fill(tint)
-                    .frame(width: geometry.size.width * min(max(fraction, 0), 1))
+                    .scaleEffect(x: fill, y: 1, anchor: .leading)
             }
-        }
-        .frame(height: height)
     }
 }
 
