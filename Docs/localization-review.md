@@ -43,7 +43,7 @@ strings are plain JSON in `App/Resources/Localizable.xcstrings` and
   and hitting 100 % costs nothing; it means the model starts losing the
   beginning of the conversation. Russian uses a different verb for that row for
   exactly this reason.
-- **Space is tight.** A widget tile is 158 or 338 points wide. The medium size
+- **Space is tight.** A widget tile is 164 or 344 points wide. The medium size
   fits a caption of roughly 22 characters beside a bar and a number; longer
   captions shrink and then truncate. Shorter is better when the choice is
   between shorter and more precise.
@@ -64,7 +64,7 @@ on; a language that needs more categories than are listed is itself a finding.
 
 ### In the widget
 
-Seen on the desktop, in tiles 158 to 338 points wide.
+Seen on the desktop, in tiles 164 to 344 points wide.
 
 
 **`%@ %%/h`** — Usage rate: a number followed by percent per hour
