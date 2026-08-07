@@ -40,6 +40,11 @@ where the answer was given long ago and is being remembered.
 **This test decides which.** It cannot be run from the developer's account,
 because that account has already answered whatever was asked.
 
+It answers a second question along the way, for the same reason. The widget
+gallery on the developer's machine still shows the icon that was replaced —
+see step 4a. A new account has never seen the old icon, so what it shows there
+separates a stale cache from a defect in what gets built.
+
 ---
 
 ## What you need
@@ -194,6 +199,41 @@ python3 ~/.claude/ccwidget-export.py < /dev/null; echo "exit: $?"
 The second command runs the exporter by hand with empty input; it should exit
 quietly. Any traceback or permission error goes into the record verbatim.
 
+## Step 4a — Which icon the widget gallery shows
+
+Do this while the gallery is open in front of you — right-click the desktop →
+Edit Widgets → find **Usage Widget for Claude Code**.
+
+**Expected: an amber tile with a cream vessel on it**, the same icon Finder
+shows for the app. The gallery has no icon of its own to draw: the extension
+bundle carries neither an `.icns` nor an asset catalog, and Apple requires an
+extension's icon to be its containing app's.
+
+This step exists because of what happened on the developer's machine on
+7 August 2026. The icon was replaced; Dock, Finder and Spotlight picked up the
+new one within seconds of `killall Dock`; **the gallery kept the old one** —
+a grey ring with a green arc — through a reinstall, a `pluginkit -a`
+re-registration whose UUID and timestamp both visibly changed, and a
+`killall chronod`. Section 5.1 of `SPEC.md` has the full sequence.
+
+Record which icon you see. Both answers are worth having, and they point in
+opposite directions:
+
+- **The new one — the vessel.** Then the stale icon on the developer's machine
+  was a cache artifact of an account where the old icon had lived for months,
+  and no defect exists in what gets built or installed. `SPEC` 5.1 gets that
+  sentence, and the procedure there can be shortened to "reinstall, relaunch,
+  and on a machine that has seen an older icon, expect the gallery to lag".
+- **The old one — the ring.** Then it is a real defect in the bundle or in how
+  the extension is registered, and it is one that **no check we have can see**:
+  the `.icns` extracted from the built bundle is correct, Finder and Dock agree,
+  and the checks pass. That would mean the gallery reads something else — a
+  different asset, a different registration — and the next step is to find out
+  what, before release rather than after.
+
+If neither — no icon at all, or a generic placeholder — record that too,
+verbatim, and note whether the widget itself was listed in the gallery.
+
 ## Step 5 — Does the widget actually show the numbers
 
 Look at the widget on the desktop. **Expected:** within a minute it shows
@@ -229,6 +269,7 @@ Even when everything works, the record is the result. For each step:
 | Prompt at step 4 | none, or screenshot + which app it named |
 | Files after step 3 | output of the two `ls -l` commands |
 | Files after step 4 | output of `ls -l` |
+| Icon in the gallery (step 4a) | vessel / ring / none — and which |
 | Widget after step 5 | numbers / waiting / setup screen |
 | Log file | `~/Desktop/container-test-log.txt`, keep it whole |
 
