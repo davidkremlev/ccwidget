@@ -73,7 +73,8 @@ struct MediumView: View {
 
     /// What the footer says, as one sentence.
     private func spokenFooter(_ snapshot: Snapshot) -> String {
-        var parts = [String(localized: "this session:")]
+        var parts = [entry.projectName.map { String(localized: "\($0):") }
+                     ?? String(localized: "this session:")]
         if let cost = snapshot.cost?.sessionUsd {
             parts.append(CCWidgetFormat.money(cost))
         }
@@ -85,12 +86,23 @@ struct MediumView: View {
 
     private func footer(_ snapshot: Snapshot) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            // "this session" governs the whole footer: both the money and
-            // the cache share are per-session, not account-wide. Once the
-            // project name left the header, without this label the money
-            // would have belonged to nobody in particular.
+            // The footer's figures are per-session, and the snapshot is
+            // rewritten by whichever session redrew its status line last. So
+            // the label names the session rather than saying "this" one:
+            // observed on 7 August 2026, the tile carried another project's
+            // context and cost for about twenty seconds while a parallel
+            // session worked, and "this session" gave the reader no way to
+            // notice. Section 2.4.
+            //
+            // The name comes from `entry.projectName`, the same source the
+            // context row's line uses — two labels naming different projects
+            // off one snapshot would be worse than one vague label.
             HStack(spacing: 6) {
-                Text("this session:")
+                if let project = entry.projectName {
+                    Text("\(project):")
+                } else {
+                    Text("this session:")
+                }
                 if let cost = snapshot.cost?.sessionUsd {
                     Text(verbatim: CCWidgetFormat.money(cost)).monospacedDigit()
                 }

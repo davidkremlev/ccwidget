@@ -77,6 +77,16 @@ Seen on the desktop, in tiles 158 to 338 points wide.
 | Simplified Chinese | %@ %%/小时 |
 
 
+**`%@:`** — Footer label naming the session by its project, e.g. "ccwidget:". The figures beside it belong to that session
+
+| | |
+|---|---|
+| German | %@: |
+| Spanish | %@: |
+| Japanese | %@: |
+| Simplified Chinese | %@: |
+
+
 **`5-hour used`**
 
 | | |
@@ -1283,4 +1293,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-121 strings in total.
+122 strings in total.

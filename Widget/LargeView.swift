@@ -93,10 +93,17 @@ struct LargeView: View {
     /// per-session, so the block is labelled as a whole.
     private func details(_ snapshot: Snapshot) -> some View {
         VStack(spacing: 3) {
-            // The project name is not repeated: it already sits by the
-            // context row, and naming the session is enough here.
+            // The project names the session, from the same source as the
+            // context row's line. The snapshot belongs to whichever session
+            // wrote last, and a heading reading "This session" left the
+            // reader unable to tell which one that was — see section 2.4 and
+            // the observation recorded there.
             HStack(spacing: 4) {
-                Text("This session")
+                if let project = entry.projectName {
+                    Text(verbatim: project)
+                } else {
+                    Text("This session")
+                }
                 Spacer(minLength: 0)
             }
             .font(.caption2)

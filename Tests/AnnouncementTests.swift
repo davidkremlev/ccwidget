@@ -406,6 +406,47 @@ struct ViewStateTests {
                 "two steps open with the same line: \(headlines)")
     }
 
+    // MARK: Whose session the footer is about
+
+    /// The snapshot is rewritten whole by whichever Claude Code session redrew
+    /// its status line last, so the figures in the footer belong to that
+    /// session and not necessarily to the one the reader is in. The footer
+    /// names it — and has to name the same project the context row names, off
+    /// the same snapshot, or the tile contradicts itself.
+    @Test("The footer names the same project as the context row")
+    func footerNamesTheSameProject() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = Snapshot(
+            schemaVersion: 1, capturedAt: now, sessionId: "abc123",
+            claudeCodeVersion: nil, model: nil,
+            project: ProjectInfo(name: "another-project"),
+            limits: Limits(fiveHour: nil, sevenDay: nil),
+            context: ContextInfo(usedPercentage: 40, totalInputTokens: 1000,
+                                 windowSize: nil, cacheHitRatio: 0.9),
+            cost: CostInfo(sessionUsd: 12.5))
+        let entry = CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: nil)
+
+        // What the context row puts beside its number, and what the footer
+        // calls the session: one value, read twice.
+        #expect(entry.projectName == "another-project")
+        let contextLine = entry.contextReading.withAuxiliary(entry.projectName).auxiliary()
+        #expect(contextLine == entry.projectName,
+                "the context row says \(contextLine ?? "nothing"), the footer would say \(entry.projectName ?? "nothing")")
+    }
+
+    /// A snapshot with no project name at all still has to say something, and
+    /// the something is the old wording rather than an empty label.
+    @Test("With no project the footer keeps the generic wording")
+    func footerFallsBackWhenUnnamed() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let snapshot = Snapshot(
+            schemaVersion: 1, capturedAt: now, sessionId: nil, claudeCodeVersion: nil,
+            model: nil, project: nil, limits: Limits(fiveHour: nil, sevenDay: nil),
+            context: nil, cost: nil)
+        let entry = CCWidgetEntry(date: now, snapshot: snapshot, failure: nil, forecast: nil)
+        #expect(entry.projectName == nil)
+    }
+
     // MARK: The estimate chart
 
     /// The chart was `accessibilityHidden(true)` until Apple's VoiceOver
