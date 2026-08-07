@@ -21,7 +21,13 @@
 # Exit codes: 0 healthy, 1 crashed, 2 no evidence either way.
 set -uo pipefail
 
-REPORTS="$HOME/Library/Logs/DiagnosticReports"
+# Where the crash reports are read from. Overridable because the branch that
+# matters most here — "the extension crashed, here is the stack" — cannot be
+# exercised against the real directory: it reports a crash only when there has
+# been one, so the code that names the faulting frames would be run for the
+# first time on the day it is needed. Point this at a directory holding a
+# report and the branch runs on demand.
+REPORTS="${CCWIDGET_REPORTS_DIR:-$HOME/Library/Logs/DiagnosticReports}"
 SUBSYSTEM="dev.illvminat.ccwidget"
 BINARY="/Applications/CCWidget.app/Contents/PlugIns/CCWidgetExtension.appex/Contents/MacOS/CCWidgetExtension"
 
