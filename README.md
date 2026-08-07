@@ -336,10 +336,28 @@ swiftc -swift-version 6 -target arm64-apple-macos14.0 \
     Shared/Diagnostics.swift Shared/AgeClock.swift \
     Shared/HistoryStore.swift Shared/Forecast.swift \
     Tools/ccwidget-replay/main.swift -o .build/ccwidget-replay
+
+# re-shoot the screenshots, or render any view without putting a widget on a
+# desktop. Needs the views as well as the shared code, which is why the list
+# is longer.
+swiftc -swift-version 6 -target arm64-apple-macos14.0 \
+    Shared/*.swift \
+    Widget/Provider.swift Widget/Components.swift Widget/ForecastChart.swift \
+    Widget/SmallView.swift Widget/MediumView.swift Widget/LargeView.swift \
+    Tools/ccwidget-screenshots/main.swift -o .build/ccwidget-screenshots
 ```
 
-The same commands run in CI on every push, so if they stop working the build
-goes red rather than the README going stale.
+**Render in the language you are changing.** The tool takes the locale from the
+arguments, and a layout that fits in English can fail in Russian or German:
+
+```sh
+./.build/ccwidget-screenshots /tmp/shots -AppleLocale ru_RU -AppleLanguages "(ru)"
+```
+
+CI builds the first two of these on every push. The third is not built there —
+so unlike the others, it can rot unnoticed — and the flags differ: CI adds
+`-strict-concurrency=complete`, which these lines omit. Nothing compares the two,
+so treat this block as a copy that can drift rather than as the same commands.
 
 If the icon stays a grey placeholder after the first install, that is macOS's
 icon cache rather than the build. It survives reinstalling, `lsregister` and a
