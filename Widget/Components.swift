@@ -426,9 +426,24 @@ struct GaugeRow: View {
                 // No layoutPriority here, deliberately. Giving the line
                 // priority is what squeezed the bar to nothing; the bar is the
                 // one element in this row that cannot be replaced by reading
-                // the number beside it.
+                // the number beside it. The bar defends itself now, with the
+                // `minWidth` above — a floor on what matters, rather than a
+                // clamp on what does not.
+                //
+                // **No `.fixedSize()` here, and this is the whole reason the
+                // medium tile went black on 7 August.** `.fixedSize()` asks a
+                // view to take its ideal size, and this line holds a dynamic
+                // date, whose size is not knowable in advance — the system
+                // decides what "5 дн 10 ч" will say when it draws it. WidgetKit
+                // archives the view's states ahead of time, and a demand it
+                // cannot satisfy makes the whole tile come out empty: a dark
+                // rectangle, no crash, no log line, nothing.
+                //
+                // The same class as the morning's crash — `GeometryReader` in
+                // `Bar` — and invisible the same way: every check in `Tests/`
+                // draws this row correctly, because a test process has no
+                // archiving step. `Scripts/tile-probe.swift` is what sees it.
                 DetailLine(detail: detail, compact: true)
-                    .fixedSize()
             }
         }
         .accessibilityElement(children: .ignore)

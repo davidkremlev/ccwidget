@@ -109,10 +109,31 @@ PY
 fi
 
 if [ "$built" -eq 0 ]; then
+    # Before blaming the extension: does the log even reach back that far?
+    # `.info` messages live in a ring buffer the whole machine shares, and
+    # they are evicted as other processes write. Measured on 7 August: at
+    # 17:20 the window held 21 builds, at 17:46 the same window held none,
+    # while the extension had in fact built three timelines two minutes
+    # earlier. Reporting that as "add the widget to the desktop" sends the
+    # reader to look for a widget that is already there and working.
+    oldest=$(/usr/bin/log show --info --last "${MINUTES}m" --style compact 2>/dev/null \
+             | sed -n '2p' | cut -c1-19)
+    oldest_epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "$oldest" +%s 2>/dev/null || echo 0)
     echo
-    echo "?? No timeline was built in that window, and nothing crashed either."
-    echo "   Nothing to conclude. Add the widget to the desktop, or reload it:"
-    echo "     killall chronod"
+    if [ "$oldest_epoch" -gt $(( cutoff + 60 )) ]; then
+        held=$(( ( $(date +%s) - oldest_epoch ) / 60 ))
+        echo "?? Nothing crashed, and the log cannot answer the rest: its .info"
+        echo "   records reach back only $held minute(s), short of the $MINUTES asked for."
+        echo "   The buffer is shared with the whole machine and evicts by volume,"
+        echo "   so this says nothing about the extension either way. Ask again"
+        echo "   over a shorter window:"
+        echo "     ./Scripts/check-widget-health.sh $(( held > 1 ? held - 1 : 1 ))"
+    else
+        echo "?? No timeline was built in that window, and nothing crashed either."
+        echo "   The log does reach back that far, so the provider genuinely was"
+        echo "   not called. Add the widget to the desktop, or reload it:"
+        echo "     killall chronod"
+    fi
     exit 2
 fi
 

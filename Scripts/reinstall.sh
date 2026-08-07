@@ -75,6 +75,22 @@ if [ "${1:-}" != "--no-health" ] && [ "${2:-}" != "--no-health" ]; then
         echo "   showing its last good frame, which looks like stale data."
         exit 1
     fi
+
+    # Surviving is not the same as drawing. Later the same day the extension
+    # stopped crashing and the medium tile went black instead: every timeline
+    # built, nothing was logged, and the check above said "healthy" about a
+    # tile with nothing on it. So the install also looks at the tile.
+    echo "==> Checking that the tile actually drew something"
+    swift "$ROOT/Scripts/tile-probe.swift"
+    case $? in
+        0) ;;
+        1) echo
+           echo "!! Installed, and the tile is blank. Nothing crashed — this is"
+           echo "   the quiet failure, not the loud one."
+           exit 1 ;;
+        *) echo
+           echo "   (Installed. The tile could not be judged — see above.)" ;;
+    esac
 fi
 
 echo "==> Done. Logs:"
