@@ -99,6 +99,7 @@ by the person who read it.
 | Consumer Terms | how it works | <https://www.anthropic.com/legal/consumer-terms> | 2026-08-06 | a legal document; section 14 of `SPEC.md` turns on its clause 3.7, and a stale copy of a legal text is worse than none |
 | Usage policy | how it works | <https://www.anthropic.com/legal/aup> | 2026-08-06 | legal document |
 | Homebrew | how to do it right | <https://docs.brew.sh/Cask-Cookbook> | 2026-08-06 | the policy of a repository that moves |
+| App extensions | how it works | <https://developer.apple.com/library/archive/documentation/General/Conceptual/ExtensibilityPG/ExtensionCreation.html> | 2026-08-07 | Apple's archive: retired, not updated for macOS 26, and the only place that states an extension's icon must be its containing app's. Cite it as archive, and re-check before relying on anything else from it |
 
 ## Where a genre is missing
 
