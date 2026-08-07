@@ -29,6 +29,24 @@ struct CCWidgetProvider: TimelineProvider {
     /// entries are needed only where what is *drawn* actually changes.
     static let minimumSpacing: TimeInterval = 5 * 60
 
+    /// How far ahead a timeline may reach, and how far apart its entries may
+    /// sit. Both are upper bounds, and the project had neither.
+    ///
+    /// The minute grid did two jobs. It drove the countdown — which dynamic
+    /// dates now do — and, as a side effect, it ran out after half an hour,
+    /// which forced the system to come back and ask the provider for more.
+    /// Placing entries only on thresholds kept the first job and silently
+    /// dropped the second: measured on 7 August 2026, a real timeline reached
+    /// **134.9 hours** ahead, so `.after(last)` meant the provider would not be
+    /// asked again for five and a half days. Every entry in it carried the
+    /// snapshot read when it was built, and the tile showed data two hours old
+    /// while the window beside it was current.
+    ///
+    /// Reloads from the watcher were the only thing bridging that, and the
+    /// watcher lives in the app's window — closed window, frozen tile.
+    static let horizon: TimeInterval = 2 * 60 * 60
+    static let maximumSpacing: TimeInterval = 30 * 60
+
     /// Where the tile changes by itself, with no new data: the two freshness
     /// thresholds, and the moment each window closes.
     ///
@@ -41,6 +59,16 @@ struct CCWidgetProvider: TimelineProvider {
     static func entryDates(from now: Date, snapshot: Snapshot?) -> [Date] {
         var moments: [Date] = [now]
 
+        // A paced series out to the horizon. Its only purpose is to end: the
+        // last entry is what the reload policy points at, and a timeline that
+        // ends in two hours is a promise that the provider is asked again in
+        // two hours, whatever the watcher is doing.
+        var step = now.addingTimeInterval(maximumSpacing)
+        while step <= now.addingTimeInterval(horizon) {
+            moments.append(step)
+            step = step.addingTimeInterval(maximumSpacing)
+        }
+
         if let captured = snapshot?.capturedAt {
             // An hour old: the figures dim and gain the word "outdated".
             // A day old: the figures go away entirely.
@@ -52,15 +80,38 @@ struct CCWidgetProvider: TimelineProvider {
             moments.append(window.resetsAt)
         }
 
-        // Only what is still ahead, in order, and never two closer than the
-        // minimum: the system is entitled to ignore entries it considers too
-        // dense, and an ignored entry is a threshold that arrives late.
+        // Only what is ahead and inside the horizon, in order, and never two
+        // closer than the minimum: the system is entitled to ignore entries it
+        // considers too dense, and an ignored entry is a threshold that arrives
+        // late. A threshold beyond the horizon is not lost — the timeline built
+        // two hours from now will carry it, and by then it is closer.
+        let ceiling = now.addingTimeInterval(horizon)
         var kept: [Date] = []
-        for moment in moments.sorted() where moment >= now {
+        for moment in moments.sorted() where moment >= now && moment <= ceiling {
             if let last = kept.last, moment.timeIntervalSince(last) < minimumSpacing { continue }
             kept.append(moment)
         }
-        return kept.isEmpty ? [now] : kept
+
+        // Thinning can open a gap wider than the maximum: a threshold accepted
+        // just before a grid point pushes the next one past it. Fill those back
+        // in — evenly, not by stepping the maximum off the left edge, which
+        // leaves a sliver against the right one and breaks the lower bound
+        // instead. Both bounds have to hold on what is actually returned.
+        var paced: [Date] = []
+        for moment in kept {
+            if let last = paced.last {
+                let gap = moment.timeIntervalSince(last)
+                if gap > maximumSpacing {
+                    let pieces = Int((gap / maximumSpacing).rounded(.up))
+                    let step = gap / Double(pieces)
+                    for piece in 1..<pieces {
+                        paced.append(last.addingTimeInterval(step * Double(piece)))
+                    }
+                }
+            }
+            paced.append(moment)
+        }
+        return paced.isEmpty ? [now] : paced
     }
 
     func placeholder(in context: Context) -> CCWidgetEntry {

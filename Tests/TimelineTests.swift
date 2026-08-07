@@ -67,25 +67,89 @@ struct TimelineTests {
         }
     }
 
+    /// **The bound that was missing, and the defect that walked through the
+    /// gap.** Only the lower one was ever checked: entries no closer than five
+    /// minutes. Nothing said how far apart they may be, or how far ahead the
+    /// last one may sit — and the last one is what the reload policy points at,
+    /// so it decides when the system asks the provider again.
+    ///
+    /// Measured on a live snapshot, 7 August 2026: the timeline reached 134.9
+    /// hours ahead. For five and a half days the provider would not be called,
+    /// and every entry already built carried the snapshot as it was when the
+    /// timeline was made. The tile showed data two hours old beside a window
+    /// showing the current figures. Reloads from the watcher were the only
+    /// bridge, and the watcher stops with the app's window.
+    ///
+    /// The minute grid used to provide this bound by accident: thirty entries a
+    /// minute apart ran out after half an hour, which brought the system back.
+    /// Replacing it with thresholds kept the countdown and dropped the return.
+    @Test("Entries are neither too close nor too far apart",
+          arguments: [
+            (-30.0, 3600.0, 6 * 86_400.0),      // resets days out — the case that failed
+            (-3599.0, 60.0, 300.0),             // thresholds crowding the start
+            (0.0, 7 * 86_400.0, 7 * 86_400.0),  // nothing inside the horizon at all
+            (-86_390.0, 120.0, 121.0),
+          ])
+    func entriesRespectBothBounds(captured: TimeInterval,
+                                  fiveHour: TimeInterval,
+                                  week: TimeInterval) {
+        let dates = CCWidgetProvider.entryDates(
+            from: Self.now,
+            snapshot: snapshot(captured: captured, fiveHourResets: fiveHour, weekResets: week))
+
+        for (earlier, later) in zip(dates, dates.dropFirst()) {
+            let gap = later.timeIntervalSince(earlier)
+            #expect(gap >= CCWidgetProvider.minimumSpacing,
+                    "entries \(Int(gap)) s apart, below the \(Int(CCWidgetProvider.minimumSpacing)) s minimum")
+            #expect(gap <= CCWidgetProvider.maximumSpacing,
+                    "entries \(Int(gap)) s apart, above the \(Int(CCWidgetProvider.maximumSpacing)) s maximum")
+        }
+
+        // The last entry is the reload policy. However quiet the day, the
+        // provider is asked again within the horizon.
+        let reach = (dates.last ?? Self.now).timeIntervalSince(Self.now)
+        #expect(reach <= CCWidgetProvider.horizon,
+                "the timeline reaches \(Int(reach / 3600)) h ahead, past the \(Int(CCWidgetProvider.horizon / 3600)) h horizon")
+        #expect(reach >= CCWidgetProvider.maximumSpacing,
+                "the timeline ends \(Int(reach)) s from now — the system would be asked back immediately")
+    }
+
     /// The entries exist for the moments the tile changes without new data.
     /// Drop one and a widget sits dimmed-looking-fresh for however long the
     /// next reload takes.
-    @Test("The freshness thresholds and the window resets get an entry")
-    func thresholdsAreCovered() {
+    ///
+    /// **Only those inside the horizon.** A threshold two days out is not
+    /// scheduled and is not lost: the timeline built two hours from now carries
+    /// it, and by then it is two hours closer. Placing it now was what let the
+    /// timeline reach five days ahead and stop the provider being called.
+    @Test("Thresholds inside the horizon get an entry; those beyond it wait")
+    func thresholdsInsideTheHorizonAreCovered() {
         let captured = -1800.0            // half an hour old
         let dates = CCWidgetProvider.entryDates(
             from: Self.now,
             snapshot: snapshot(captured: captured, fiveHourResets: 4 * 3600, weekResets: 5 * 86_400))
 
-        let expected = [
-            Self.now.addingTimeInterval(captured + 3600),        // dims here
-            Self.now.addingTimeInterval(4 * 3600),               // five-hour window closes
-            Self.now.addingTimeInterval(captured + 86_400),      // figures go away here
-            Self.now.addingTimeInterval(5 * 86_400),             // week closes
-        ]
-        for moment in expected {
-            #expect(dates.contains(moment), "no entry at \(moment)")
+        // Inside two hours: the moment the tile dims.
+        #expect(dates.contains(Self.now.addingTimeInterval(captured + 3600)),
+                "the hour threshold is inside the horizon and has no entry")
+
+        // Beyond it: the five-hour reset, the day threshold, the weekly reset.
+        for beyond in [4 * 3600.0, captured + 86_400, 5 * 86_400.0] {
+            let moment = Self.now.addingTimeInterval(beyond)
+            #expect(!dates.contains(moment),
+                    "\(moment) is past the horizon and should be left to the next timeline")
         }
+    }
+
+    /// A window closing inside the horizon still gets its entry — that is the
+    /// case the thresholds exist for, and it must not be lost to the pacing.
+    @Test("A reset inside the horizon gets an entry")
+    func nearResetIsCovered() {
+        let dates = CCWidgetProvider.entryDates(
+            from: Self.now,
+            snapshot: snapshot(captured: -60, fiveHourResets: 40 * 60, weekResets: 5 * 86_400))
+        #expect(dates.contains(Self.now.addingTimeInterval(40 * 60)),
+                "a reset forty minutes out has no entry")
     }
 
     /// A moment already past cannot be scheduled, and WidgetKit would drop it
@@ -101,12 +165,23 @@ struct TimelineTests {
         #expect(dates.allSatisfy { $0 >= Self.now })
     }
 
-    /// No snapshot: nothing has thresholds, and the provider still owes the
-    /// system one entry.
-    @Test("With no snapshot there is exactly one entry")
-    func emptyTimeline() {
+    /// No snapshot: nothing has thresholds, but the timeline still has to end
+    /// inside the horizon, or a widget that has never had data would never ask
+    /// again. This used to expect a single entry — correct while the policy
+    /// pointed at a threshold days out, wrong now that the last entry is what
+    /// brings the provider back.
+    @Test("With no snapshot the timeline is still paced and still ends")
+    func emptyTimelineIsStillPaced() {
         let dates = CCWidgetProvider.entryDates(from: Self.now, snapshot: nil)
-        #expect(dates == [Self.now])
+
+        #expect(dates.first == Self.now)
+        #expect(dates.count > 1, "a single entry would mean the provider is never asked again")
+        let reach = (dates.last ?? Self.now).timeIntervalSince(Self.now)
+        #expect(reach <= CCWidgetProvider.horizon)
+        for (earlier, later) in zip(dates, dates.dropFirst()) {
+            let gap = later.timeIntervalSince(earlier)
+            #expect(gap >= CCWidgetProvider.minimumSpacing && gap <= CCWidgetProvider.maximumSpacing)
+        }
     }
 
     // MARK: What replaced the agreement
