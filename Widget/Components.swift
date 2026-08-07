@@ -288,33 +288,33 @@ struct Bar: View {
     let tint: Color
     var height: CGFloat = 6
 
-    /// **Every value handed to `frame(width:)` is guarded, and that is what
-    /// this comment is for.** The extension crashed on every render for five
-    /// hours with `assertionFailure` inside `LayoutSubview.place`, called from
-    /// `GeometryReaderLayout.placeSubviews` — SwiftUI refusing a width it was
-    /// given. The only `GeometryReader` in a row is this one, and the only
-    /// width it computes is the line below.
+    /// The fraction, clamped, and never anything but a number.
     ///
-    /// A `GeometryReader` reports whatever the layout proposes, and inside a
-    /// horizontal stack that can be a width which is not a number: WidgetKit
-    /// archives a widget's states with proposals a screenshot tool never makes,
-    /// which is why eighty-one renders through `ImageRenderer` came back clean
-    /// while the tile crashed on the desktop.
-    ///
-    /// Multiplying a non-finite width by a fraction produces a non-finite
-    /// frame, and SwiftUI traps on it. Clamping costs nothing and removes the
-    /// whole class.
+    /// `scaleEffect` traps on a non-finite scale exactly as `frame(width:)`
+    /// traps on a non-finite width, so the guard outlived the geometry it was
+    /// written for. A percentage arriving as NaN would take the extension down
+    /// on every render, and the extension going down is invisible from the
+    /// desktop — the system keeps showing the last frame that worked.
     private var fill: CGFloat {
-        let clamped = min(max(fraction.isFinite ? fraction : 0, 0), 1)
-        return clamped
+        min(max(fraction.isFinite ? fraction : 0, 0), 1)
     }
 
+    /// **No `GeometryReader` here, and that is the whole point.**
+    ///
+    /// The extension crashed on every render for five hours on 7 August 2026 —
+    /// `assertionFailure` inside `LayoutSubview.place`, called from
+    /// `GeometryReaderLayout.placeSubviews`. A reader reports whatever the
+    /// layout proposes, and WidgetKit archives a widget's states with proposals
+    /// no screenshot tool makes: eighty-one renders through `ImageRenderer`,
+    /// every view and every state, came back clean while the tile crashed each
+    /// time. Clamping the width the reader returned did not help; removing the
+    /// reader did.
+    ///
+    /// A scaled capsule needs no geometry: the fill is laid out at full width
+    /// and squeezed from the leading edge. `RowCompositionTests` fails if a
+    /// reader comes back, and `Scripts/check-widget-health.sh` is what would
+    /// notice if something else of the same kind arrives.
     var body: some View {
-        // No GeometryReader. The extension crashed inside
-        // `GeometryReaderLayout.placeSubviews` on every render, and clamping
-        // the width it reported did not stop it — so the reader itself goes.
-        // A scaled capsule needs no geometry: the fill is laid out at full
-        // width and then squeezed from the leading edge.
         Capsule()
             .fill(.quaternary)
             .frame(height: height)
