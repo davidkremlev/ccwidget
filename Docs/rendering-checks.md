@@ -155,8 +155,8 @@ Measured headroom as it stands:
 | Medium row caption | 139 pt | Russian, 27 % spare |
 | Small tile header | 114 pt | Russian, 9 % spare |
 
-Nine percent is thin, and it is the honest number: the small tile is 158 points
-wide and Russian says `Использовано за неделю`. The check will fail rather than
+Nine percent is thin, and it is the honest number: the small tile is 164 points
+wide — measured, section 9 — and Russian says `Использовано за неделю`. The check will fail rather than
 truncate, which is the point.
 
 Two negative controls keep the budgets meaningful — an over-long caption and a
@@ -301,6 +301,39 @@ before trusting it:
 A guard against the failure mode that would make all of it meaningless — a
 render producing nothing and every width coming out as zero — sits in the same
 file and asserts the instrument returns pixels.
+
+---
+
+## The render tool renders one language, and the tile ships in six
+
+**A regression the whole ladder missed, 7 August 2026.** The medium tile shipped
+with no bars on its two limit rows. Two hundred and fifteen checks were green,
+the render tool's pictures looked right, and the tile on the desktop had a
+caption, a percentage and a countdown where a bar used to be.
+
+Three separate reasons it got through, and all three are worth keeping:
+
+**The tool was run in English.** `DetailLine` had been placed in the row's
+`HStack` beside the bar, with `layoutPriority(2)`. The bar is the only flexible
+element there, so the longer the line, the narrower the bar — and "сброс Чт
+07:00 · 5 дн 20 ч" is half again as wide as its English original. Re-running
+the same tool with `-AppleLocale ru_RU -AppleLanguages "(ru)"` reproduced the
+defect immediately. **The tool was not lying; it was asked the wrong question.**
+Anything that can overflow gets rendered in Russian and German too, not only in
+the language of the README screenshots.
+
+**No tier looks at what a row is made of.** Tier 1 weighs strings, tier 2 what
+is spoken, tier 3 compares chart pictures. A row that loses its bar keeps every
+string it had, so nothing moved. `Tests/RowCompositionTests.swift` closes that:
+it renders the row and measures the bar, in six languages, and fails on the
+layout that shipped.
+
+**Measuring the right thing took three attempts, and the first two passed for
+the wrong reason.** Counting the bar's tint measured the fill, which at 25 %
+usage is a quarter of the bar; rendering at 100 % to fix that turned the level
+`depleted`, whose tint is grey, and the colour filter found nothing at all. What
+holds is geometry — the bar is the longest horizontal run of ink in the row —
+because it does not depend on the level, the percentage or the palette.
 
 ---
 

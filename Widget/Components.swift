@@ -209,6 +209,15 @@ extension CCWidgetEntry {
 /// check moved to the render tier, see `Docs/rendering-checks.md`.
 struct DetailLine: View {
     let detail: RowDetail
+    /// Whether there is room for the reset moment as well as the countdown.
+    ///
+    /// There is not, on a medium tile. The line sits in the row's `HStack`
+    /// beside the bar there, and the bar is the only flexible thing in it — so
+    /// a line carrying both "сброс Чт 07:00" and "· 5 дн 20 ч" takes the bar's
+    /// width, all of it. That is exactly what shipped: 215 checks green and no
+    /// bar on the tile. On the large tile the line has a row of its own under
+    /// the bar and can say everything.
+    var compact = false
 
     var body: some View {
         switch detail {
@@ -217,9 +226,17 @@ struct DetailLine: View {
         case .text(let value):
             line { Text(verbatim: value) }
         case .reset(let moment, let at):
-            line { Text("resets \(moment) · \(at, style: .relative)") }
+            if compact {
+                line { Text(at, style: .relative) }
+            } else {
+                line { Text("resets \(moment) · \(at, style: .relative)") }
+            }
         case .closed(let moment):
-            line { Text("resets \(moment) · \(String(localized: "closed"))") }
+            if compact {
+                line { Text("closed") }
+            } else {
+                line { Text("resets \(moment) · \(String(localized: "closed"))") }
+            }
         }
     }
 
@@ -240,6 +257,7 @@ struct DetailLine: View {
 /// reads "3 hr 12 min" is told the truth about a different minute, whereas a
 /// listener told nothing at all learns nothing. Section 2.4.
 func spokenDetail(_ detail: RowDetail, at moment: Date,
+                  compact: Bool = false,
                   locale: Locale = .autoupdatingCurrent) -> String? {
     func localized(_ resource: LocalizedStringResource) -> String {
         var copy = resource
@@ -250,10 +268,16 @@ func spokenDetail(_ detail: RowDetail, at moment: Date,
     case .none: return nil
     case .text(let value): return value
     case .closed(let when):
-        return localized(LocalizedStringResource("resets \(when) · \(localized(LocalizedStringResource("closed")))"))
+        // A compact row draws only the word; what is spoken follows what is
+        // drawn, or the listener and the reader are told different things.
+        return compact
+            ? localized(LocalizedStringResource("closed"))
+            : localized(LocalizedStringResource("resets \(when) · \(localized(LocalizedStringResource("closed")))"))
     case .reset(let when, let at):
         let left = CCWidgetFormat.countdown(at.timeIntervalSince(moment))
-        return localized(LocalizedStringResource("resets \(when) · \(left)"))
+        return compact
+            ? left
+            : localized(LocalizedStringResource("resets \(when) · \(left)"))
     }
 }
 
@@ -337,7 +361,13 @@ struct GaugeRow: View {
                 .minimumScaleFactor(0.8)
                 .layoutPriority(1)
 
+            // The floor `TextMetricsTests` has always assumed when working out
+            // what is left for the caption — now stated to the layout instead
+            // of hoped for. Below forty points a bar is a decoration beside a
+            // number; the caption, unlike the bar, can shrink and still be
+            // read.
             Bar(fraction: reading.metric?.fraction ?? 0, tint: tint)
+                .frame(minWidth: 40)
 
             Text(verbatim: reading.metric?.value ?? "—")
                 .font(.caption.monospacedDigit())
@@ -355,14 +385,19 @@ struct GaugeRow: View {
                         .layoutPriority(2)
                 }
             } else {
-                DetailLine(detail: detail)
-                    .layoutPriority(2)
+                // No layoutPriority here, deliberately. Giving the line
+                // priority is what squeezed the bar to nothing; the bar is the
+                // one element in this row that cannot be replaced by reading
+                // the number beside it.
+                DetailLine(detail: detail, compact: true)
+                    .fixedSize()
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(gaugeAnnouncement(
             caption, reading,
-            detail: spokenDetail(detail, at: moment, locale: locale) ?? reading.auxiliary(locale: locale),
+            detail: spokenDetail(detail, at: moment, compact: true, locale: locale)
+                ?? reading.auxiliary(locale: locale),
             locale: locale))
     }
 
