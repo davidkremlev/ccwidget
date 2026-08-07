@@ -245,6 +245,42 @@ struct RowCompositionTests {
         }
     }
 
+    /// A structural check, and it is here for want of a better instrument.
+    ///
+    /// The row must not read geometry. `GeometryReader` reports whatever the
+    /// layout proposes, and WidgetKit proposes things a test process never
+    /// sees: the extension crashed on every render for five hours inside
+    /// `GeometryReaderLayout.placeSubviews` while every check here stayed
+    /// green. Clamping the width the reader returned did not help; removing
+    /// the reader did.
+    ///
+    /// Checking the source text is crude — it cannot tell a legitimate reader
+    /// from a dangerous one, and `ForecastChart` still has one on purpose. But
+    /// the alternative is nothing: this process cannot render the way WidgetKit
+    /// renders, which is the whole reason the crash survived 221 checks. When
+    /// the bar's implementation changes, this fails and asks the question
+    /// again.
+    @Test("The bar does not read geometry")
+    func barDoesNotUseGeometryReader() throws {
+        let source = URL(filePath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "Widget/Components.swift")
+        let text = try String(contentsOf: source, encoding: .utf8)
+
+        let start = try #require(text.range(of: "struct Bar: View {"),
+                                 "Bar has been renamed; this check needs updating")
+        let end = text.range(of: "\n}", range: start.upperBound..<text.endIndex)?.lowerBound
+            ?? text.endIndex
+        let body = String(text[start.lowerBound..<end])
+
+        // `GeometryReader {` — the opening of one, not the word. The comment
+        // above `Bar` explains why there is no reader, and a check that trips
+        // over its own explanation is a check nobody keeps.
+        #expect(!body.contains("GeometryReader {"),
+                "Bar reads geometry again — see the crash of 7 August 2026, SPEC 5.1")
+    }
+
     /// The context row was never affected — it carries a plain string, not a
     /// countdown — and it is here as the control. If this one fails too, the
     /// instrument is wrong rather than the layout.

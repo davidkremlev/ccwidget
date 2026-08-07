@@ -254,7 +254,7 @@ at all. The usual causes, in the order worth checking:
 
 **If the numbers are current but the widget is showing older ones**, that is
 expected up to a minute — the widget is redrawn at most once a minute so the
-reload budget lasts. See *The window and the widget can be a minute apart*
+reload budget lasts. See *The window and the widget can hold different snapshots*
 above.
 
 ## Removing it
