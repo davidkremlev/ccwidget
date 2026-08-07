@@ -8,7 +8,9 @@ The audit covers every doc comment on a public type, every enum case, and the
 conditions stated in `SPEC` sections 2–8.
 
 **First pass: 33 items, one of them a live defect. This pass: 5 remain**, and
-none of the five can be closed by the kind of check the others were.
+none of the five can be closed by the kind of check the others were. The two
+that were waiting on the rendering tiers have since closed; what remains is the
+six marked unverifiable, each with the reason it cannot be checked.
 
 Three more have been added since — G4 and G5 by the hysteresis work in
 `SPEC` 7, G6 by the one-grid rule for the age in `SPEC` 2.4. All three are
@@ -69,25 +71,51 @@ live data, fixed after the check failed on it.
 
 ## What remains
 
-### Not yet built: the rendering tiers
+### Built since: the rendering tiers
 
-These are the plan in [`rendering-checks.md`](rendering-checks.md), agreed and
-scheduled, not gaps in the audit's sense. Listed so nothing is lost.
+These were the plan in [`rendering-checks.md`](rendering-checks.md) when this
+audit was written. All three tiers exist now, and the two items listed here
+closed with them. Kept rather than deleted, because what closed each one is
+worth knowing.
 
 **F2. No fixed widths for text.** `SPEC` 774 — *"Немецкий длиннее английского
-примерно на треть."* This is tier 1, text metrics: measure every localized
-caption with the font and the width the layout gives it. The clipped-footer
-class of defect closes there.
+примерно на треть."* Closed by tier 1, `TextMetricsTests`: every caption the
+layout constrains is measured in six languages against the width its tile
+gives it, budgets derived by measuring the fixed parts rather than by guessing,
+and each budget accompanied by a check that a deliberately overlong string is
+rejected — otherwise a budget that has drifted wide passes everything and
+proves nothing.
+
+The tier does not cover strings it never hears about, and that is its failure
+mode rather than a hypothetical: on 7 August the three message panels — the
+whole surface a person meets when the tile has no digits to show — turned out
+never to have been measured, the new one included. Added the same day.
 
 **One enum of view state.** `OnboardingStep` decides which of four step views
-the setup screen shows, and that consequence is a view — tier 2, the
-accessibility-tree snapshots. Its transitions are checked; the distinctness of
-what they render is not.
+the setup screen shows. Closed the way `WindowState` was: it moved out of the
+four-hundred-line view into `App/WindowState.swift`, where its script, buttons
+and transitions are values a check can ask for, and where the measurement of
+its button rows became possible at all — that measurement then found a Russian
+row overflowing by 86 points.
 
 `WindowState` used to be listed here beside it. It left `StatusView` earlier,
 and now its badge, tone, explanation and whether bars are drawn are values
 rather than view code, so `windowStatesDiffer` covers all six cases. Getting
 there is what exposed the missing `.abandoned` branch.
+
+### Built since: the tier none of the three was
+
+**Nothing in this repository could see WidgetKit.** All three tiers run in a
+test process: no timeline, no extension, no system. On 7 August the extension
+crashed on every render for five hours with the entire suite green, and because
+a crashing extension keeps its last good frame on the desktop, the symptom was
+data that looked stale. `Scripts/check-widget-health.sh` answers the one
+question the tiers cannot — did the installed extension build a timeline and
+survive it — by reading the unified log and the crash reports of the real
+machine, and `reinstall.sh` now refuses to report success without it.
+
+It is not a fourth tier, because it cannot run anywhere but a developer's own
+Mac with the widget on the desktop. That is the same wall as G3 below.
 
 ### Cannot be built: stated as unverifiable
 
