@@ -9,9 +9,30 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CONFIGURATION="${1:-Release}"
 DERIVED="$ROOT/.build/dd"
 APP="/Applications/CCWidget.app"
+
+# Arguments are parsed rather than read positionally, because reading them
+# positionally is what broke: `--no-health` landed in CONFIGURATION, the build
+# went looking for Build/Products/--no-health, and the script announced that
+# the build produced no bundle. It was still exiting 0 at the time, so a
+# failed install reported success twice over.
+CONFIGURATION=""
+SKIP_HEALTH=""
+for argument in "$@"; do
+    case "$argument" in
+        --no-health) SKIP_HEALTH="yes" ;;
+        -*) echo "!! Unknown option: $argument" >&2
+            echo "   Usage: reinstall.sh [Debug|Release] [--no-health]" >&2
+            exit 2 ;;
+        *)  if [ -n "$CONFIGURATION" ]; then
+                echo "!! Two configurations given: $CONFIGURATION and $argument" >&2
+                exit 2
+            fi
+            CONFIGURATION="$argument" ;;
+    esac
+done
+CONFIGURATION="${CONFIGURATION:-Release}"
 
 # The Xcode project is generated from project.yml and is not in the repository,
 # so regenerate it every time rather than only when it is missing: a file added
@@ -66,7 +87,9 @@ killall chronod 2>/dev/null || true
 # in one. A crash does not blank the tile — the system keeps showing the last
 # frame that rendered — so from the desktop it looks like stale data. Nothing
 # short of watching a real machine catches that, so the install watches.
-if [ "${1:-}" != "--no-health" ] && [ "${2:-}" != "--no-health" ]; then
+if [ -n "$SKIP_HEALTH" ]; then
+    : # The warning is printed last, below, so it is the final thing on screen.
+else
     echo "==> Waiting 45s for the system to render the widget, then checking"
     sleep 45
     if ! "$ROOT/Scripts/check-widget-health.sh"; then
@@ -95,3 +118,26 @@ fi
 
 echo "==> Done. Logs:"
 echo "    log stream --predicate 'subsystem == \"dev.illvminat.ccwidget\"' --level info"
+
+# Last, so it is what remains on screen. The flag earns its place — installing
+# a knowingly broken build is how both of 7 August's defects were isolated,
+# and waiting 45 seconds to be told what you already know is waste. But an
+# install that skipped its checks must not read like one that passed them:
+# every hour lost that day went to a green report about something nobody had
+# looked at, and "Done" under a skipped check is exactly that report.
+if [ -n "$SKIP_HEALTH" ]; then
+    echo
+    echo "  ┌──────────────────────────────────────────────────────────────┐"
+    echo "  │  INSTALLED WITHOUT CHECKING  (--no-health)                   │"
+    echo "  │                                                              │"
+    echo "  │  Nothing here knows whether the extension survives a render  │"
+    echo "  │  or whether the tile draws anything at all. Both failures    │"
+    echo "  │  are silent: a crashing extension keeps its last good frame  │"
+    echo "  │  on screen, and a blank tile logs nothing whatsoever.        │"
+    echo "  │                                                              │"
+    echo "  │  Before trusting this build:                                 │"
+    echo "  │      ./Scripts/check-widget-health.sh                        │"
+    echo "  │      swift Scripts/tile-probe.swift                          │"
+    echo "  └──────────────────────────────────────────────────────────────┘"
+    echo
+fi
