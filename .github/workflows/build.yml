@@ -273,3 +273,13 @@ jobs:
           # store are caught by running this locally — the script says out
           # loud which half it skipped rather than passing in silence.
           ./Scripts/check-sources.py
+
+      - name: Check the uninstaller removes only what is ours
+        run: |
+          # It edits a file it does not own and had no check of any kind until
+          # a security review found it deciding ownership by substring. This
+          # runs the real script against a stand-in HOME, one throwaway home
+          # per state the status line can be in. Nothing outside that home is
+          # touched: --purge, the one mode that reaches /Applications, is
+          # never passed.
+          ./Scripts/check-uninstall.sh

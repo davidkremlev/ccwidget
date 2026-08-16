@@ -34,6 +34,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`Scripts/uninstall.sh` could delete a `statusLine` that was not ours.** It
+  decided ownership by grepping the whole of `settings.json` for the substring
+  `ccwidget-export.py`, so a status line of the user's own that chains the
+  exporter — or a hook that merely names it — made the key ours and the key was
+  deleted. The app-side removal has always compared `statusLine.command`
+  exactly; the fallback, the one that runs when the app is already broken, was
+  the weaker of the two. It now makes the same comparison, and the exporter
+  file survives when anything else in the file still refers to it. An
+  unparseable `settings.json` stops removal instead of proceeding blind.
+
+  Found by a security review, not by use. What let it live was that nothing
+  checked this script at all: it edits a file it does not own, and it had no
+  check of any kind. `Scripts/check-uninstall.sh` now runs it against a
+  stand-in `HOME` in fourteen cases — one per state the status line can be
+  found in, plus a path spelled with a tilde, a settings file behind a symlink,
+  and the file changing while the confirmation prompt waits. Against the old
+  script sixteen of its fifty-seven assertions fail.
+
 - **The Russian setup screen had a button cut off: "Показать инструкцию по
   ручн…".** The two buttons of the second step sit in one `HStack` inside a
   460-point window, and that pair needs 498 points of the 412 available. The

@@ -1,10 +1,21 @@
 # Security and privacy audit, 7 August 2026
 
 Run by a reviewer with no knowledge of the project's history — a separate model,
-a clean context, read-only. It was asked to find holes, not to fix them, and
-nothing here has been acted on.
+a clean context, read-only. It was asked to find holes, not to fix them.
 
-The full report follows as received, with only formatting normalised.
+The full report follows as received, with only formatting normalised. Nothing in
+it was edited when findings were closed; what has been acted on is listed here
+instead.
+
+## What has been acted on
+
+| # | State | Where |
+|---|-------|-------|
+| 1 | **Closed** on 16 August 2026 | `Scripts/uninstall.sh` compares `statusLine.command` exactly, the way the app always has, and keeps the exporter file when anything else in `settings.json` still names it. Checked by `Scripts/check-uninstall.sh`, which fails sixteen of its fifty-seven assertions against the old script. |
+| 3 | **Open** — the app half is the finding | The report already exempts the script's `cp`. Its backup is now opened `0600` outright rather than relying on `cp` to carry the mode over, but the finding itself is about `Installer.backupSettings`, and that is untouched. |
+| 8 | **Closed** | The uninstaller writes a neighbouring file and renames it over the original. |
+
+Everything else stands as reported.
 
 ---
 

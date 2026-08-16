@@ -259,7 +259,9 @@ above.
 
 ## Removing it
 
-Either way undoes the same things.
+Either way undoes the same things, with one difference named below: the script
+keeps the exporter file when something in `settings.json` still refers to it,
+and the app deletes it either way.
 
 In the app: **Remove…**, then choose whether to keep the collected history.
 
@@ -275,6 +277,14 @@ Removal deletes the `statusLine` key rather than restoring your old
 `settings.json` wholesale — you may have changed other keys since installing,
 and rolling the file back would take those edits away from you. A backup is
 still written first.
+
+It only deletes that key if it is ours — if `statusLine.command` is exactly the
+exporter this installation wrote, written as an absolute path or with `~` or
+`$HOME`, which name the same file. A status line of your own that calls the
+exporter and adds to its output is left where it is, and so is the exporter
+itself, since something is still calling it. The same goes for a hook that
+refers to it. If `settings.json` cannot be parsed, nothing is removed at all
+and you are told what to remove by hand.
 
 The app bundle and the extension's container are not removed unless you pass
 `--purge`, and the widget itself has to be dragged off the desktop by hand.
