@@ -138,6 +138,26 @@ jobs:
               || { echo "::error::missing localization: $lang"; exit 1; }
           done
 
+      - name: Check the version is one number, not four
+        run: |
+          # It used to live in project.yml and, as a literal, in both
+          # Info.plists — which override it, so the two in project.yml did
+          # nothing and the two literals had to be edited together and by hand.
+          # The plists take the build setting now, and this makes sure they
+          # keep taking it: an app and an extension that disagree about their
+          # version are a class of bug nobody enjoys finding on a user's Mac.
+          APP=.build/dd/Build/Products/Release/CCWidget.app
+          DECLARED=$(awk -F'"' '/MARKETING_VERSION:/ { print $2 }' project.yml)
+          for plist in "$APP/Contents/Info.plist" \
+                       "$APP/Contents/PlugIns/CCWidgetExtension.appex/Contents/Info.plist"; do
+            BUILT=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$plist")
+            if [ "$BUILT" != "$DECLARED" ]; then
+              echo "::error::$plist says $BUILT, project.yml says $DECLARED"
+              exit 1
+            fi
+          done
+          echo "version $DECLARED, in the app and the extension alike"
+
       - name: Check the deployment target is what we claim
         run: |
           # The claim in README is a number in project.yml, and a number in a
