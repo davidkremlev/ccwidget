@@ -71,12 +71,22 @@ struct ChartBaselineTests {
         count: Int, stepMinutes: Double, from start: Int, per step: Double,
         resets: Date, now: Date, noise: (Int) -> Double = { _ in 0 }
     ) -> [HistoryEntry] {
-        (0..<count).map { i in
-            HistoryEntry(
-                time: now.addingTimeInterval(-Double(count - 1 - i) * stepMinutes * 60),
-                sevenDayUsed: Int((Double(start) + step * Double(i) + noise(i)).rounded()),
-                resetsAt: resets)
+        // Spelled out in steps with the types written down. As one `map` with
+        // the arithmetic nested inside it, Swift 6.0 gave up type-checking it
+        // — the same "unable to type-check in reasonable time" that kept the
+        // whole suite from building on the minimum toolchain. The arithmetic
+        // is unchanged, in the same order, so the baselines are unchanged too.
+        var entries: [HistoryEntry] = []
+        entries.reserveCapacity(count)
+        for i in 0..<count {
+            let stepsBack = Double(count - 1 - i)
+            let seconds: TimeInterval = -stepsBack * stepMinutes * 60
+            let used: Double = Double(start) + step * Double(i) + noise(i)
+            entries.append(HistoryEntry(time: now.addingTimeInterval(seconds),
+                                        sevenDayUsed: Int(used.rounded()),
+                                        resetsAt: resets))
         }
+        return entries
     }
 
     /// A fixed moment, for the same reason the screenshot tool takes one: a
