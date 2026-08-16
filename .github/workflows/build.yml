@@ -62,6 +62,11 @@ jobs:
           sw_vers
           xcodebuild -version
           swift --version
+          # Which Xcodes the image carries at all. The matrix pins one of them
+          # by DEVELOPER_DIR, and what else is available decides whether a
+          # toolchain-dependent step — the icon, see Docs/state-2026-08-16.md
+          # finding 12 — could be built here even in principle.
+          ls -d /Applications/Xcode*.app 2>/dev/null || echo "(no Xcode in /Applications)"
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -189,6 +194,11 @@ jobs:
             build.log
             test.log
             coverage.txt
+            # Written beside a baseline that did not match. Without them a
+            # failure here is a byte count in a log and nothing to compare:
+            # the run that found the baselines do not reproduce could say
+            # they differ and not by what.
+            Tests/Baselines/*.actual
           retention-days: 7
           if-no-files-found: ignore
 
