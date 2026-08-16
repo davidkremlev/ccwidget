@@ -35,10 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   assumed, because `open` masks it through the umask.
 
 - **A test fixture carried eight characters of a real session id.** Not
-  synthetic, whatever the audit's summary said: `5e551047` is the start of a
-  Claude Code session UUID that still exists on the machine this was built on.
-  It identifies nothing to anyone else — that is why the exporter truncates to
-  eight characters — but a fixture should be made up, and this one was not.
+  synthetic, whatever the audit's summary said: it was the start of a Claude
+  Code session UUID that still exists on the machine this was built on. It
+  identifies nothing to anyone else — that is why the exporter truncates to
+  eight characters — but a fixture should be made up, and this one was not. The
+  value is not quoted here for the same reason it was replaced.
 
   0.3.0 was never distributed — the repository is private and nobody had the
   file — but the tag stays where it is rather than being rewritten, and this
