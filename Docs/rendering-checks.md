@@ -423,9 +423,31 @@ between runs. It is not right about a rule stated in *per-channel* terms
 against a fixed fixture. A rule of "no channel may differ by more than 1"
 admits the noise above and rejects the text difference by a factor of 179.
 
-So step 4 of the plan is no longer conditional. The baselines can live on CI,
-on both runners, if two things change: the time zone is pinned the way the
-locale already is — a parameter, not a process default — and the comparison
+So step 4 of the plan is no longer conditional, on the primary runner. The
+baselines live on CI there, with two changes: the time zone is pinned the way
+the locale already is — a parameter, not a process default — and the comparison
 looks at pixels rather than at file bytes. Neither is a tolerance knob; both
 are the measurement the earlier objection asked for.
+
+### And the minimum runner, measured too
+
+Turning the check on for both runners answered the other half in one go. On
+macOS 14 with Xcode 16.2, four of the five baselines are inside the same
+one-unit rounding, and `chart-runs-out` comes out **13 of 255** apart. That is
+neither antialiasing nor a defect: it is an older SwiftUI drawing the same
+view, and it sits between the two populations rather than in either.
+
+So that runner skips the baselines, and now the reason is a number rather than
+a prediction. The three figures worth keeping together:
+
+| | Max channel delta |
+|---|---:|
+| Two machines on the current toolchain | 1 |
+| The same view on a four-year-older toolchain | 13 |
+| A different string in the caption | 179 |
+
+The middle row is why the rule is a rule about *machines that match*, and not
+a tolerance that could simply be widened to 13: at 13 the check would still
+pass a changed glyph only by luck, and the next toolchain would move it
+again.
 

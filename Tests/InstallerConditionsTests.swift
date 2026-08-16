@@ -22,9 +22,14 @@ struct InstallerConditionsTests {
         let home = sandbox()
         var inst = installer(home: home, template: makeTemplate(in: home))
 
-        let working = try #require(inst.interpreterCandidates.first { url in
-            FileManager.default.isExecutableFile(atPath: url.path(percentEncoded: false))
-        }, "no interpreter on this machine to check against")
+        // Picked by answering, not by existing — which is the distinction this
+        // whole check is about, and it was picked the wrong way until a CI
+        // runner turned out to be the machine the comment above describes.
+        // There `/usr/bin/python3` exists and is executable and does not run,
+        // so choosing the first executable chose the stub, and the check then
+        // demanded exactly the behaviour it exists to forbid.
+        let working = try #require(inst.findInterpreter(),
+                                   "no working interpreter on this machine to check against")
 
         inst.interpreterCandidates = [
             URL(filePath: "/nonexistent/python3"),   // not there at all
