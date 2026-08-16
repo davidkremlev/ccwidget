@@ -162,7 +162,7 @@ way to run this today is to build it, which means **Xcode 16 or later** and
 
 ```sh
 brew install xcodegen
-git clone https://github.com/illVminat/ccwidget.git
+git clone https://github.com/davidkremlev/ccwidget.git
 cd ccwidget
 ./Scripts/reinstall.sh
 ```
