@@ -70,6 +70,7 @@ the second kind. That was not a shortage of documents — Apple publishes them
 | Claude Code | `claude-code/settings.md` | `~/.claude/settings.json`: keys, the shape of `statusLine`, precedence | 2026-08-06 | Claude Code 2.1.223 |
 | Exporter | `python/os-replace.md` | `os.replace`: atomicity of the rename and its caveats | 2026-08-06 | Python 3.14 |
 | Build | `tooling/xcodegen-projectspec.md` | every key `project.yml` may contain | 2026-08-06 | XcodeGen master |
+| Build | `apple/xcode-26-release-notes.md` | which macOS version Xcode 26 requires, and what it ships SDKs for | 2026-08-16 | Xcode 26 |
 
 ## How to do it right
 
@@ -122,7 +123,7 @@ looks identical to an area where the missing genre does not exist.
 | Checks | ✓ 1 | — | Swift Testing publishes no separate guidance page; `/documentation/testing/writingtests` does not exist |
 | Claude Code | ✓ 2 | **not connected** | <https://docs.claude.com/en/docs/claude-code/best-practices> exists. Relevant to how the exporter and the status line integration are shaped, not to the JSON schema |
 | Exporter | ✓ 1 | — | none applies: the claim we make about Python is one function's atomicity |
-| Build | ✓ 1 | — | XcodeGen documents its schema and offers no guidance beyond it |
+| Build | ✓ 2 | — | XcodeGen documents its schema and offers no guidance beyond it; Xcode's release notes carry the toolchain's own requirements |
 
 Two of these are gaps to close, not facts of nature: **Localization** and
 **Claude Code** each have a published guidance document that this project has

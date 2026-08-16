@@ -363,6 +363,7 @@ sources that can disagree.
 
 0. Render the same fixture on both runners in CI and compare. One job,
    answers the feasibility question with a fact instead of this prediction.
+   **Done, 16 August 2026 — see below.**
 1. Fixture and injected clock in the screenshot tool. Pays for itself in the
    README screenshots alone.
 2. Tier 1, text metrics.
@@ -371,3 +372,60 @@ sources that can disagree.
    reproduces the local rendering.
 
 Steps 1–3 are useful whatever step 0 returns.
+
+---
+
+## Step 0, answered
+
+The question waited because the repository had no remote, so the workflow had
+never run. It ran for the first time on 16 August 2026 and failed on four of
+the five chart baselines. Four measurements separate what that means.
+
+**1. The runner is deterministic.** Two runs of the same commit on the same
+image produced byte-identical PNGs — compared by SHA-256 of the `.actual`
+files, which the workflow now keeps as artifacts for exactly this reason.
+
+**2. Three of the four differences are one unit of rounding.** Against the
+committed baselines: 2 to 25 pixels of a hundred thousand, and the largest
+difference in any channel is **1 of 255**. Antialiasing, not drawing.
+
+**3. The fourth was not.** `chart-runs-out` differed on 548 pixels with a
+maximum channel delta of **179**, confined to a 76×16 block in the caption
+row — the sort of block a short run of text occupies.
+
+**4. That block is the time zone, and it is a defect in the check.** The render
+pins scale, colour scheme, locale and colour space; it does not pin a zone, and
+`CCWidgetFormat.resetMoment` formats a weekday and a time through the process
+default. Proven rather than reasoned: `TZ=UTC` in a shell does reach Foundation
+(the same instant formats `Wed 3:13 AM` in Asia/Tashkent and `Tue 10:13 PM` in
+UTC), and running the built test bundle directly under `TZ=UTC` fails **one
+check of 227** — that one. An earlier attempt through `xcodebuild` changed
+nothing, because the variable never reached the test process: same output on a
+knowingly different input, which is the trap `CLAUDE.md` names.
+
+With the zone taken out of the comparison, the same picture rendered locally
+and on the runner differs by **40 pixels of 101,712, maximum delta 1**.
+
+### What that changes
+
+The two numbers are three orders of magnitude apart, and they were measured on
+the same image within an hour of each other:
+
+| | Pixels differing | Max channel delta |
+|---|---:|---:|
+| Two machines, same picture | 0.039 % | **1** |
+| A different string in one line | 0.51 % | **179** |
+
+This document rejected a tolerance threshold because it "cannot separate a
+clipped word from a clock tick" — and that was right about the tolerance
+proposed then, a percentage of differing pixels on a chart whose data moved
+between runs. It is not right about a rule stated in *per-channel* terms
+against a fixed fixture. A rule of "no channel may differ by more than 1"
+admits the noise above and rejects the text difference by a factor of 179.
+
+So step 4 of the plan is no longer conditional. The baselines can live on CI,
+on both runners, if two things change: the time zone is pinned the way the
+locale already is — a parameter, not a process default — and the comparison
+looks at pixels rather than at file bytes. Neither is a tolerance knob; both
+are the measurement the earlier objection asked for.
+
