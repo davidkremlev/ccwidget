@@ -289,7 +289,12 @@ struct TextMetricsTests {
     func overlongPanelTitleIsRejected() throws {
         let absurd = "Die Nutzungsgrenzen sind noch nicht eingetroffen"
         let shrunk = width(absurd, font(.caption1, weight: .medium)) * Self.minimumScale
-        #expect(shrunk > (try panelTitleBudget),
+        // Read before the expectation, not inside it. `#expect` puts its
+        // expression in a non-throwing autoclosure, and Swift 6.0 refuses a
+        // throwing property access there — Swift 6.2 allows it, which is why
+        // this compiled here and not on the oldest toolchain we support.
+        let budget = try panelTitleBudget
+        #expect(shrunk > budget,
                 "a 47-character title fits the budget, so the budget is wrong")
     }
 

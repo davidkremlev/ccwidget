@@ -210,10 +210,11 @@ struct ExporterTests {
 
         _ = try run(installed, stdin: payload())
 
-        #expect(try String(contentsOf: victim, encoding: .utf8) == "PRECIOUS DATA",
-                "the exporter wrote through the link")
-        #expect(try loadSnapshot(installed).limits.sevenDay?.usedPercentage == 9,
-                "and it still did its job")
+        // Read outside the expectation: see the note in TextMetricsTests.
+        let survived = try String(contentsOf: victim, encoding: .utf8)
+        let week = try loadSnapshot(installed).limits.sevenDay?.usedPercentage
+        #expect(survived == "PRECIOUS DATA", "the exporter wrote through the link")
+        #expect(week == 9, "and it still did its job")
     }
 
     /// The same for the history, which is appended to rather than replaced —
@@ -228,8 +229,8 @@ struct ExporterTests {
 
         _ = try run(installed, stdin: payload())
 
-        #expect(try String(contentsOf: victim, encoding: .utf8) == "PRECIOUS DATA",
-                "the exporter appended through the link")
+        let survived = try String(contentsOf: victim, encoding: .utf8)
+        #expect(survived == "PRECIOUS DATA", "the exporter appended through the link")
     }
 
     /// A symlink at the snapshot itself is replaced rather than written
@@ -244,9 +245,11 @@ struct ExporterTests {
 
         _ = try run(installed, stdin: payload())
 
-        #expect(try String(contentsOf: victim, encoding: .utf8) == "PRECIOUS DATA")
+        let survived = try String(contentsOf: victim, encoding: .utf8)
+        let week = try loadSnapshot(installed).limits.sevenDay?.usedPercentage
+        #expect(survived == "PRECIOUS DATA")
         #expect(!isSymlink(installed.snapshot), "the link was replaced by a regular file")
-        #expect(try loadSnapshot(installed).limits.sevenDay?.usedPercentage == 9)
+        #expect(week == 9)
     }
 
     // MARK: Section 3 — atomicity, as far as it is observable

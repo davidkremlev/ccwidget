@@ -60,8 +60,8 @@ struct SecurityTests {
             at: exchange.appending(path: "history.jsonl.tmp"), withDestinationURL: victim)
 
         _ = store.truncateIfNeeded()
-        #expect(try String(contentsOf: victim, encoding: .utf8) == "PRECIOUS DATA",
-                "truncation does not write through a link")
+        let survived = try String(contentsOf: victim, encoding: .utf8)
+        #expect(survived == "PRECIOUS DATA", "truncation does not write through a link")
     }
 
     /// D: the exchange directory is substituted into a Python source file. A
