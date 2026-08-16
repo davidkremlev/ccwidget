@@ -350,12 +350,34 @@ struct Installer {
 
         do {
             try createClaudeDirectoryIfNeeded()
-            try contents.write(to: backup, options: .atomic)
-            // settings.json can hold environment variables and keys. The
-            // backup must be no more readable than the original.
-            try FileManager.default.setAttributes(
-                [.posixPermissions: 0o600], ofItemAtPath: backup.path(percentEncoded: false)
-            )
+            // Opened 0600 rather than written and chmodded after.
+            //
+            // settings.json can hold environment variables and keys, so the
+            // backup must be no more readable than the original — and an
+            // atomic write lands at 644 first. Measured: a fresh atomic write
+            // is 644 and the chmod follows it, so between the two calls the
+            // copy is world-readable, and permanently so if the process dies
+            // in between. On this machine `~/.claude` is 755 and every local
+            // account is in `staff`.
+            let descriptor = open(backup.path(percentEncoded: false),
+                                  O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0o600)
+            guard descriptor >= 0 else {
+                throw Failure.writeFailed(backup, POSIXError(.init(rawValue: errno) ?? .EIO))
+            }
+            let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+            try handle.write(contentsOf: contents)
+            try handle.close()
+            // The mode is asked for rather than assumed: `open` masks the mode
+            // through the process umask, so a hostile umask could still widen
+            // it — and a backup that is 644 for a reason nobody looked at is
+            // the defect this replaced.
+            let mode = (try? FileManager.default.attributesOfItem(
+                atPath: backup.path(percentEncoded: false))[.posixPermissions] as? Int) ?? nil
+            if mode != 0o600 {
+                try FileManager.default.setAttributes(
+                    [.posixPermissions: 0o600], ofItemAtPath: backup.path(percentEncoded: false)
+                )
+            }
         } catch {
             throw Failure.writeFailed(backup, error)
         }

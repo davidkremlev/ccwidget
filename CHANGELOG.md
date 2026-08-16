@@ -27,6 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   finds the home path, a profiling symbol or a debug path entry in either
   binary.
 
+- **The backup of your settings was briefly world-readable.** An atomic write
+  lands at 644 and the chmod to 600 followed it, so between the two calls a
+  copy of `settings.json` — which can hold environment variables and keys —
+  was readable by every local account, and permanently so if the process died
+  in between. It is opened 0600 now, and the mode is read back rather than
+  assumed, because `open` masks it through the umask.
+
+- **A test fixture carried eight characters of a real session id.** Not
+  synthetic, whatever the audit's summary said: `5e551047` is the start of a
+  Claude Code session UUID that still exists on the machine this was built on.
+  It identifies nothing to anyone else — that is why the exporter truncates to
+  eight characters — but a fixture should be made up, and this one was not.
+
   0.3.0 was never distributed — the repository is private and nobody had the
   file — but the tag stays where it is rather than being rewritten, and this
   is the build to use.
