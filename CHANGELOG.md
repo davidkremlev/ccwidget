@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-17
+
+**The first build that can be given to somebody else.** Everything before this
+was ad-hoc signed, which meant macOS refused to open it on any machine that had
+not compiled it — the single fact that kept the audience down to people who own
+Xcode. This one is signed with a Developer ID, hardened, notarized by Apple and
+stapled, and the release script checks the only thing that matters: it takes the
+app back out of the disk image and asks whether Gatekeeper would open it and
+whether it carries its own ticket, so it works offline too.
+
+Numbered 0.3.0 rather than 0.2.0 because `v0.2.0-dev` already marks the 0.2
+state and everything below arrived after it. A release that reused the number
+would be claiming a state that already has a mark.
+
+
 ### Known gaps
 
 - **Screenshots were taken right after a weekly reset**, so the Estimate block
@@ -493,6 +508,7 @@ Data path, widget, forecast.
 - `~/.claude` is created with mode `0700` when this project is the one
   creating it.
 
-[Unreleased]: ../../compare/v0.2.0-dev...HEAD
+[Unreleased]: ../../compare/v0.3.0...HEAD
+[0.3.0]: ../../compare/v0.2.0-dev...v0.3.0
 [0.2.0-dev]: ../../compare/v0.1.0-dev...v0.2.0-dev
 [0.1.0-dev]: ../../releases/tag/v0.1.0-dev
