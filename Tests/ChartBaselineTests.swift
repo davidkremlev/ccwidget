@@ -23,17 +23,39 @@ import Testing
 @Suite("Chart geometry", .serialized)
 struct ChartBaselineTests {
 
-    /// The escape hatch, kept but no longer used by CI.
+    /// The major macOS version the committed baselines were rendered on.
     ///
-    /// It existed because whether `ImageRenderer` agrees across machines was
-    /// unmeasured. It is measured now: the same picture rendered here and on a
-    /// GitHub runner differs by 40 pixels of 101,712 and never by more than
-    /// one unit of 255, which is what `tolerableChannelDelta` admits. Both
-    /// runners check the baselines. This stays for the case the numbers change
-    /// on some future toolchain — turning it on again is a decision that has
-    /// to be written down beside the numbers that caused it.
-    private static var skipped: Bool {
-        ProcessInfo.processInfo.environment["CCWIDGET_SKIP_IMAGE_BASELINES"] == "1"
+    /// A baseline is only evidence where the renderer matches the one that
+    /// took it, and how far "matches" reaches is measured rather than
+    /// supposed. Two machines on macOS 26 draw the same picture to within one
+    /// unit of 255; macOS 14 with Xcode 16.2 drew `chart-runs-out` 13 of 255
+    /// away, which is neither rounding nor a defect but an older SwiftUI. The
+    /// numbers are in `Docs/rendering-checks.md`.
+    ///
+    /// This used to be an environment variable the workflow set per runner.
+    /// It never once worked: `xcodebuild` does not pass its environment to the
+    /// test process, so the switch was read as unset in every run it was
+    /// supposed to govern — including the run that was meant to prove the
+    /// older toolchain skips. A switch whose effect nobody has ever observed
+    /// is the thing `CLAUDE.md` says to delete rather than keep.
+    ///
+    /// Newer than 26 deliberately runs the check rather than skipping it. If
+    /// a future macOS draws differently, that has to arrive as a red build
+    /// somebody reads, not as a suite that quietly stopped running.
+    // `nonisolated`: the suite is @MainActor and a trait's condition is
+    // evaluated from a Sendable closure before any actor exists.
+    private nonisolated static let baselineRenderer = 26
+
+    private nonisolated static var rendererMatchesBaselines: Bool {
+        ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= baselineRenderer
+    }
+
+    private nonisolated static var skipReason: Comment {
+        let running = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+        return """
+            the baselines were rendered on macOS \(baselineRenderer) and this is \
+            macOS \(running), which draws them differently — Docs/rendering-checks.md
+            """
     }
 
     private static let baselines = URL(filePath: #filePath)
@@ -168,10 +190,9 @@ struct ChartBaselineTests {
     }
 
     @Test("The chart matches its baseline in every outcome",
+          .enabled(if: rendererMatchesBaselines, skipReason),
           arguments: ["not-enough-data", "flat", "rate-only", "lasts-until-reset", "runs-out"])
     func chartMatchesBaseline(name: String) throws {
-        guard !Self.skipped else { return }
-
         let produced = try #require(render(name), "\(name) did not render")
         let url = Self.baselines.appending(path: "chart-\(name).png")
 
@@ -257,8 +278,8 @@ struct ChartBaselineTests {
     @Test("Every baseline is at the pinned scale and in sRGB",
           arguments: ["not-enough-data", "flat", "rate-only", "lasts-until-reset", "runs-out"])
     func baselinesArePinned(name: String) throws {
-        guard !Self.skipped else { return }
-
+        // No renderer here: this reads the committed files. It runs wherever
+        // the checks run, including where the comparison above is skipped.
         let url = Self.baselines.appending(path: "chart-\(name).png")
         let data = try Data(contentsOf: url)
         let rep = try #require(NSBitmapImageRep(data: data))

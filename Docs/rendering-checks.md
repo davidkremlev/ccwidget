@@ -438,7 +438,18 @@ neither antialiasing nor a defect: it is an older SwiftUI drawing the same
 view, and it sits between the two populations rather than in either.
 
 So that runner skips the baselines, and now the reason is a number rather than
-a prediction. The three figures worth keeping together:
+a prediction — and the skip is decided by the suite from the macOS version it
+is running on, not by an environment variable.
+
+That variable is worth a paragraph of its own. `CCWIDGET_SKIP_IMAGE_BASELINES`
+had been in the workflow since the tiers were built, and it **never once
+worked**: `xcodebuild` does not pass its environment to the test process, so
+the suite read it as unset in every run it was meant to govern. Nothing
+noticed, because until 16 August the workflow had never run at all — and when
+it did, the switch was set correctly on the minimum runner and the check ran
+anyway. It has been deleted rather than repaired. The same shape as the `TZ`
+experiment two hours earlier: a knob set outside a process that never reads
+it, and an outcome that looks like the knob working. The three figures worth keeping together:
 
 | | Max channel delta |
 |---|---:|

@@ -48,19 +48,6 @@ jobs:
 
     env:
       DEVELOPER_DIR: ${{ matrix.developer_dir }}
-      # The primary runner checks the baselines; the minimum one does not, and
-      # both halves of that are measured rather than assumed.
-      #
-      # On macOS 26 the same picture comes out 40 pixels of 101,712 apart from
-      # a local Mac and never more than one unit of 255 — inside what
-      # `tolerableChannelDelta` admits, so the check runs there and passes.
-      # On the macOS 14 image, Xcode 16.2 drew `chart-runs-out` 13 of 255
-      # apart. That is not antialiasing and not a defect either: it is an older
-      # SwiftUI drawing the same view. A baseline is only meaningful where the
-      # renderer matches the one that took it, so that runner skips.
-      #
-      # Both numbers are in Docs/rendering-checks.md under "Step 0, answered".
-      CCWIDGET_SKIP_IMAGE_BASELINES: ${{ matrix.primary && '0' || '1' }}
 
     steps:
       - uses: actions/checkout@v4
