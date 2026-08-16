@@ -164,6 +164,17 @@ targets:
       # Tier 3: the estimate chart is the one thing whose correctness is a
       # shape rather than a string, so it is checked against pictures.
       - path: Widget/ForecastChart.swift
+      # The three tiles and the two screens. They were outside this target
+      # until 17 August 2026, which is not "low coverage" but a structural
+      # fact: 1617 lines that no check had ever executed, and the black medium
+      # tile of 7 August lived in exactly that seam. WidgetKit's archiving step
+      # still cannot be reproduced here — that is what Scripts/tile-probe.swift
+      # is for — but what a tile is *made of* is checkable without it.
+      - path: Widget/SmallView.swift
+      - path: Widget/MediumView.swift
+      - path: Widget/LargeView.swift
+      - path: App/StatusView.swift
+      - path: App/OnboardingView.swift
       # The exporter is checked by running it, so the checks need the same
       # template the app ships — not a copy that can drift away from it.
       - path: Scripts/ccwidget-export.py.template
