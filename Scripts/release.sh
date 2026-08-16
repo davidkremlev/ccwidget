@@ -102,6 +102,7 @@ xcodebuild \
     CODE_SIGN_STYLE=Manual \
     DEVELOPMENT_TEAM="$TEAM_ID" \
     OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime" \
+    ENABLE_CODE_COVERAGE=NO \
     build \
     | grep -E "error:|warning:|BUILD" || true
 
@@ -126,6 +127,52 @@ for binary in "$APP/Contents/MacOS/CCWidget" "$EXTENSION/Contents/MacOS/CCWidget
         *arm64*x86_64*|*x86_64*arm64*) echo "    $(basename "$binary"): $archs" ;;
         *) echo "!! $(basename "$binary") is $archs — not universal" >&2; exit 1 ;;
     esac
+done
+
+# --- take the build machine out of the binaries ---------------------------
+
+# `strings` says these binaries are clean. They are not: the debug symbol table
+# carries one entry per object file, and each one is an absolute path —
+#
+#     /Users/<name>/Documents/<folders>/ccwidget/.build/…/AgeClock.o
+#
+# — so the shipped app names the account it was built on and every folder above
+# it. Fifty-seven such entries were in the first release. They are invisible to
+# `strings` because they live in the symbol table rather than in the string
+# section, which is exactly why "I grepped it and it looked clean" is not an
+# answer to this question.
+#
+# Stripping debug symbols removes them. Nothing is lost that anyone needs: the
+# symbols a crash report resolves against live in the .dSYM beside the build,
+# and that is not what gets shipped. This runs before signing, because a
+# binary modified after signing is a broken signature.
+# `ENABLE_CODE_COVERAGE=NO` above is not a tidiness setting. It defaults to
+# YES, and a Release build made with it carries LLVM's profiling machinery:
+# 424 `__profc_` symbols in the first release, `__llvm_prf_*` sections, and
+# inside each symbol the absolute path of the source file it counts —
+# `__profc_/Users/<name>/Documents/<folders>/ccwidget/Shared/Diagnostics.swift`.
+# So the shipped app named the account and the folder tree it was built in, and
+# carried instrumentation nobody asked for into everybody's widget.
+
+echo "==> Stripping the build machine out of the binaries"
+strip -S "$APP/Contents/MacOS/CCWidget"
+strip -S "$EXTENSION/Contents/MacOS/CCWidgetExtension"
+
+for binary in "$APP/Contents/MacOS/CCWidget" "$EXTENSION/Contents/MacOS/CCWidgetExtension"; do
+    leaks="$(nm -pa "$binary" 2>/dev/null | grep -cE " (OSO|SO) " || true)"
+    profiling="$(nm "$binary" 2>/dev/null | grep -c "__profc_" || true)"
+    # A raw byte search, not `strings`: the paths that mattered here were inside
+    # symbol names, and `strings` reported eight hits where a byte search found
+    # them in three different places. The question is "is this string in this
+    # file", so the check asks exactly that.
+    home="$(LC_ALL=C grep -ac "$(basename "$HOME")/Documents" "$binary" || true)"
+    if [ "${leaks:-0}" -ne 0 ] || [ "${profiling:-0}" -ne 0 ] || [ "${home:-0}" -ne 0 ]; then
+        echo "!! $(basename "$binary") still names the machine it was built on:" >&2
+        echo "   $leaks debug path entries, $profiling profiling symbols, $home home-path hits." >&2
+        nm -pa "$binary" 2>/dev/null | grep -E " (OSO|SO) |__profc_" | head -3 >&2
+        exit 1
+    fi
+    echo "    $(basename "$binary"): no build paths, no profiling symbols, no home path"
 done
 
 # --- sign, inside out -----------------------------------------------------

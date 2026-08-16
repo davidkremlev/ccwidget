@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-08-17
+
+### Fixed
+
+- **The shipped app named the machine it was built on.** Two ways at once, and
+  neither is visible to `strings`:
+
+  `ENABLE_CODE_COVERAGE` defaults to YES, so the Release build carried LLVM's
+  profiling machinery — `__llvm_prf_*` sections and 424 `__profc_` symbols,
+  each one holding the absolute path of the source file it counts. The debug
+  symbol table added 57 more, one per object file. Together they spelled out
+  the account name and every folder above the project.
+
+  Found by looking rather than by grepping: `strings` reports the paths only
+  obliquely, and "I grepped it and it looked clean" would have been the wrong
+  answer. The release script now builds with coverage off, strips debug
+  symbols before signing, and **refuses to continue** if a byte search still
+  finds the home path, a profiling symbol or a debug path entry in either
+  binary.
+
+  0.3.0 was never distributed — the repository is private and nobody had the
+  file — but the tag stays where it is rather than being rewritten, and this
+  is the build to use.
+
 ## [0.3.0] — 2026-08-17
 
 **The first build that can be given to somebody else.** Everything before this
@@ -508,7 +532,8 @@ Data path, widget, forecast.
 - `~/.claude` is created with mode `0700` when this project is the one
   creating it.
 
-[Unreleased]: ../../compare/v0.3.0...HEAD
+[Unreleased]: ../../compare/v0.3.1...HEAD
+[0.3.1]: ../../compare/v0.3.0...v0.3.1
 [0.3.0]: ../../compare/v0.2.0-dev...v0.3.0
 [0.2.0-dev]: ../../compare/v0.1.0-dev...v0.2.0-dev
 [0.1.0-dev]: ../../releases/tag/v0.1.0-dev
