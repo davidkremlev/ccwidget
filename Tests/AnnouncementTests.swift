@@ -247,8 +247,16 @@ struct ViewStateTests {
         #expect(!state.showsData)
     }
 
+    // Every age is written as a `Double` literal rather than left to
+    // inference. Swift 6.2 works out that `3600 * 2` in an array whose first
+    // element is `(0.0, …)` is a Double; Swift 6.0 refuses, and the checks
+    // therefore did not compile at all on the minimum supported toolchain —
+    // unnoticed until CI ran for the first time. See finding 13 in
+    // Docs/state-2026-08-16.md.
     @Test("The three ages",
-          arguments: [(0.0, WindowState.working), (3600 * 2, .outdated), (86_400 * 2, .abandoned)])
+          arguments: [(0.0, WindowState.working),
+                      (3600.0 * 2, .outdated),
+                      (86_400.0 * 2, .abandoned)])
     func ages(age: TimeInterval, expected: WindowState) {
         let state = WindowState(containerExists: true, statusLineIsOurs: true,
                                 snapshot: snapshot(age: age), now: Date())
