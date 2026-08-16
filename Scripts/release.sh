@@ -153,19 +153,58 @@ for bundle in "$APP" "$EXTENSION"; do
 done
 codesign -dvv "$APP" 2>&1 | grep -E "^Authority|^TeamIdentifier|^Timestamp" | sed 's/^/    /'
 
-# --- package --------------------------------------------------------------
+# --- notarize the app, then package it -------------------------------------
+
+# The app is notarized and stapled *before* it goes into the disk image, and
+# that order is the whole point. Notarizing only the image staples a ticket to
+# the image; the app a person drags out of it carries none, and its first
+# launch then depends on Gatekeeper reaching Apple over the network. The first
+# run of this script did exactly that and its own last check said so —
+# "CCWidget.app does not have a ticket stapled to it" — which is why the check
+# is there and why this is now two submissions rather than one.
+
+notary_or_stop() {
+    if xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+        return 0
+    fi
+    echo >&2
+    echo "!! No notary credentials stored under the profile '$NOTARY_PROFILE'." >&2
+    echo "   This script will not ask you for a password. Run this yourself:" >&2
+    echo >&2
+    echo "     xcrun notarytool store-credentials $NOTARY_PROFILE \\" >&2
+    echo "         --apple-id <your Apple ID> --team-id $TEAM_ID" >&2
+    echo >&2
+    echo "   It wants an app-specific password: appleid.apple.com › Sign-In and" >&2
+    echo "   Security › App-Specific Passwords. Then run this script again." >&2
+    exit 1
+}
+
+# Submits one file and refuses to continue on anything but Accepted, printing
+# what the service objected to rather than the word "Invalid".
+notarize() {
+    local file="$1" log="$STAGE/notary-$(basename "$1").log"
+    xcrun notarytool submit "$file" --keychain-profile "$NOTARY_PROFILE" --wait \
+        | tee "$log" | grep -vE "Current status: In Progress" | sed 's/^/    /'
+    if ! grep -q "status: Accepted" "$log"; then
+        local id
+        id="$(sed -n 's/.*id: \([0-9a-f-]*\).*/\1/p' "$log" | head -1)"
+        echo >&2
+        echo "!! $(basename "$file") was not accepted. What the service objected to:" >&2
+        [ -n "$id" ] && xcrun notarytool log "$id" --keychain-profile "$NOTARY_PROFILE" >&2
+        exit 1
+    fi
+}
 
 DMG="$STAGE/CCWidget-$VERSION.dmg"
-echo "==> Building $(basename "$DMG")"
-ROOM="$STAGE/dmg"
-rm -rf "$ROOM"; mkdir -p "$ROOM"
-cp -R "$APP" "$ROOM/"
-ln -s /Applications "$ROOM/Applications"
-hdiutil create -quiet -volname "Usage Widget for Claude Code" \
-    -srcfolder "$ROOM" -ov -format UDZO "$DMG"
-codesign --force --sign "$IDENTITY" --timestamp "$DMG"
 
 if [ "$NOTARIZE" -eq 0 ]; then
+    ROOM="$STAGE/dmg"
+    rm -rf "$ROOM"; mkdir -p "$ROOM"
+    cp -R "$APP" "$ROOM/"
+    ln -s /Applications "$ROOM/Applications"
+    hdiutil create -quiet -volname "Usage Widget for Claude Code" \
+        -srcfolder "$ROOM" -ov -format UDZO "$DMG"
+    codesign --force --sign "$IDENTITY" --timestamp "$DMG"
     echo
     echo "==> Signed, not notarized (--no-notarize)"
     echo "    $DMG"
@@ -177,52 +216,62 @@ if [ "$NOTARIZE" -eq 0 ]; then
     exit 0
 fi
 
-# --- notarize -------------------------------------------------------------
+notary_or_stop
 
-if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
-    echo
-    echo "!! No notary credentials stored under the profile '$NOTARY_PROFILE'." >&2
-    echo "   This script will not ask you for a password. Run this yourself:" >&2
-    echo >&2
-    echo "     xcrun notarytool store-credentials $NOTARY_PROFILE \\" >&2
-    echo "         --apple-id <your Apple ID> --team-id $TEAM_ID" >&2
-    echo >&2
-    echo "   It wants an app-specific password: appleid.apple.com › Sign-In and" >&2
-    echo "   Security › App-Specific Passwords. Then run this script again." >&2
-    echo "   The signed disk image is already built: $DMG" >&2
-    exit 1
-fi
+echo "==> Notarizing the app (a few minutes)"
+ZIP="$STAGE/CCWidget.zip"
+ditto -c -k --keepParent "$APP" "$ZIP"
+notarize "$ZIP"
 
-echo "==> Notarizing (this takes a few minutes)"
-xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait \
-    | tee "$STAGE/notary.log" | sed 's/^/    /'
-if ! grep -q "status: Accepted" "$STAGE/notary.log"; then
-    ID="$(sed -n 's/.*id: \([0-9a-f-]*\).*/\1/p' "$STAGE/notary.log" | head -1)"
-    echo
-    echo "!! Not accepted. What the service objected to:" >&2
-    [ -n "$ID" ] && xcrun notarytool log "$ID" --keychain-profile "$NOTARY_PROFILE" >&2
-    exit 1
-fi
+echo "==> Stapling the ticket to the app"
+xcrun stapler staple "$APP" | sed 's/^/    /'
 
-echo "==> Stapling"
+echo "==> Building $(basename "$DMG") around the stapled app"
+ROOM="$STAGE/dmg"
+rm -rf "$ROOM"; mkdir -p "$ROOM"
+cp -R "$APP" "$ROOM/"
+ln -s /Applications "$ROOM/Applications"
+hdiutil create -quiet -volname "Usage Widget for Claude Code" \
+    -srcfolder "$ROOM" -ov -format UDZO "$DMG"
+codesign --force --sign "$IDENTITY" --timestamp "$DMG"
+
+echo "==> Notarizing the disk image (a few minutes)"
+notarize "$DMG"
+
+echo "==> Stapling the ticket to the disk image"
 xcrun stapler staple "$DMG" | sed 's/^/    /'
 
 # --- the only verdict that counts -----------------------------------------
 
 # Not "did the commands succeed" but "would another Mac open this". The app is
-# taken back out of the image, because that is the copy a person ends up with.
+# taken back out of the image, because that is the copy a person ends up with,
+# and it is asked both questions: does Gatekeeper accept it, and does it carry
+# its own ticket. The second is what fails when the app has not been stapled
+# and only the image has — an app that works on a connected Mac and not on one
+# that is offline.
 echo "==> Checking a Mac that did not build this would open it"
 MOUNT="$(mktemp -d)"
 hdiutil attach -quiet -nobrowse -mountpoint "$MOUNT" "$DMG"
-trap 'hdiutil detach -quiet "$MOUNT" 2>/dev/null || true' EXIT
-if spctl -a -vvv -t exec "$MOUNT/CCWidget.app" 2>&1 | sed 's/^/    /' | grep -q "accepted"; then
+COPY="$(mktemp -d)/CCWidget.app"
+cp -R "$MOUNT/CCWidget.app" "$COPY"
+hdiutil detach -quiet "$MOUNT"
+
+if spctl -a -vvv -t exec "$COPY" 2>&1 | sed 's/^/    /' | grep -q "accepted"; then
     echo "    Gatekeeper accepts it."
 else
-    echo "!! Gatekeeper still refuses it. Nothing above caught that, which is" >&2
-    echo "   why this check exists." >&2
+    echo "!! Gatekeeper refuses it. Nothing above caught that, which is why" >&2
+    echo "   this check exists." >&2
     exit 1
 fi
-xcrun stapler validate "$MOUNT/CCWidget.app" 2>&1 | sed 's/^/    /' || true
+
+if xcrun stapler validate "$COPY" 2>&1 | grep -q "The validate action worked"; then
+    echo "    The app carries its own ticket, so it opens offline too."
+else
+    echo "!! The app dragged out of the image has no ticket stapled to it." >&2
+    echo "   It would need Gatekeeper to reach Apple on first launch." >&2
+    exit 1
+fi
+rm -rf "$(dirname "$COPY")"
 
 echo
 echo "==> Done: $DMG"
