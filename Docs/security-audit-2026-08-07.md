@@ -14,8 +14,14 @@ instead.
 | 1 | **Closed** on 16 August 2026 | `Scripts/uninstall.sh` compares `statusLine.command` exactly, the way the app always has, and keeps the exporter file when anything else in `settings.json` still names it. Checked by `Scripts/check-uninstall.sh`, which fails sixteen of its fifty-seven assertions against the old script. |
 | 3 | **Open** — the app half is the finding | The report already exempts the script's `cp`. Its backup is now opened `0600` outright rather than relying on `cp` to carry the mode over, but the finding itself is about `Installer.backupSettings`, and that is untouched. |
 | 8 | **Closed** | The uninstaller writes a neighbouring file and renames it over the original. |
+| 2 | **Closed** on 17 August 2026 | Both readers refuse a file past a limit — 4 MiB for the snapshot, 8 MiB for the history — and say so instead of returning nothing. The snapshot's refusal is a new `SnapshotStoreError.tooLarge`; the history's is a log line, because its caller has no channel for an error. |
+| 4 | **Closed** on 17 August 2026 | `uninstall(removingHistory: true)` removes `export-skipped.json` as well. Checked both ways: it goes when the history goes, and it stays when the history stays. |
+| 5 | **Closed by rewriting the claim** on 17 August 2026 | The comment said the hash "makes tampering visible". It does not: the hash sits beside the file with the same permissions, so whoever can replace one can rewrite the other. It detects drift, and now says so, with what a true version would need. |
+| 6 | **Closed** on 17 August 2026 | The interpolated reason is logged `.private`; a five-word classification derived from it is what stays public. Each of the five is produced by a check, and one check feeds it a path to confirm nothing from the data can reach the public field. |
+| 7 | **Closed** on 17 August 2026 | Pruning deletes only names this project writes — the prefix followed by a stamp, and optionally the `-2` counter used when two installs land in the same second. `settings.json.bak-before-experiment` survives, and there is a check that says so. |
 
-Everything else stands as reported.
+That is all eight. The report is closed; what it recorded stays here as the
+record of how the project looked to somebody reading it cold on 7 August.
 
 ---
 

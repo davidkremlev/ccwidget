@@ -92,4 +92,92 @@ struct SecurityTests {
         #expect(rendered.components(separatedBy: "\n").count == 3,
                 "the injection added no new lines")
     }
+
+    // MARK: What the reader will read, and what it refuses
+
+    /// The exporter caps its input at a mebibyte and the exporter's own comment
+    /// says why: a gigabyte once landed in the snapshot whole and killed the
+    /// extension on read. That cap is on the writing side. Any other writer
+    /// reproduces the crash, and a widget that dies on every render shows a
+    /// stale frame that reads as merely old.
+    @Test("A snapshot larger than the exchange can hold is refused, not read")
+    func oversizedSnapshotIsRefused() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let exchange = SnapshotStore.exchangeURL(home: home)
+        // `makeContainer` stands in for what the system creates; the exchange
+        // folder inside it is the exporter's to make, and here nothing has run.
+        try FileManager.default.createDirectory(at: exchange, withIntermediateDirectories: true)
+        let store = SnapshotStore(containerURL: exchange)
+        let padding = String(repeating: " ", count: SnapshotStore.maximumSnapshotBytes + 1)
+        try (padding + "{}").write(to: store.snapshotURL, atomically: true, encoding: .utf8)
+
+        var thrown: SnapshotStoreError?
+        do { _ = try store.load() } catch let error as SnapshotStoreError { thrown = error }
+
+        guard case .tooLarge(_, let bytes)? = thrown else {
+            Issue.record("a \(padding.count)-byte snapshot was not refused: \(String(describing: thrown))")
+            return
+        }
+        #expect(bytes > SnapshotStore.maximumSnapshotBytes)
+        #expect(thrown?.description.contains("past the") == true,
+                "the refusal says what it refused and why: \(thrown?.description ?? "")")
+    }
+
+    /// The same for the history, which the widget reads on every timeline.
+    @Test("A history larger than the exchange can hold is treated as empty, loudly")
+    func oversizedHistoryIsRefused() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let exchange = SnapshotStore.exchangeURL(home: home)
+        try FileManager.default.createDirectory(at: exchange, withIntermediateDirectories: true)
+        let store = SnapshotStore(containerURL: exchange)
+        let history = HistoryStore(store: store)
+        let line = #"{"t":0,"w":1,"r":0}"# + "\n"
+        let copies = HistoryStore.maximumBytes / line.count + 2
+        try String(repeating: line, count: copies).write(to: history.url,
+                                                         atomically: true, encoding: .utf8)
+        #expect(history.load().isEmpty, "a history past the limit is not parsed")
+    }
+
+    /// A person's own backup is not ours to delete. `settings.json.bak-` is a
+    /// prefix somebody types; what this project writes is that prefix followed
+    /// by exactly a date and a time.
+    @Test("Only backups this project wrote count as ours",
+          arguments: [("settings.json.bak-20260817-014500", true),
+                      ("settings.json.bak-before-experiment", false),
+                      ("settings.json.bak-2026-08-17", false),
+                      ("settings.json.bak-20260817-01450", false),
+                      ("settings.json.bak-20260817-0145O0", false),
+                      ("settings.json.bak-20260817-014500-2", true),
+                      ("settings.json.bak-20260817-014500-x", false),
+                      ("settings.json", false)])
+    func onlyOurBackupsAreOurs(name: String, ours: Bool) {
+        #expect(Installer.isOurBackupName(name) == ours, "\(name)")
+    }
+
+    /// And the pruning acts on that: six of ours plus one of theirs, and the
+    /// one of theirs survives.
+    @Test("Pruning keeps the five newest of ours and never touches a foreign one")
+    func pruningLeavesForeignBackupsAlone() throws {
+        let home = sandbox()
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        try FileManager.default.createDirectory(at: inst.claudeDirectory,
+                                                withIntermediateDirectories: true)
+        let theirs = inst.claudeDirectory.appending(path: "settings.json.bak-before-experiment")
+        try "PRECIOUS".write(to: theirs, atomically: true, encoding: .utf8)
+        for i in 1...7 {
+            let name = String(format: "settings.json.bak-2026081%d-010101", i)
+            try "{}".write(to: inst.claudeDirectory.appending(path: name),
+                           atomically: true, encoding: .utf8)
+        }
+        inst.pruneBackups()
+
+        let left = try FileManager.default.contentsOfDirectory(
+            atPath: inst.claudeDirectory.path(percentEncoded: false))
+        #expect(left.contains("settings.json.bak-before-experiment"),
+                "somebody's own backup was deleted: \(left.sorted())")
+        #expect(left.filter(Installer.isOurBackupName).count == Installer.backupsKept,
+                "ours were not pruned to \(Installer.backupsKept): \(left.sorted())")
+    }
 }

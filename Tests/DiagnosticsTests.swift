@@ -346,4 +346,30 @@ struct HistoryTests {
         #expect(s.truncateIfNeeded() == 0, "\(count) lines")
         #expect(s.load().count == count)
     }
+
+    // MARK: What the log may say out loud
+
+    /// The reason a field was dropped is built by interpolating an arbitrary
+    /// error, so it goes to the log private. What stays public is the
+    /// classification, and a classification is only useful if it is a closed
+    /// vocabulary — every one of these has to be produced, or a case nobody
+    /// expects is wrong for ever.
+    @Test("The public half of a parse failure is a fixed vocabulary",
+          arguments: [("expected Int, found a string", "typeMismatch"),
+                      ("no value for Int", "valueNotFound"),
+                      ("missing key resets_at", "keyNotFound"),
+                      ("The data isn\u{2019}t in the correct format.", "dataCorrupted"),
+                      ("", "unknown")])
+    func theKindIsAClosedVocabulary(reason: String, kind: String) {
+        #expect(DiagnosticsCollector.kind(of: reason) == kind, "\(reason)")
+    }
+
+    /// And the thing the vocabulary exists for: a value out of somebody's
+    /// snapshot must not reach a public field through it.
+    @Test("A value from the data cannot arrive in the public field")
+    func theKindCarriesNoData() {
+        let secret = "/Users/someone/Documents/secret-client"
+        #expect(!DiagnosticsCollector.kind(of: "expected Int, found \(secret)").contains(secret))
+        #expect(!DiagnosticsCollector.kind(of: secret).contains("secret"))
+    }
 }

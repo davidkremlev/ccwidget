@@ -219,4 +219,53 @@ struct RemovalTests {
         #expect(notice.contains("rewritten"),
                 "the report knew the file was rebuilt and the window did not say so: \"\(notice)\"")
     }
+
+    /// Removing the history has to remove all of it. `export-skipped.json`
+    /// carries eight characters of a session id and a timestamp, and it was
+    /// staying behind: somebody asking for their data to be deleted got two
+    /// files of three, and the third was the only one with an identifier in it.
+    @Test("Removing the history takes the skip notice with it")
+    func removingHistoryTakesTheSkipNotice() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        let exchange = inst.exchangeDirectory
+        try FileManager.default.createDirectory(at: exchange, withIntermediateDirectories: true)
+
+        let store = SnapshotStore(containerURL: exchange)
+        for (url, text) in [(store.snapshotURL, "{}"),
+                            (exchange.appending(path: "history.jsonl"), "{}\n"),
+                            (store.skipNoticeURL, #"{"sessionId":"a1b2c3d4","since":0}"#)] {
+            try text.write(to: url, atomically: true, encoding: .utf8)
+        }
+
+        _ = try inst.uninstall(removingHistory: true)
+
+        let left = try FileManager.default.contentsOfDirectory(
+            atPath: exchange.path(percentEncoded: false))
+        #expect(!left.contains("export-skipped.json"),
+                "a session identifier survived a request to delete the data: \(left)")
+        #expect(!left.contains("history.jsonl"))
+        #expect(!left.contains("snapshot.json"))
+    }
+
+    /// And the other way: keeping the history keeps all of it, including the
+    /// notice. A removal that deletes more than it was asked to is the same
+    /// class of defect as one that deletes less.
+    @Test("Keeping the history keeps the skip notice too")
+    func keepingHistoryKeepsTheSkipNotice() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        let exchange = inst.exchangeDirectory
+        try FileManager.default.createDirectory(at: exchange, withIntermediateDirectories: true)
+        let store = SnapshotStore(containerURL: exchange)
+        try #"{"sessionId":"a1b2c3d4"}"#.write(to: store.skipNoticeURL,
+                                               atomically: true, encoding: .utf8)
+
+        _ = try inst.uninstall(removingHistory: false)
+
+        #expect(FileManager.default.fileExists(atPath: store.skipNoticeURL.path(percentEncoded: false)),
+                "the notice went with a removal that was told to keep the history")
+    }
 }

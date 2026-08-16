@@ -37,11 +37,22 @@ public final class DiagnosticsCollector: @unchecked Sendable {
         storage.append(issue)
         lock.unlock()
 
+        // `reason` is private, and the shape of the failure is what is public.
+        //
+        // Every caller today passes a `DecodingError`, whose description names
+        // types and key paths rather than values — so the claim "raw values are
+        // private" holds. It holds by accident: `reason(for:)` falls through to
+        // "\(error)" for anything else, and the CI sentinel greps for `path`,
+        // `home` and `rawValue` beside `.public` and would not see it. A latent
+        // channel is a channel; the sentinel cannot be taught to read
+        // arbitrary error descriptions, so the interpolation goes private and
+        // the classification — which is a fixed vocabulary — stays public.
         ccwidgetParseLog.error(
             """
             soft parse dropped field \(field, privacy: .public); \
             raw=\(issue.rawValue ?? "<unreadable>", privacy: .private); \
-            reason=\(issue.reason, privacy: .public)
+            kind=\(Self.kind(of: issue.reason), privacy: .public); \
+            reason=\(issue.reason, privacy: .private)
             """
         )
     }
@@ -50,6 +61,16 @@ public final class DiagnosticsCollector: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return storage
+    }
+
+    /// The fixed vocabulary the log may say out loud. Five words, none of
+    /// which can carry a value from somebody's snapshot.
+    static func kind(of reason: String) -> String {
+        if reason.hasPrefix("expected ") { return "typeMismatch" }
+        if reason.hasPrefix("no value for ") { return "valueNotFound" }
+        if reason.hasPrefix("missing key ") { return "keyNotFound" }
+        if reason.isEmpty { return "unknown" }
+        return "dataCorrupted"
     }
 
     private static func reason(for error: Error) -> String {

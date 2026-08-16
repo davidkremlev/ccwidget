@@ -33,7 +33,27 @@ public struct HistoryStore: Sendable {
 
     /// Parses the history. A broken line is skipped, but never quietly — the
     /// rule from section 6.1 applies here too.
+    /// The largest `history.jsonl` this will read.
+    ///
+    /// Two thousand lines of roughly a hundred bytes is two hundred kilobytes,
+    /// so eight mebibytes is fortyfold headroom. The reason for having a limit
+    /// at all is the one in `SnapshotStore.load()`: the cap the exporter puts
+    /// on its input protects nothing against a different writer, and this file
+    /// is read on every timeline the widget builds.
+    public static let maximumBytes = 8 * 1024 * 1024
+
     public func load() -> [HistoryEntry] {
+        let size = (try? FileManager.default.attributesOfItem(
+            atPath: url.path(percentEncoded: false))[.size] as? Int) ?? nil
+        if let size, size > Self.maximumBytes {
+            // Loud, not silent: an empty history and a history too large to
+            // read look identical from the estimate's side, and one of them is
+            // somebody else writing into our exchange.
+            ccwidgetStoreLog.error(
+                "history.jsonl is \(size, privacy: .public) bytes, past the \(Self.maximumBytes, privacy: .public) this reads; treating it as empty"
+            )
+            return []
+        }
         guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
 
         var entries: [HistoryEntry] = []

@@ -5,6 +5,8 @@ public enum SnapshotStoreError: Error, CustomStringConvertible {
     case unreadable(URL, Error)
     case malformed(Error)
     case unsupportedSchema(found: Int, supported: Int)
+    /// The file is larger than anything this exchange can legitimately hold.
+    case tooLarge(URL, bytes: Int)
 
     public var description: String {
         switch self {
@@ -16,11 +18,16 @@ public enum SnapshotStoreError: Error, CustomStringConvertible {
             return "Snapshot is corrupted: \(error)"
         case .unsupportedSchema(let found, let supported):
             return "Snapshot schema \(found) is newer than the supported \(supported)"
+        case .tooLarge(let url, let bytes):
+            return "\(url.lastPathComponent) is \(bytes) bytes, past the \(SnapshotStore.maximumSnapshotBytes) this reads"
         }
     }
 }
 
 public struct SnapshotStore: Sendable {
+    /// The largest `snapshot.json` this will read. See `load()`.
+    public static let maximumSnapshotBytes = 4 * 1024 * 1024
+
     /// Exchange happens through the widget extension's own container — see
     /// section 2.2. An App Group was rejected: under ad-hoc signing the
     /// sandbox never grants the extension access to the group container.
@@ -166,6 +173,26 @@ public struct SnapshotStore: Sendable {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw SnapshotStoreError.fileMissing(url)
         }
+        // Read what the exchange can legitimately hold, and no more.
+        //
+        // The exporter caps its input at one mebibyte, and the exporter's own
+        // comment records why: a gigabyte of input once landed in the snapshot
+        // whole and killed the widget extension on read. That cap is on the
+        // writing side only. Any other writer — a second tool, a future bug in
+        // ours, any process running as this user — reproduces the crash, and a
+        // widget that dies on every render shows a stale frame that looks
+        // merely old. A reader with no limit is a defect this project has
+        // already suffered once, from the other end.
+        //
+        // Four mebibytes: the largest snapshot ever observed is under four
+        // kilobytes, so this is a thousandfold headroom and still three orders
+        // of magnitude below the size that did the damage.
+        let size = (try? FileManager.default.attributesOfItem(
+            atPath: url.path(percentEncoded: false))[.size] as? Int) ?? nil
+        if let size, size > Self.maximumSnapshotBytes {
+            throw SnapshotStoreError.tooLarge(url, bytes: size)
+        }
+
         let data: Data
         do {
             data = try Data(contentsOf: url)

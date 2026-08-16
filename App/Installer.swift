@@ -86,14 +86,25 @@ struct Installer {
     var settingsURL: URL { claudeDirectory.appending(path: "settings.json") }
     var exporterURL: URL { claudeDirectory.appending(path: "ccwidget-export.py") }
 
+    /// What the window shows. The real names may carry a `-2`, `-3` counter
+    /// when two installs land in the same second; the pattern names the shape
+    /// somebody should look for, not the grammar.
     var backupNamePattern: String { "settings.json.bak-YYYYMMDD-HHMMSS" }
 
     /// Where the hash of the installed exporter is kept.
     ///
     /// The app drops an executable into the status line's path and, without
-    /// this, never looks at it again: anyone able to write to `~/.claude`
-    /// could replace it while the interface kept saying "configured". The
-    /// hash does not prevent tampering — it makes tampering visible.
+    /// this, never looks at it again: it would keep saying "configured" about
+    /// a file that had been swapped.
+    ///
+    /// **What it does not do.** The hash lives in the same directory as the
+    /// file it describes, with the same permissions, so anyone who can replace
+    /// the exporter can rewrite the hash beside it. This detects drift — an
+    /// edit, a half-finished upgrade, a file replaced by another tool — and
+    /// not an adversary. The comment here used to say it "makes tampering
+    /// visible", which is the stronger claim and is false. Making it true
+    /// needs somewhere else to keep the hash, and nothing in this project has
+    /// that today.
     var integrityURL: URL { claudeDirectory.appending(path: ".ccwidget-export.sha256") }
 
     /// How many backups to keep. A backup holds someone's configuration;
@@ -352,13 +363,52 @@ struct Installer {
         return backup
     }
 
-    /// Keeps the recent backups and deletes the rest.
-    private func pruneBackups() {
+    /// Keeps the recent backups and deletes the rest — ours, and only ours.
+    ///
+    /// The prefix alone is not enough, and that was a defect rather than a
+    /// nicety: `settings.json.bak-before-experiment` is a name a person types,
+    /// it starts with the same eighteen characters, and it went in the bin on
+    /// the sixth install without a word. What this project writes is the
+    /// prefix followed by exactly `YYYYMMDD-HHMMSS`, so that is what it is
+    /// allowed to delete. Anything else in that directory belongs to whoever
+    /// put it there.
+    /// A function rather than a stored `Regex`: `Regex` is not `Sendable`, and
+    /// a static one in a type this concurrent does not compile under strict
+    /// checking. The pattern is small enough to read as code.
+    static func isOurBackupName(_ name: String) -> Bool {
+        let prefix = "settings.json.bak-"
+        guard name.hasPrefix(prefix) else { return false }
+        let parts = name.dropFirst(prefix.count).split(separator: "-",
+                                                       omittingEmptySubsequences: false)
+        func digits(_ s: Substring, _ count: Int) -> Bool {
+            s.count == count && s.allSatisfy { $0.isASCII && $0.isNumber }
+        }
+        switch parts.count {
+        case 2:
+            return digits(parts[0], 8) && digits(parts[1], 6)
+        case 3:
+            // Two installs inside one second: `backupSettings` appends `-2`,
+            // `-3` and so on rather than overwriting. Those are ours too, and
+            // leaving them out meant they could never be pruned — caught by
+            // the rotation check, which had eight backups where five were
+            // allowed. The counter has no fixed width, so it is only required
+            // to be digits.
+            return digits(parts[0], 8) && digits(parts[1], 6)
+                && !parts[2].isEmpty && parts[2].allSatisfy { $0.isASCII && $0.isNumber }
+        default:
+            return false
+        }
+    }
+
+    // Internal rather than private so the rule above can be checked directly
+    // instead of through an install, which would need an interpreter and a
+    // container to say anything about which files survive.
+    func pruneBackups() {
         let fm = FileManager.default
         guard let names = try? fm.contentsOfDirectory(atPath: claudeDirectory.path(percentEncoded: false))
         else { return }
         let backups = names
-            .filter { $0.hasPrefix("settings.json.bak-") }
+            .filter(Self.isOurBackupName)
             .sorted()
         guard backups.count > Self.backupsKept else { return }
         for name in backups.dropLast(Self.backupsKept) {
@@ -485,6 +535,13 @@ struct Installer {
             historyRemoved = (try? fm.removeItem(
                 at: exchangeDirectory.appending(path: "history.jsonl"))) != nil
             try? fm.removeItem(at: exchangeDirectory.appending(path: "snapshot.json"))
+            // And the skip notice, which carries eight characters of a session
+            // id and a timestamp. It was left behind: somebody asking for their
+            // data to be removed got two files of three, and the third was the
+            // only one with an identifier in it.
+            // Named through the store rather than spelled again here, so the
+            // two cannot drift apart.
+            try? fm.removeItem(at: SnapshotStore(containerURL: exchangeDirectory).skipNoticeURL)
         }
 
         return RemovalReport(
