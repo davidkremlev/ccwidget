@@ -64,7 +64,8 @@ extension Forecast.Outcome {
 /// string formatted against the process locale disagree with each other, and a
 /// baseline taken on one machine then fails on another.
 func estimateStatement(_ forecast: Forecast,
-                       locale: Locale = .autoupdatingCurrent) -> EstimateStatement {
+                       locale: Locale = .autoupdatingCurrent,
+                       timeZone: TimeZone = .autoupdatingCurrent) -> EstimateStatement {
     func localized(_ resource: LocalizedStringResource) -> String {
         var copy = resource
         copy.locale = locale
@@ -85,7 +86,7 @@ func estimateStatement(_ forecast: Forecast,
         caption = localized(LocalizedStringResource("Lasts until reset"))
     case .runsOut(let date):
         // The tilde is mandatory: this is an estimate, not a timetable.
-        let moment = CCWidgetFormat.resetMoment(date, locale: locale)
+        let moment = CCWidgetFormat.resetMoment(date, locale: locale, timeZone: timeZone)
         caption = localized(LocalizedStringResource("Runs out ~\(moment)"))
     }
 
@@ -259,6 +260,7 @@ struct ForecastBlock: View {
     /// from the environment is both the SwiftUI-native source and the one a
     /// check can set.
     @Environment(\.locale) private var locale
+    @Environment(\.timeZone) private var timeZone
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -291,7 +293,7 @@ struct ForecastBlock: View {
     }
 
     private var statement: EstimateStatement {
-        estimateStatement(forecast, locale: locale)
+        estimateStatement(forecast, locale: locale, timeZone: timeZone)
     }
 
     /// "0.7 %/h". The unit goes through the catalog like everything else: an

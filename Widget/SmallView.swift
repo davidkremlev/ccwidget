@@ -6,6 +6,13 @@ import WidgetKit
 struct SmallView: View {
     let entry: CCWidgetEntry
 
+    /// The drawn caption and the spoken one format the same reset moment, so
+    /// they take it from the same place. Neither was doing so: both went to
+    /// the process locale and the process time zone, which is right on a
+    /// desktop and wrong everywhere a tile is rendered rather than lived in.
+    @Environment(\.locale) private var locale
+    @Environment(\.timeZone) private var timeZone
+
     /// 34pt per section 9, but it scales with the system font size. A hard
     /// size switched Dynamic Type off entirely: the labels around it grew
     /// while the number did not, and the layout came apart.
@@ -26,7 +33,7 @@ struct SmallView: View {
             } else if entry.hidesNumbers {
                 // Section 2.4: an invitation to launch Claude Code replaces
                 // the digits.
-                MessageView.abandoned(entry: entry, compact: true)
+                MessageView.abandoned(entry: entry, locale: locale, timeZone: timeZone, compact: true)
                 Spacer(minLength: 0)
             } else if entry.snapshot?.limitsAvailability == .absentAfterReply {
                 // This tile is the weekly window and nothing else, so an
@@ -61,9 +68,9 @@ struct SmallView: View {
         // The one line this tile has for it: a window that has ended says so
         // instead of naming a reset that already happened.
         if window.hasClosed(at: entry.date) {
-            return String(localized: "closed · \(CCWidgetFormat.resetMoment(window.resetsAt))")
+            return String(localized: "closed · \(CCWidgetFormat.resetMoment(window.resetsAt, locale: locale, timeZone: timeZone))")
         }
-        return String(localized: "used · resets \(CCWidgetFormat.resetMoment(window.resetsAt))")
+        return String(localized: "used · resets \(CCWidgetFormat.resetMoment(window.resetsAt, locale: locale, timeZone: timeZone))")
     }
 
     private var header: some View {
@@ -86,7 +93,7 @@ struct SmallView: View {
             } else if entry.hidesNumbers {
                 Text("Launch Claude Code")
             } else if let window {
-                Text("used · resets \(CCWidgetFormat.resetMoment(window.resetsAt))")
+                Text("used · resets \(CCWidgetFormat.resetMoment(window.resetsAt, locale: locale, timeZone: timeZone))")
             } else {
                 Text("waiting for limits")
             }

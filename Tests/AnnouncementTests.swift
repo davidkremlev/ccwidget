@@ -184,8 +184,11 @@ struct AnnouncementTests {
         let e = entry(fiveHour: 21, sevenDay: nil, context: nil)
         let text = (announcement("5-hour used", e.limitReading(e.snapshot?.limits.fiveHour)))
 
-        let caption = try? #require(text.range(of: "5-hour used"))
-        let percent = try? #require(text.range(of: "21"))
+        // Plain `range(of:)`, not `#require`: the compiler can see that a
+        // non-optional never equals nil and says so, and a warning in a check
+        // is a check nobody reads twice.
+        let caption = text.range(of: "5-hour used")
+        let percent = text.range(of: "21")
         guard let caption, let percent else {
             Issue.record("neither part of \"\(text)\" is recognisable")
             return

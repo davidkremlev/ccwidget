@@ -7,6 +7,7 @@ struct MediumView: View {
 
     /// So the drawn line and the spoken one share a locale.
     @Environment(\.locale) private var locale
+    @Environment(\.timeZone) private var timeZone
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -17,7 +18,7 @@ struct MediumView: View {
                 if entry.snapshot == nil {
                     MessageView.noData()
                 } else {
-                    MessageView.abandoned(entry: entry)
+                    MessageView.abandoned(entry: entry, locale: locale, timeZone: timeZone)
                 }
                 Spacer(minLength: 0)
             } else if let snapshot = entry.snapshot {
@@ -51,14 +52,14 @@ struct MediumView: View {
                 caption: "5-hour used",
                 reading: entry.limitReading(snapshot.limits.fiveHour),
                 dimmed: entry.isDimmed,
-                detail: entry.limitDetail(snapshot.limits.fiveHour, locale: locale),
+                detail: entry.limitDetail(snapshot.limits.fiveHour, locale: locale, timeZone: timeZone),
                 moment: entry.date
             )
             GaugeRow(
                 caption: "Week used",
                 reading: entry.limitReading(snapshot.limits.sevenDay),
                 dimmed: entry.isDimmed,
-                detail: entry.limitDetail(snapshot.limits.sevenDay, locale: locale),
+                detail: entry.limitDetail(snapshot.limits.sevenDay, locale: locale, timeZone: timeZone),
                 moment: entry.date
             )
             GaugeRow(

@@ -23,11 +23,15 @@ import Testing
 @Suite("Chart geometry", .serialized)
 struct ChartBaselineTests {
 
-    /// Baselines are only meaningful where the renderer is the one they were
-    /// taken with. Whether `ImageRenderer` agrees across macOS versions is
-    /// still unmeasured — the CI job that answers it is step zero of the plan
-    /// — so until then the minimum-version runner skips this suite rather than
-    /// failing for a reason that is not a defect.
+    /// The escape hatch, kept but no longer used by CI.
+    ///
+    /// It existed because whether `ImageRenderer` agrees across machines was
+    /// unmeasured. It is measured now: the same picture rendered here and on a
+    /// GitHub runner differs by 40 pixels of 101,712 and never by more than
+    /// one unit of 255, which is what `tolerableChannelDelta` admits. Both
+    /// runners check the baselines. This stays for the case the numbers change
+    /// on some future toolchain — turning it on again is a decision that has
+    /// to be written down beside the numbers that caused it.
     private static var skipped: Bool {
         ProcessInfo.processInfo.environment["CCWIDGET_SKIP_IMAGE_BASELINES"] == "1"
     }
@@ -43,6 +47,11 @@ struct ChartBaselineTests {
 
     /// Padding around the block, so the baseline is not flush to the edge.
     private static let inset: CGFloat = 8
+
+    /// UTC, because a baseline has to be a picture of the same instant
+    /// everywhere. Any fixed zone would do; this is the one with no politics
+    /// and no daylight saving in it.
+    private static let timeZone = TimeZone(identifier: "UTC")!
 
     /// Pinned so the baselines are Retina-sized, and pinned rather than
     /// defaulted so nothing silently halves them.
@@ -127,6 +136,12 @@ struct ChartBaselineTests {
             .background(Color.white)
             .environment(\.colorScheme, .light)
             .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+            // The zone belongs here beside the locale, and its absence is what
+            // made this suite fail the first time it ever ran on another
+            // machine: the caption prints a weekday and a time, so the picture
+            // carried whatever zone the renderer's machine was in. See
+            // Docs/rendering-checks.md, "Step 0, answered".
+            .environment(\.timeZone, Self.timeZone)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = Self.scale
@@ -158,11 +173,67 @@ struct ChartBaselineTests {
             return
         }
 
-        if produced != existing {
-            try? produced.write(to: url.appendingPathExtension("actual"))
+        if produced == existing { return }   // the common case, and free
+
+        // Bytes are not the property. Two Macs rendering the same view produce
+        // PNGs a few bytes apart: measured on 16 August 2026, the same picture
+        // came out 40 pixels different of 101,712, and never by more than one
+        // unit of 255 in any channel. A different string in the caption came
+        // out 548 pixels different at 179 — three orders of magnitude away.
+        // So the rule is stated where the difference actually lives.
+        try? produced.write(to: url.appendingPathExtension("actual"))
+        let difference = try #require(Self.compare(produced, existing),
+                                      "\(name): the two images could not be compared")
+        #expect(difference.maxDelta <= Self.tolerableChannelDelta, """
+            chart-\(name).png differs by more than antialiasing: \
+            \(difference.differing) pixels of \(difference.total), \
+            up to \(difference.maxDelta) of 255 in one channel. \
+            The .actual beside it is what this machine drew.
+            """)
+    }
+
+    /// One unit of 255. Not a knob to turn when the build is inconvenient: it
+    /// is the largest difference two machines were measured to produce on an
+    /// identical picture, and the smallest difference a changed glyph was
+    /// measured to produce was 179.
+    private static let tolerableChannelDelta = 1
+
+    private struct PixelDifference {
+        let differing: Int
+        let total: Int
+        let maxDelta: Int
+    }
+
+    /// Decoded, not decompressed: PNG says nothing about whether two files
+    /// hold the same picture. `nil` when the two cannot be compared at all —
+    /// different sizes or different sample layouts — which is a failure with a
+    /// different cause and must not read as "within tolerance".
+    private static func compare(_ produced: Data, _ existing: Data) -> PixelDifference? {
+        guard let a = NSBitmapImageRep(data: produced),
+              let b = NSBitmapImageRep(data: existing),
+              a.pixelsWide == b.pixelsWide, a.pixelsHigh == b.pixelsHigh,
+              a.samplesPerPixel == b.samplesPerPixel,
+              a.bitsPerSample == 8, b.bitsPerSample == 8,
+              let pa = a.bitmapData, let pb = b.bitmapData
+        else { return nil }
+
+        var differing = 0, maxDelta = 0
+        let samples = a.samplesPerPixel
+        for y in 0..<a.pixelsHigh {
+            let rowA = pa + y * a.bytesPerRow
+            let rowB = pb + y * b.bytesPerRow
+            for x in 0..<a.pixelsWide {
+                var worst = 0
+                for sample in 0..<samples {
+                    let i = x * samples + sample
+                    worst = max(worst, abs(Int(rowA[i]) - Int(rowB[i])))
+                }
+                if worst > 0 { differing += 1; maxDelta = max(maxDelta, worst) }
+            }
         }
-        #expect(produced == existing,
-                "chart-\(name).png differs; compare it with the .actual beside it")
+        return PixelDifference(differing: differing,
+                               total: a.pixelsWide * a.pixelsHigh,
+                               maxDelta: maxDelta)
     }
 
     /// The pinning itself, held by the committed files rather than by the code

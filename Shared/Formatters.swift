@@ -39,9 +39,32 @@ public enum CCWidgetFormat {
     /// The locale is a parameter for the same reason `resetMoment`'s is: a
     /// view rendering against `.environment(\.locale, …)` and a string
     /// formatted against the process locale disagree with each other.
+    ///
+    /// So is the time zone, and for the same reason again — found the hard
+    /// way. See `resetMoment`.
     public static func capturedMoment(_ date: Date,
-                                      locale: Locale = .autoupdatingCurrent) -> String {
-        date.formatted(.dateTime.hour().minute().locale(locale))
+                                      locale: Locale = .autoupdatingCurrent,
+                                      timeZone: TimeZone = .autoupdatingCurrent) -> String {
+        date.formatted(style(.dateTime.hour().minute(), locale, timeZone))
+    }
+
+    /// Everything a formatted date takes from its surroundings, taken from
+    /// arguments instead.
+    ///
+    /// The calendar comes from the locale rather than from the process for the
+    /// same reason as the other two: a weekday is a calendar's answer, and the
+    /// system's calendar can be one the locale does not imply. Taking it from
+    /// the locale keeps a person's own choice in the product — a locale knows
+    /// the calendar they picked — while pinning it wherever the locale is
+    /// pinned.
+    private static func style(_ base: Date.FormatStyle,
+                              _ locale: Locale,
+                              _ timeZone: TimeZone) -> Date.FormatStyle {
+        var style = base
+        style.locale = locale
+        style.timeZone = timeZone
+        style.calendar = locale.calendar
+        return style
     }
 
     /// Countdown to the window reset. Two largest units, abbreviated.
@@ -61,8 +84,23 @@ public enum CCWidgetFormat {
     /// that renders against `.environment(\.locale, …)` and formats against
     /// the process locale disagrees with itself, and a baseline taken on one
     /// machine then fails on another.
-    public static func resetMoment(_ date: Date, locale: Locale = .autoupdatingCurrent) -> String {
-        date.formatted(.dateTime.weekday(.abbreviated).hour().minute().locale(locale))
+    ///
+    /// **The time zone is a parameter because the sentence above turned out to
+    /// be true of it too, and nobody had noticed.** A weekday and a time are
+    /// whatever the machine's zone says they are, so `chart-runs-out.png` was
+    /// carrying Asia/Tashkent inside it and failed on a CI runner running UTC
+    /// — 548 pixels, 179 of 255 apart, in the one line of the picture that is
+    /// text. Measured on 16 August 2026: running the built checks under
+    /// `TZ=UTC` failed exactly one of 227, that one.
+    ///
+    /// It matters beyond the baseline. Anything that renders this string
+    /// somewhere other than the moment and machine it will be read on — a
+    /// screenshot, a rendered preview — has been quietly stamping its own zone
+    /// on it.
+    public static func resetMoment(_ date: Date,
+                                   locale: Locale = .autoupdatingCurrent,
+                                   timeZone: TimeZone = .autoupdatingCurrent) -> String {
+        date.formatted(style(.dateTime.weekday(.abbreviated).hour().minute(), locale, timeZone))
     }
 
     public static func percent(_ value: Int) -> String {

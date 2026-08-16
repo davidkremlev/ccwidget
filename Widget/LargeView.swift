@@ -10,6 +10,7 @@ struct LargeView: View {
     /// Passed down to the rows so the drawn line and the spoken one format
     /// against the same locale.
     @Environment(\.locale) private var locale
+    @Environment(\.timeZone) private var timeZone
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -20,7 +21,7 @@ struct LargeView: View {
                 if entry.snapshot == nil {
                     MessageView.noData()
                 } else {
-                    MessageView.abandoned(entry: entry)
+                    MessageView.abandoned(entry: entry, locale: locale, timeZone: timeZone)
                 }
                 Spacer(minLength: 0)
             } else if let snapshot = entry.snapshot,
@@ -62,7 +63,7 @@ struct LargeView: View {
             DetailGaugeRow(
                 caption: "5-hour used",
                 reading: entry.limitReading(snapshot.limits.fiveHour),
-                detail: entry.limitDetail(snapshot.limits.fiveHour, locale: locale),
+                detail: entry.limitDetail(snapshot.limits.fiveHour, locale: locale, timeZone: timeZone),
                 dimmed: entry.isDimmed,
                 moment: entry.date
             )
@@ -70,7 +71,7 @@ struct LargeView: View {
             DetailGaugeRow(
                 caption: "Week used",
                 reading: entry.limitReading(snapshot.limits.sevenDay),
-                detail: entry.limitDetail(snapshot.limits.sevenDay, locale: locale),
+                detail: entry.limitDetail(snapshot.limits.sevenDay, locale: locale, timeZone: timeZone),
                 dimmed: entry.isDimmed,
                 moment: entry.date
             )

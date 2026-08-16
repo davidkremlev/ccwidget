@@ -48,11 +48,15 @@ jobs:
 
     env:
       DEVELOPER_DIR: ${{ matrix.developer_dir }}
-      # Image baselines were taken with one renderer, and whether ImageRenderer
-      # agrees across macOS versions is still unmeasured — the job that answers
-      # it is step zero of Docs/rendering-checks.md. Until then the minimum
-      # runner skips them rather than failing for a reason that is not a defect.
-      CCWIDGET_SKIP_IMAGE_BASELINES: ${{ matrix.primary && '0' || '1' }}
+      # Image baselines used to be skipped on the minimum runner because
+      # whether ImageRenderer agrees across machines was unmeasured. It is
+      # measured now — Docs/rendering-checks.md, "Step 0, answered": the same
+      # picture came out 40 pixels of 101,712 apart, never more than one unit
+      # of 255, and the comparison now looks at pixels rather than at file
+      # bytes. That was the whole reason for the skip, so both runners check.
+      # If the older toolchain turns out to draw differently by more than
+      # rounding, this goes back to skipping with the numbers written down.
+      CCWIDGET_SKIP_IMAGE_BASELINES: '0'
 
     steps:
       - uses: actions/checkout@v4
@@ -117,10 +121,27 @@ jobs:
           # standalone copy older surfaces fall back to. The .icns arrives by
           # default rather than by a setting we pin, which is exactly the kind
           # of thing that changes under you between Xcode releases.
-          test -f "$APP/Contents/Resources/Assets.car" \
-            || { echo "::error::compiled icon missing from the bundle"; exit 1; }
-          test -f "$APP/Contents/Resources/CCWidget.icns" \
-            || { echo "::error::standalone .icns missing from the bundle"; exit 1; }
+          #
+          # Which toolchain is running decides whether their absence is a
+          # defect. Icon Composer's .icon format is compiled by Xcode 26, and
+          # Xcode 26 needs macOS 15.6 or later (Apple's release notes, in
+          # SOURCES.md), so the minimum-OS runner tops out at 16.2 and produces
+          # neither file. That is recorded as finding 12 in
+          # Docs/state-2026-08-16.md and stated in the README; it is not
+          # something this job can fix by failing.
+          XCODE_MAJOR=$(xcodebuild -version | awk 'NR==1 { split($2, v, "."); print v[1] }')
+          if [ "${XCODE_MAJOR:-0}" -ge 26 ]; then
+            test -f "$APP/Contents/Resources/Assets.car" \
+              || { echo "::error::compiled icon missing from the bundle"; exit 1; }
+            test -f "$APP/Contents/Resources/CCWidget.icns" \
+              || { echo "::error::standalone .icns missing from the bundle"; exit 1; }
+            echo "icon products present, built by Xcode $XCODE_MAJOR"
+          else
+            echo "::notice::Xcode $XCODE_MAJOR builds no icon from CCWidget.icon — an app built here has none. Finding 12."
+            if [ -f "$APP/Contents/Resources/Assets.car" ]; then
+              echo "::notice::Assets.car is present after all: finding 12 may be stale, go and re-read it."
+            fi
+          fi
           for lang in en de es ja ru zh-Hans; do
             test -d "$APP/Contents/Resources/$lang.lproj" \
               || { echo "::error::missing localization: $lang"; exit 1; }

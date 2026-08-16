@@ -160,6 +160,12 @@ There are no releases yet — no signed build, no Homebrew formula. The only
 way to run this today is to build it, which means **Xcode 16 or later** and
 **XcodeGen**, which generates the Xcode project from `project.yml`.
 
+**With Xcode older than 26 the app builds without an icon.** The icon is an
+Icon Composer `.icon` file, which only Xcode 26 compiles, and Xcode 26 itself
+needs macOS 15.6 or later. Everything else works; the app just shows a generic
+placeholder in the Dock and the widget gallery. Measured on a CI runner, not
+guessed.
+
 ```sh
 brew install xcodegen
 git clone https://github.com/davidkremlev/ccwidget.git

@@ -18,6 +18,14 @@ struct StatusView: View {
     @State private var showsDetails: Bool
     @State private var showsRemoval = false
 
+    /// The window formats the same two moments the tile does, so it takes them
+    /// from the same two places. The process default is what it used to use,
+    /// and on a desktop that is the same answer — until something renders this
+    /// view somewhere else, which is exactly how the tile's version was found
+    /// to be wrong.
+    @Environment(\.locale) private var locale
+    @Environment(\.timeZone) private var timeZone
+
     init(model: StatusModel = StatusModel(), expanded: Bool = false) {
         _model = StateObject(wrappedValue: model)
         _showsDetails = State(initialValue: expanded)
@@ -193,10 +201,15 @@ struct StatusView: View {
     /// recomputes on a timer while the widget beside it does not.
     @ViewBuilder
     private func quietLine(_ snapshot: Snapshot) -> some View {
-        let captured = CCWidgetFormat.capturedMoment(snapshot.capturedAt)
+        let captured = CCWidgetFormat.capturedMoment(snapshot.capturedAt,
+                                                     locale: locale,
+                                                     timeZone: timeZone)
         Group {
             if let week = snapshot.limits.sevenDay {
-                Text("Week resets \(CCWidgetFormat.resetMoment(week.resetsAt)) · updated at \(captured)")
+                let resets = CCWidgetFormat.resetMoment(week.resetsAt,
+                                                        locale: locale,
+                                                        timeZone: timeZone)
+                Text("Week resets \(resets) · updated at \(captured)")
             } else {
                 Text("Updated at \(captured)")
             }

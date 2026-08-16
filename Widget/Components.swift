@@ -156,9 +156,11 @@ extension CCWidgetEntry {
     var hidesNumbers: Bool { freshness?.hidesNumbers ?? false }
 
     /// The line under a limit row, as data rather than as a view.
-    func limitDetail(_ window: LimitWindow?, locale: Locale = .autoupdatingCurrent) -> RowDetail {
+    func limitDetail(_ window: LimitWindow?,
+                     locale: Locale = .autoupdatingCurrent,
+                     timeZone: TimeZone = .autoupdatingCurrent) -> RowDetail {
         guard !hidesNumbers, let window else { return .none }
-        let moment = CCWidgetFormat.resetMoment(window.resetsAt, locale: locale)
+        let moment = CCWidgetFormat.resetMoment(window.resetsAt, locale: locale, timeZone: timeZone)
         return window.hasClosed(at: date)
             ? .closed(moment: moment)
             : .reset(moment: moment, at: window.resetsAt)
@@ -535,10 +537,11 @@ func metricTint(_ reading: GaugeReading, dimmed: Bool) -> Color {
 struct CaptureCaption: View {
     let entry: CCWidgetEntry
     @Environment(\.locale) private var locale
+    @Environment(\.timeZone) private var timeZone
 
     var body: some View {
         if let captured = entry.snapshot?.capturedAt {
-            let moment = CCWidgetFormat.capturedMoment(captured, locale: locale)
+            let moment = CCWidgetFormat.capturedMoment(captured, locale: locale, timeZone: timeZone)
             Group {
                 if entry.freshness?.isDimmed == true {
                     Text("outdated · updated at \(moment)")
@@ -629,12 +632,18 @@ extension MessageView {
 
     /// The snapshot is over a day old. Section 2.4: an invitation replaces
     /// the digits.
-    static func abandoned(entry: CCWidgetEntry, compact: Bool = false) -> MessageView {
+    static func abandoned(entry: CCWidgetEntry,
+                          locale: Locale = .autoupdatingCurrent,
+                          timeZone: TimeZone = .autoupdatingCurrent,
+                          compact: Bool = false) -> MessageView {
         MessageView(
             title: "Data is stale",
             message: "Launch Claude Code in the terminal to refresh.",
             age: entry.snapshot.map {
-                String(localized: "updated at \(CCWidgetFormat.capturedMoment($0.capturedAt))")
+                let moment = CCWidgetFormat.capturedMoment($0.capturedAt,
+                                                           locale: locale,
+                                                           timeZone: timeZone)
+                return String(localized: "updated at \(moment)", locale: locale)
             },
             compact: compact
         )

@@ -7,7 +7,9 @@ including the attempts that failed.
 
 ## Building
 
-Requirements: macOS 14 or later, Xcode 16 or later, and
+Requirements: macOS 14 or later, Xcode 16 or later (**with anything older than
+Xcode 26 the app builds without an icon** — the `.icon` file needs it, and
+Xcode 26 needs macOS 15.6; the CI job for the minimum OS says so out loud), and
 [XcodeGen](https://github.com/yonaskolb/XcodeGen). The app itself has no
 dependencies — nothing is linked that does not ship with Xcode — but the
 `.xcodeproj` is generated rather than committed, and XcodeGen is what
