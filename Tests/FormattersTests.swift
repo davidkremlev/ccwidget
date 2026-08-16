@@ -56,10 +56,19 @@ struct FormattersTests {
     func countdownUnitCount() {
         // 2 days, 3 hours, 4 minutes — the minutes must be dropped, or the
         // string outgrows the tile it lives in.
-        let text = CCWidgetFormat.countdown(2 * 86_400 + 3 * 3600 + 4 * 60)
+        //
+        // Spelled with a unit each and in Double, rather than as one
+        // three-term integer sum: Swift 6.0 gave up type-checking that
+        // expression in reasonable time — "unable to type-check in reasonable
+        // time" is a real compiler error, and it kept the checks from building
+        // on the oldest toolchain we support.
+        let day: TimeInterval = 86_400, hour: TimeInterval = 3600, minute: TimeInterval = 60
+        let text = CCWidgetFormat.countdown(2 * day + 3 * hour + 4 * minute)
+        let shown = digits(text)
         #expect(!text.isEmpty)
-        #expect(digits(text).contains("2") && digits(text).contains("3"), "\(text)")
-        #expect(!digits(text).contains("4"), "the third unit leaked in: \(text)")
+        #expect(shown.contains("2"), "the days are missing: \(text)")
+        #expect(shown.contains("3"), "the hours are missing: \(text)")
+        #expect(!shown.contains("4"), "the third unit leaked in: \(text)")
     }
 
     /// Defends against a case that has not been observed: in 218 written
