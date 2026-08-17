@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 #
-# Written by ccwidget __VERSION__. The version is here so that the app can tell
-# an exporter it wrote from one an older version of it wrote: installing a new
-# app does not rewrite this file — setup does, and setup is a button somebody
-# pressed once — so without a stamp an upgrade leaves the old exporter running
-# and nothing anywhere can notice.
+# Written by ccwidget __VERSION__
+#
+# Nothing follows the version on that line, and that is not tidiness. It was
+# written as "ccwidget __VERSION__. The version is here so that…" and the app,
+# reading the stamp back, took the sentence's full stop for part of the number:
+# `0.3.1.` never equals `0.3.1`, so the window said the exporter was out of date
+# for ever and the button that fixes it fixed nothing.
+#
+# The stamp exists because installing a new app does not rewrite this file —
+# setup does, and setup is a button somebody pressed once — so without it an
+# upgrade leaves the old exporter running and nothing anywhere can notice.
 import json, os, stat, subprocess, sys, time
 
 # The installer performs both substitutions:

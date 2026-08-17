@@ -293,6 +293,50 @@ struct StatusLineSharingTests {
                 "the notice outlived the widget")
     }
 
+    // MARK: The template that actually ships
+
+    /// Every check above uses the stand-in template from `Sandbox.swift`. This
+    /// one uses the file the app ships, and it exists because the difference
+    /// between them is where a defect hid for exactly one release.
+    ///
+    /// The stand-in carried `# Written by ccwidget __VERSION__` with nothing
+    /// after it. The real template carried a sentence after the version, and the
+    /// code reading the stamp back took that sentence's full stop for part of
+    /// the number — so the window told everybody their exporter was out of date,
+    /// for ever, and the button that rewrites it changed nothing. Every check
+    /// passed, because none of them read the file that ships.
+    @Test("The version round-trips through the template the app actually ships")
+    func theRealTemplateStampsAVersionThatReadsBack() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        write("{}", to: home)
+        let inst = installer(home: home, template: try template()).asVersion("1.2.3")
+
+        _ = try inst.install()
+
+        #expect(inst.installedExporterVersion() == "1.2.3",
+                "the stamp reads back as the version that was written, exactly")
+        #expect(inst.checkIntegrity() == .matches,
+                "so a freshly written exporter is not reported as out of date")
+        #expect(!inst.checkIntegrity().raisesBanner,
+                "and the window has nothing to warn about")
+    }
+
+    /// And the state it is there to detect still works with the real template.
+    @Test("The real template still lets an upgrade be noticed")
+    func theRealTemplateStillDetectsAnUpgrade() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        write("{}", to: home)
+        let template = try template()
+        _ = try installer(home: home, template: template).asVersion("1.2.3").install()
+
+        let newer = installer(home: home, template: template).asVersion("1.3.0")
+        #expect(newer.checkIntegrity() == .outdated)
+        _ = try newer.install()
+        #expect(newer.checkIntegrity() == .matches)
+    }
+
     // MARK: Helpers
 
     private struct Run {

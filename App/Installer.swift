@@ -315,8 +315,16 @@ struct Installer {
         guard let body = try? String(contentsOf: exporterURL, encoding: .utf8) else { return nil }
         for line in body.split(separator: "\n", omittingEmptySubsequences: true).prefix(8) {
             guard let range = line.range(of: "Written by ccwidget ") else { continue }
-            let rest = line[range.upperBound...]
-            let version = rest.prefix { $0.isNumber || $0 == "." }
+            // Up to the first space, then any trailing punctuation trimmed.
+            // The first version of this took "digits and dots", which swallowed
+            // the full stop of the sentence that used to follow the number on
+            // that line — and a version with a full stop on the end never
+            // equals one without, so the window said "out of date" for ever.
+            // The template no longer puts anything after the version; this
+            // survives it if something ever does again.
+            let token = line[range.upperBound...].prefix { !$0.isWhitespace }
+            let version = token.drop(while: { !$0.isNumber })
+                .reversed().drop(while: { !$0.isNumber }).reversed()
             return version.isEmpty ? nil : String(version)
         }
         return nil
