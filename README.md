@@ -1,5 +1,8 @@
 # ccwidget — Usage Widget for Claude Code
 
+[![Build](https://github.com/davidkremlev/ccwidget/actions/workflows/build.yml/badge.svg)](https://github.com/davidkremlev/ccwidget/actions/workflows/build.yml)
+
+
 A macOS desktop widget showing how much of your Claude subscription you have
 spent, how full the context window is, and when the weekly quota runs out.
 
@@ -194,6 +197,21 @@ Uninstalling through Homebrew undoes the configuration as well as removing the
 app — `brew uninstall --cask ccwidget` runs the uninstaller from inside the
 bundle, so your `statusLine` does not end up running a file that is no longer
 there. Add `--zap` to delete the collected history too.
+
+**Upgrading through Homebrew clears the status-line setup, and you have to press
+Set up automatically again.** Not a bug in your Mac and not something the new
+version does: `brew upgrade` runs the *installed* version's uninstaller before
+replacing the app. Homebrew sorts the `uninstall` stanza ahead of the app on
+purpose, and the only directive it skips during an upgrade is `signal` — see
+`UPGRADE_REINSTALL_SKIP_DIRECTIVES` in its own
+`Library/Homebrew/cask/artifact/uninstall.rb`. Your prompt keeps working, which
+is the part the uninstaller is careful about; the widget just stops being fed
+until you set it up again.
+
+This is being fixed by moving the configuration removal to the `zap` stanza,
+which is what Homebrew intends for it. The fix cannot help the upgrade *into* the
+version that carries it, because the stanza that runs belongs to the version
+being replaced — so one more upgrade will ask for that button press.
 
 Then, in this order:
 
