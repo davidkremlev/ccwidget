@@ -216,7 +216,7 @@ struct ObservableDifferenceTests {
     /// whether the tamper banner is raised at all.
     @Test("Every integrity verdict warns differently")
     func integrityVerdictsDiffer() {
-        let cases: [Installer.Integrity] = [.matches, .changed, .unknown, .missing]
+        let cases: [Installer.Integrity] = [.matches, .changed, .unknown, .missing, .outdated]
         allDistinct("Installer.Integrity", cases) { verdict in
             Fingerprint(parts: [verdict.detail(locale: Self.locale),
                                 "\(verdict.raisesBanner)"])

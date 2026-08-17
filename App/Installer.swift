@@ -11,6 +11,10 @@ struct Installer {
     let templateURL: URL?
     /// Interpreter candidates, in order of preference.
     var interpreterCandidates: [URL] = Installer.defaultInterpreters
+    /// The version this app stamps into the exporter it writes. Injected for
+    /// the same reason the paths are — section 5.2 — and because a check about
+    /// versions has to be able to be two versions at once.
+    var bundleVersion: String? = nil
 
     /// The system Python comes first on purpose: `/usr/bin/python3` is owned
     /// by root while `/opt/homebrew/bin` is owned by the user. The exporter
@@ -154,6 +158,15 @@ struct Installer {
         case changed
         case unknown      // no hash: installed before the check existed
         case missing      // the exporter itself is gone
+        /// The file is exactly what it was written as, and it was written by an
+        /// older version of this app.
+        ///
+        /// Its own hash matches, so the tamper check is satisfied and says
+        /// nothing — which is true and beside the point. Installing a new app
+        /// does not rewrite the exporter; setup does. Without this state an
+        /// upgrade silently keeps the old one, and every fix in the new one
+        /// reaches nobody.
+        case outdated
 
         /// The line the window prints beside "Exporter". Composed here rather
         /// than in the view so that two verdicts saying the same thing is
@@ -167,6 +180,7 @@ struct Installer {
             case .changed: resource = LocalizedStringResource("modified since installation")
             case .unknown: resource = LocalizedStringResource("installed before checking existed")
             case .missing: resource = LocalizedStringResource("not installed")
+            case .outdated: resource = LocalizedStringResource("written by an older version")
             }
             resource.locale = locale
             return String(localized: resource)
@@ -174,7 +188,13 @@ struct Installer {
 
         /// Whether the tamper banner is raised. A hash mismatch outranks
         /// everything else the window might be saying.
-        var raisesBanner: Bool { self == .changed }
+        /// Whether the window raises a banner about the exporter.
+        ///
+        /// Both of these need one and they say different things: a modified
+        /// file is something to look at before touching anything, an outdated
+        /// one is a button to press. Neither is a line in a details table
+        /// somebody scrolls to.
+        var raisesBanner: Bool { self == .changed || self == .outdated }
     }
 
     func checkIntegrity() -> Integrity {
@@ -182,7 +202,14 @@ struct Installer {
         guard let expected = try? String(contentsOf: integrityURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines), !expected.isEmpty
         else { return .unknown }
-        return Self.digest(of: body) == expected ? .matches : .changed
+        guard Self.digest(of: body) == expected else { return .changed }
+        // Untouched, and possibly out of date. The order matters: a file
+        // somebody has edited is a bigger thing to say than an old one, and
+        // saying both at once says neither.
+        if let running = runningVersion, installedExporterVersion() != running {
+            return .outdated
+        }
+        return .matches
     }
 
     static func digest(of data: Data) -> String {
@@ -264,6 +291,37 @@ struct Installer {
     /// so asking `statusLineState()` what to chain would answer "ourselves",
     /// and writing that would either lose somebody's status line or call this
     /// exporter from itself for ever.
+    /// The version of the app that is running.
+    ///
+    /// From the bundle rather than a constant in the source: `project.yml` is
+    /// the one place the number lives, and a second copy here would be a second
+    /// place for it to be wrong. `nil` only outside a bundle, which is the test
+    /// process — where the checks supply their own.
+    var runningVersion: String? {
+        bundleVersion ?? Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    }
+
+    /// A copy of this installer that believes it is a different version — the
+    /// only way to check what an upgrade looks like without shipping two apps.
+    func asVersion(_ version: String) -> Installer {
+        var copy = self
+        copy.bundleVersion = version
+        return copy
+    }
+
+    /// The version stamped into the installed exporter, or `nil` if it carries
+    /// no stamp — which means it was written before stamping existed.
+    func installedExporterVersion() -> String? {
+        guard let body = try? String(contentsOf: exporterURL, encoding: .utf8) else { return nil }
+        for line in body.split(separator: "\n", omittingEmptySubsequences: true).prefix(8) {
+            guard let range = line.range(of: "Written by ccwidget ") else { continue }
+            let rest = line[range.upperBound...]
+            let version = rest.prefix { $0.isNumber || $0 == "." }
+            return version.isEmpty ? nil : String(version)
+        }
+        return nil
+    }
+
     func chainedCommand() -> String? {
         guard let body = try? String(contentsOf: exporterURL, encoding: .utf8) else { return nil }
         for line in body.split(separator: "\n", omittingEmptySubsequences: true) {
@@ -328,6 +386,10 @@ struct Installer {
         // string is a shell command somebody wrote, so it is quite likely to
         // contain quotes. It is substituted as a finished literal, never
         // pasted between quotes of ours.
+        rendered = rendered.replacingOccurrences(
+            of: "__VERSION__",
+            with: runningVersion ?? "unknown"
+        )
         rendered = rendered.replacingOccurrences(
             of: "__CHAINED__",
             with: chained.map(Self.pythonStringLiteral) ?? "None"

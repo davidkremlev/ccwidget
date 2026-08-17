@@ -1102,6 +1102,41 @@
         }
       }
     },
+    "Installing a new version of this app does not rewrite ~/.claude/ccwidget-export.py — that happens at setup. Until you do, the exporter that runs on every redraw is the old one.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine neue Version dieser App zu installieren schreibt ~/.claude/ccwidget-export.py nicht neu — das passiert beim Einrichten. Bis dahin läuft bei jedem Neuzeichnen der alte Exporter."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Instalar una versión nueva de esta app no reescribe ~/.claude/ccwidget-export.py: eso ocurre en la configuración. Hasta entonces, el exportador que se ejecuta en cada redibujado es el antiguo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアプリの新しいバージョンをインストールしても ~/.claude/ccwidget-export.py は書き換わりません。書き換わるのはセットアップのときです。それまでは、再描画ごとに古いエクスポーターが動きます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Установка новой версии приложения не перезаписывает ~/.claude/ccwidget-export.py — это делает настройка. До неё на каждой перерисовке работает прежний экспортёр."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装本应用的新版本不会重写 ~/.claude/ccwidget-export.py，那要在安装设置时进行。在此之前，每次重绘运行的都是旧的导出脚本。"
+          }
+        }
+      }
+    },
     "Launch Claude Code and send any message.": {
       "extractionState": "manual",
       "localizations": {
@@ -2008,6 +2043,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "导出器已被修改"
+          }
+        }
+      }
+    },
+    "The exporter is from an older version": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Exporter stammt aus einer älteren Version"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El exportador es de una versión anterior"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポーターが以前のバージョンのものです"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортёр от прежней версии"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出脚本来自旧版本"
           }
         }
       }
@@ -3245,6 +3315,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "已停止"
+          }
+        }
+      }
+    },
+    "written by an older version": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "von einer älteren Version geschrieben"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "escrito por una versión anterior"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以前のバージョンが書き込んだもの"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "записан прежней версией"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由旧版本写入"
           }
         }
       }

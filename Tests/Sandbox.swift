@@ -31,7 +31,10 @@ func makeContainer(in home: URL) {
 /// placeholder to substitute.
 func makeTemplate(in root: URL) -> URL {
     let url = root.appending(path: "ccwidget-export.py.template")
-    try! "#!/usr/bin/env python3\nGROUP_DIR = \"__GROUP_DIR__\"\n"
+    // Carries every placeholder the installer substitutes, the version stamp
+    // included: a stand-in template missing one of them makes the checks
+    // measure a file the app would never write.
+    try! "#!/usr/bin/env python3\n# Written by ccwidget __VERSION__\nGROUP_DIR = \"__GROUP_DIR__\"\nCHAINED = __CHAINED__\n"
         .write(to: url, atomically: true, encoding: .utf8)
     return url
 }

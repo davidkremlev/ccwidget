@@ -27,6 +27,57 @@ struct OutcomeCoverageTests {
         #expect(inst.checkIntegrity() == .matches)
     }
 
+    /// The state an upgrade produces, and the reason it had to exist: installing
+    /// a new app does not rewrite the exporter — setup does — so without this
+    /// the old file goes on running and the hash check, comparing the file to
+    /// its own recorded hash, says "matches" and means nothing.
+    ///
+    /// Two versions of one installer, because the alternative is shipping two
+    /// apps to find out.
+    @Test("outdated, when the app was upgraded but setup was not run again")
+    func integrityOutdated() throws {
+        let home = sandbox()
+        let template = makeTemplate(in: home)
+        makeContainer(in: home)
+        write("{}", to: home)
+
+        let old = installer(home: home, template: template).asVersion("0.3.1")
+        _ = try old.install()
+        #expect(old.checkIntegrity() == .matches, "the version that wrote it is content")
+        #expect(old.installedExporterVersion() == "0.3.1", "and the stamp says who wrote it")
+
+        let new = installer(home: home, template: template).asVersion("0.4.0")
+        #expect(new.checkIntegrity() == .outdated,
+                "the newer app can tell the exporter is not one of its own")
+        #expect(new.checkIntegrity().raisesBanner,
+                "and says so where somebody will see it, not in a details table")
+
+        _ = try new.install()
+        #expect(new.checkIntegrity() == .matches, "pressing the button settles it")
+        #expect(new.installedExporterVersion() == "0.4.0")
+    }
+
+    /// An exporter written before stamping existed carries no version at all,
+    /// and that is not the same as a mismatch — but it is still not one of
+    /// ours, and the answer is the same button.
+    @Test("outdated, when the exporter predates version stamping")
+    func integrityOutdatedWithoutAStamp() throws {
+        let home = sandbox()
+        // A template with no stamp in it, which is what the releases before
+        // 0.3.2 shipped.
+        let unstamped = home.appending(path: "old.template")
+        try #"#!/usr/bin/env python3\#nGROUP_DIR = "__GROUP_DIR__"\#nCHAINED = __CHAINED__\#n"#
+            .write(to: unstamped, atomically: true, encoding: .utf8)
+        let inst = installer(home: home, template: unstamped).asVersion("0.4.0")
+        makeContainer(in: home)
+        write("{}", to: home)
+        _ = try inst.install()
+
+        #expect(inst.installedExporterVersion() == nil)
+        #expect(inst.checkIntegrity() == .outdated,
+                "no stamp is not a match, and pretending otherwise is how this hid")
+    }
+
     @Test("changed, when something rewrote the exporter")
     func integrityChanged() throws {
         let home = sandbox()

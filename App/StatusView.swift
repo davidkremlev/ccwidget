@@ -147,12 +147,28 @@ struct StatusView: View {
                 .foregroundStyle(.yellow)
                 .font(.title3)
             VStack(alignment: .leading, spacing: 4) {
-                Text("The exporter has been modified")
-                    .font(.callout.weight(.semibold))
-                Text("The file at ~/.claude/ccwidget-export.py is not the one this app installed. It runs on every status line redraw, so look at it before doing anything else, then reinstall a known copy.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                // Two states raise this banner and they are not the same
+                // sentence. A modified file is something to look at before
+                // touching anything; an old one is a button to press. The
+                // second one had no words at all until 17 August, and no way
+                // to reach this button either: installing a new app does not
+                // rewrite the exporter, and once configured the app showed no
+                // route back to setup.
+                if model.integrity == .outdated {
+                    Text("The exporter is from an older version")
+                        .font(.callout.weight(.semibold))
+                    Text("Installing a new version of this app does not rewrite ~/.claude/ccwidget-export.py — that happens at setup. Until you do, the exporter that runs on every redraw is the old one.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("The exporter has been modified")
+                        .font(.callout.weight(.semibold))
+                    Text("The file at ~/.claude/ccwidget-export.py is not the one this app installed. It runs on every status line redraw, so look at it before doing anything else, then reinstall a known copy.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Button("Reinstall the exporter") { model.install() }
                     .controlSize(.small)
                     .padding(.top, 2)

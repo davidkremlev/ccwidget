@@ -751,6 +751,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 在校验功能出现前安装 |
 
 
+**`Installing a new version of this app does not rewrite ~/.claude/ccwidget-export.py — that happens at setup. Until you do, the exporter that runs on every redraw is the old one.`**
+
+| | |
+|---|---|
+| German | Eine neue Version dieser App zu installieren schreibt ~/.claude/ccwidget-export.py nicht neu — das passiert beim Einrichten. Bis dahin läuft bei jedem Neuzeichnen der alte Exporter. |
+| Spanish | Instalar una versión nueva de esta app no reescribe ~/.claude/ccwidget-export.py: eso ocurre en la configuración. Hasta entonces, el exportador que se ejecuta en cada redibujado es el antiguo. |
+| Japanese | このアプリの新しいバージョンをインストールしても ~/.claude/ccwidget-export.py は書き換わりません。書き換わるのはセットアップのときです。それまでは、再描画ごとに古いエクスポーターが動きます。 |
+| Simplified Chinese | 安装本应用的新版本不会重写 ~/.claude/ccwidget-export.py，那要在安装设置时进行。在此之前，每次重绘运行的都是旧的导出脚本。 |
+
+
 **`Launch Claude Code and send any message.`**
 
 | | |
@@ -1121,6 +1131,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 导出器已被修改 |
 
 
+**`The exporter is from an older version`**
+
+| | |
+|---|---|
+| German | Der Exporter stammt aus einer älteren Version |
+| Spanish | El exportador es de una versión anterior |
+| Japanese | エクスポーターが以前のバージョンのものです |
+| Simplified Chinese | 导出脚本来自旧版本 |
+
+
 **`The exporter template is missing from the app bundle.`**
 
 | | |
@@ -1291,6 +1311,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 运行中 |
 
 
+**`written by an older version`**
+
+| | |
+|---|---|
+| German | von einer älteren Version geschrieben |
+| Spanish | escrito por una versión anterior |
+| Japanese | 以前のバージョンが書き込んだもの |
+| Simplified Chinese | 由旧版本写入 |
+
+
 **`Your previous status line goes back: %@`**
 
 | | |
@@ -1313,4 +1343,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-124 strings in total.
+127 strings in total.

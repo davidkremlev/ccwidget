@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Upgrading the app left the old exporter running, and nothing said so.**
+  `~/.claude/ccwidget-export.py` is written by setup, not by installing the
+  app, so a new version reached nobody who had already set it up — and the
+  integrity check, which compares the file to its own recorded hash, called
+  that "matches". It was true and beside the point.
+
+  Worse, there was no way to fix it from the app: *Set up automatically* lives
+  on the setup screen, which only appears while the app is unconfigured, and
+  *Reinstall the exporter* lives inside the banner that appears only when the
+  exporter has been **modified**. An old exporter raised nothing, so neither
+  button could be reached.
+
+  The exporter now carries the version that wrote it, and the window says "the
+  exporter is from an older version" with the button that settles it.
+
 ### Added
 
 - **Your status line keeps working.** Installing this used to blank it: the
