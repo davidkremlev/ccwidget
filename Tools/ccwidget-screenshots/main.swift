@@ -69,6 +69,25 @@ let now: Date = {
     return Date(timeIntervalSince1970: seconds)
 }()
 
+/// The zone everything is rendered in.
+///
+/// Pinned alongside the fixture and the moment, for the reason the two of them
+/// are pinned: a reset that prints "Fri 5:10 AM" here and "Fri 12:10 AM"
+/// somewhere else is not a reproducible picture. This was missed once already
+/// and cost a red build — `chart-runs-out.png` had a time zone baked into it,
+/// and the check that compared it failed the first time it ran on another
+/// machine. See Docs/rendering-checks.md, "Step 0, answered".
+let renderZone: TimeZone = {
+    if let index = arguments.firstIndex(of: "--time-zone"), index + 1 < arguments.count,
+       let zone = TimeZone(identifier: arguments[index + 1]) {
+        return zone
+    }
+    // Live shots follow the machine, because they are a picture of that
+    // machine. A fixture is a picture of nothing in particular and gets UTC.
+    return fixture == nil ? .current : TimeZone(identifier: "UTC")!
+}()
+NSTimeZone.default = renderZone
+
 let store = fixture.map { SnapshotStore(containerURL: $0) } ?? SnapshotStore.default()
 let snapshot = try? store.load()
 let history = HistoryStore(store: store).load()
@@ -128,6 +147,10 @@ func shoot(_ name: String, _ size: CGSize, _ scheme: ColorScheme, @ViewBuilder _
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .environment(\.colorScheme, scheme)
         .environment(\.dynamicTypeSize, typeSize)
+        // Explicitly, as well as through the process default above: the views
+        // read the zone from the environment, and what a check can set is what
+        // a check can trust.
+        .environment(\.timeZone, renderZone)
         // Margin around it: a rounded corner must not touch the image edge.
         .padding(12)
 

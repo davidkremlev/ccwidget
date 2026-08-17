@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The README screenshots are rendered from a fixture, not from a live
+  account.** They used to be whatever the developer's afternoon looked like:
+  a real session cost of $141.35 in a public README, real usage percentages,
+  and the Estimate block reading *Not enough data yet* because the shots were
+  taken just after a weekly reset — the one distinctive thing this widget does,
+  photographed at its least convincing.
+
+  `./Scripts/readme-screenshots.sh` writes a fixture and shoots against it in
+  one command. The fixture is generated at shoot time rather than committed,
+  because a row's countdown is a dynamic date drawn from the real clock: fixed
+  timestamps render "2 yrs, 9 mths", which is the trap `RowCompositionTests`
+  documents and which this walked into on the first attempt. The renderer now
+  pins the time zone alongside the moment, so the pictures do not carry a city
+  in them either.
+
 ### Fixed
 
 - **Upgrading the app left the old exporter running, and nothing said so.**
@@ -102,13 +119,6 @@ would be claiming a state that already has a mark.
 
 ### Known gaps
 
-- **Screenshots were taken right after a weekly reset**, so the Estimate block
-  reads *Not enough data yet* — the fit quality is below threshold that soon
-  after the counter drops. The behaviour is correct and the wording is honest,
-  but it shows the project's one distinctive feature at its least convincing.
-  Re-shoot once a couple of days of history have accumulated and the estimate
-  reports a rate with a date:
-  `./.build/ccwidget-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"`
 - **Code comments and SPEC.md are in Russian.** Comments are being translated;
   the specification follows later.
 - **Larger text has no effect anywhere in this app.** macOS offers no route to
