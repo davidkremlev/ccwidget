@@ -145,6 +145,25 @@ class StatusModel: ObservableObject {
         do {
             let report = try installer.uninstall(removingHistory: removingHistory)
             var parts = [String(localized: "Removed.")]
+            // The switch registered something with the system, so removal has to
+            // hand it back, and nothing else can. `uninstall.sh` is a shell
+            // script and the registration belongs to `SMAppService`; Homebrew's
+            // own `login_item` stanza drives System Events, which does not see
+            // an `SMAppService` registration at all — read in
+            // `cask/artifact/abstract_uninstall.rb`. So a person who removes the
+            // app any other way keeps a login item pointing at a bundle that is
+            // gone. It cannot start anything, and it is still an entry in
+            // System Settings nobody asked for.
+            switch removeFromLogin() {
+            case .wasNotOn:
+                break
+            case .removed:
+                parts.append(String(localized: "The app no longer starts at login."))
+            case .failed(let message):
+                // Loud, because the alternative is a person believing the app
+                // was fully removed while the system still lists it.
+                parts.append(String(localized: "The app is still registered to start at login: \(message)"))
+            }
             if let backup = report.backup {
                 parts.append(String(localized: "Settings backed up as \(backup.lastPathComponent)."))
             }
@@ -166,9 +185,36 @@ class StatusModel: ObservableObject {
         }
     }
 
+    /// What removal did about starting at login. Three outcomes, because
+    /// "there was nothing to undo" and "it could not be undone" are different
+    /// news and the second one has to be said out loud.
+    enum LoginRemoval: Equatable {
+        case wasNotOn
+        case removed
+        case failed(String)
+    }
+
+    func removeFromLogin() -> LoginRemoval {
+        guard loginItem.state.isOn else { return .wasNotOn }
+        do {
+            try loginItem.disable()
+            return .removed
+        } catch {
+            ccwidgetStoreLog.error(
+                "could not unregister the login item: \(error.localizedDescription, privacy: .public)")
+            return .failed(error.localizedDescription)
+        }
+    }
+
     var removalMessage: String {
         let plan = installer.removalPlan()
         var lines: [String] = []
+        if loginItem.state.isOn {
+            // In the confirmation rather than only in the report: it is a thing
+            // the person switched on themselves, and being told afterwards that
+            // it was switched off is worse than being asked.
+            lines.append(String(localized: "The app stops starting at login."))
+        }
         if plan.removesStatusLine {
             lines.append(String(localized: "The statusLine key is removed from settings.json. Other keys are untouched."))
         }

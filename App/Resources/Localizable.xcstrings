@@ -2082,6 +2082,111 @@
         }
       }
     },
+    "The app is still registered to start at login: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App ist weiterhin für den Start bei der Anmeldung registriert: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La app sigue registrada para iniciarse al iniciar sesión: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログイン時の起動登録が残っています: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запуск при входе снять не удалось: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用仍注册为随登录启动：%@"
+          }
+        }
+      }
+    },
+    "The app no longer starts at login.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App startet nicht mehr bei der Anmeldung."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La app ya no se inicia al iniciar sesión."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログイン時に起動しなくなりました。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приложение больше не запускается при входе."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用不再随登录启动。"
+          }
+        }
+      }
+    },
+    "The app stops starting at login.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die App startet nicht mehr bei der Anmeldung."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La app dejará de iniciarse al iniciar sesión."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログイン時に起動しなくなります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запуск при входе будет снят."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用将不再随登录启动。"
+          }
+        }
+      }
+    },
     "The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Usage Widget for Claude Code, then come back.": {
       "extractionState": "manual",
       "localizations": {
@@ -2463,6 +2568,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "以下需要手动删除：%@"
+          }
+        }
+      }
+    },
+    "This Mac has data from an earlier setup, so the configuration was removed rather than never made. Upgrading or removing through Homebrew clears it; setting up again is all it takes, and the history you have collected is kept.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Mac liegen Daten einer früheren Einrichtung — die Konfiguration wurde also entfernt und nicht nie vorgenommen. Ein Upgrade oder eine Deinstallation über Homebrew entfernt sie; erneutes Einrichten genügt, der gesammelte Verlauf bleibt erhalten."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este Mac tiene datos de una configuración anterior, así que la configuración se eliminó en lugar de no haberse hecho nunca. Actualizar o desinstalar con Homebrew la borra; basta con volver a configurarla y el historial recopilado se conserva."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この Mac には以前の設定のデータがあります。つまり設定は削除されたのであって、未設定だったわけではありません。Homebrew での更新や削除は設定を消します。もう一度設定するだけで済み、集めた履歴は保持されます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На этом Mac есть данные от прежней настройки — значит настройку сняли, а не не делали никогда. Обновление или удаление через Homebrew её снимает; достаточно настроить заново, собранная история сохраняется."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac 上有先前设置留下的数据，也就是说配置被移除了，而不是从未设置。通过 Homebrew 升级或卸载都会清除配置；重新设置一次即可，已收集的历史会保留。"
           }
         }
       }

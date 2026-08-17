@@ -336,4 +336,27 @@ struct ScreenCompositionTests {
         #expect(with > without,
                 "the warning about an existing status line drew nothing: \(with) bands against \(without)")
     }
+
+    /// The sentence for somebody who has been here before. A value being right
+    /// is not the same as a sentence reaching the screen: `hasDataFromBefore`
+    /// had six checks of its own and none of them would have noticed the note
+    /// being left out of the view.
+    @Test("Data from an earlier setup puts a sentence on the screen")
+    func earlierSetupIsMentioned() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        write(#"{"theme":"dark"}"#, to: home)
+        try FileManager.default.createDirectory(at: inst.exchangeDirectory,
+                                                withIntermediateDirectories: true)
+
+        let without = bands(OnboardingView(installer: inst, step: .install)).count
+
+        try "{}\n".write(to: inst.exchangeDirectory.appending(path: "history.jsonl"),
+                         atomically: true, encoding: .utf8)
+        let with = bands(OnboardingView(installer: inst, step: .install)).count
+
+        #expect(with > without,
+                "the note about an earlier setup drew nothing: \(with) bands against \(without)")
+    }
 }

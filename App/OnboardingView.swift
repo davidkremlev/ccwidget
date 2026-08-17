@@ -117,6 +117,7 @@ struct OnboardingView: View {
             Button(script.actions[0]) { failure = nil }
         } else {
             existingStatusLineWarning
+            setUpBeforeNote
             preflightNotes
 
             VStack(alignment: .leading, spacing: 6) {
@@ -134,6 +135,26 @@ struct OnboardingView: View {
                     .disabled(installer.preflight().interpreter == nil)
                 Button(script.actions[1]) { showsManual = true }
             }
+        }
+    }
+
+    /// Somebody who has used this before is not a new arrival, and the screen
+    /// used to treat them as one.
+    ///
+    /// A Homebrew upgrade removes the configuration on its way past, so the
+    /// person most likely to see this screen twice is somebody who did nothing
+    /// wrong and has weeks of history sitting on disk. No cause is named — the
+    /// Remove button leaves exactly the same state behind — and the mechanism
+    /// that most often explains it is stated as a general fact rather than as a
+    /// diagnosis.
+    @ViewBuilder
+    private var setUpBeforeNote: some View {
+        if installer.hasDataFromBefore {
+            Label("This Mac has data from an earlier setup, so the configuration was removed rather than never made. Upgrading or removing through Homebrew clears it; setting up again is all it takes, and the history you have collected is kept.",
+                  systemImage: "clock.arrow.circlepath")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

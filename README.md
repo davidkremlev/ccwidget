@@ -198,6 +198,12 @@ app — `brew uninstall --cask ccwidget` runs the uninstaller from inside the
 bundle, so your `statusLine` does not end up running a file that is no longer
 there. Add `--zap` to delete the collected history too.
 
+One thing only the app can undo: if you turned background updates on, use
+**Remove…** in the app rather than Homebrew, or do it before uninstalling. The
+registration belongs to `SMAppService`, and neither a shell script nor Homebrew's
+own login-item removal can reach it — what is left is an entry in System Settings
+that cannot start anything, because the app it points at is gone.
+
 **Upgrading through Homebrew clears the status-line setup, and you have to press
 Set up automatically again.** Not a bug in your Mac and not something the new
 version does: `brew upgrade` runs the *installed* version's uninstaller before
@@ -208,10 +214,12 @@ purpose, and the only directive it skips during an upgrade is `signal` — see
 is the part the uninstaller is careful about; the widget just stops being fed
 until you set it up again.
 
-This is being fixed by moving the configuration removal to the `zap` stanza,
-which is what Homebrew intends for it. The fix cannot help the upgrade *into* the
-version that carries it, because the stanza that runs belongs to the version
-being replaced — so one more upgrade will ask for that button press.
+The setup screen says so from 0.3.4: when it finds data from an earlier setup it
+tells you the configuration was removed rather than never made, instead of
+greeting you as a new arrival. Moving the removal to Homebrew's `zap` stanza was
+considered and rejected — it would make a plain `brew uninstall` leave the
+exporter running in your prompt for good, which is a worse thing to be quiet
+about than a button press.
 
 Then, in this order:
 

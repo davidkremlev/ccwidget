@@ -269,3 +269,170 @@ struct RemovalTests {
                 "the notice went with a removal that was told to keep the history")
     }
 }
+
+/// Removal has to hand back what the switch registered.
+///
+/// Nothing else can. `uninstall.sh` is a shell script and the registration
+/// belongs to `SMAppService`; Homebrew's `login_item` stanza drives System
+/// Events, which does not see an `SMAppService` registration — so the app is the
+/// only path, and before this it was not one either: the feature that registered
+/// something at login had no removal at all.
+@MainActor
+@Suite("Removal and the login item")
+struct LoginRemovalTests {
+
+    private func model(home: URL, login: LoginItem) -> StatusModel {
+        let inst = installer(home: home, template: makeTemplate(in: home))
+        return StatusModel(
+            installer: inst,
+            watcher: SnapshotWatcher(
+                store: SnapshotStore(containerURL: SnapshotStore.exchangeURL(home: home)),
+                read: { throw CocoaError(.fileNoSuchFile) },
+                reloadWidgets: {}),
+            loginItem: login)
+    }
+
+    private final class Spy {
+        var disables = 0
+        var throwsOnDisable = false
+    }
+
+    private func login(_ spy: Spy, on: Bool) -> LoginItem {
+        LoginItem(read: { on ? .enabled : .notRegistered },
+                  enable: {},
+                  disable: {
+                      spy.disables += 1
+                      if spy.throwsOnDisable { throw CocoaError(.fileWriteNoPermission) }
+                  })
+    }
+
+    @Test("An app that starts at login stops starting at login")
+    func removalUnregisters() {
+        let spy = Spy()
+        let m = model(home: sandbox(), login: login(spy, on: true))
+        #expect(m.removeFromLogin() == .removed)
+        #expect(spy.disables == 1, "the registration was left in place")
+    }
+
+    @Test("Nothing is touched when it was never on")
+    func nothingToUndo() {
+        let spy = Spy()
+        let m = model(home: sandbox(), login: login(spy, on: false))
+        #expect(m.removeFromLogin() == .wasNotOn)
+        #expect(spy.disables == 0, "removal unregistered something that was not registered")
+    }
+
+    /// The outcome that must not be quiet: the app is gone from the person's
+    /// point of view and the system still lists it.
+    @Test("A refusal is reported rather than swallowed")
+    func refusalIsReported() throws {
+        let spy = Spy()
+        spy.throwsOnDisable = true
+        let m = model(home: sandbox(), login: login(spy, on: true))
+        guard case .failed(let message) = m.removeFromLogin() else {
+            Issue.record("a throwing disable came back as success")
+            return
+        }
+        #expect(!message.isEmpty)
+    }
+
+    @Test("The window says so, in the confirmation and in the report")
+    func theWindowSaysSo() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let spy = Spy()
+        let m = model(home: home, login: login(spy, on: true))
+        #expect(m.removalMessage.contains("login"),
+                "the confirmation does not mention login: \"\(m.removalMessage)\"")
+        m.uninstall(removingHistory: false)
+        let notice = try #require(m.notice)
+        #expect(notice.contains("login"), "the report does not mention login: \"\(notice)\"")
+        #expect(spy.disables == 1)
+    }
+
+    @Test("And says nothing about login when there was nothing to say")
+    func silentWhenOff() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let m = model(home: home, login: login(Spy(), on: false))
+        #expect(!m.removalMessage.contains("login"),
+                "the confirmation mentions login with nothing registered: \"\(m.removalMessage)\"")
+        m.uninstall(removingHistory: false)
+        let notice = try #require(m.notice)
+        #expect(!notice.contains("login"), "the report mentions login for nothing: \"\(notice)\"")
+    }
+}
+
+/// Whether this Mac has been set up before, which the setup screen has to know.
+///
+/// The screen greeted somebody with weeks of history as a new arrival, because a
+/// Homebrew upgrade removes the configuration on its way past and nothing said
+/// so. Answered from evidence — data the exporter left — rather than from a flag
+/// somebody has to remember to set.
+@Suite("Data from an earlier setup")
+struct EarlierSetupTests {
+
+    private func inst(_ home: URL) -> Installer {
+        installer(home: home, template: makeTemplate(in: home))
+    }
+
+    @Test("A first run has nothing from before")
+    func firstRunIsQuiet() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let i = inst(home)
+        try FileManager.default.createDirectory(at: i.exchangeDirectory,
+                                                withIntermediateDirectories: true)
+        #expect(!i.hasDataFromBefore)
+    }
+
+    /// Either file is enough on its own: a session that never produced a history
+    /// point still wrote snapshots, and a history that has been kept outlives the
+    /// snapshot when removal deletes it.
+    @Test("Either a snapshot or a history counts", arguments: ["snapshot.json", "history.jsonl"])
+    func eitherFileCounts(name: String) throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let i = inst(home)
+        try FileManager.default.createDirectory(at: i.exchangeDirectory,
+                                                withIntermediateDirectories: true)
+        try "{}".write(to: i.exchangeDirectory.appending(path: name),
+                       atomically: true, encoding: .utf8)
+        #expect(i.hasDataFromBefore, "\(name) did not count as data from before")
+    }
+
+    /// The whole point: what the uninstaller leaves behind is what tells the
+    /// screen this is not a first run. If removal ever starts deleting both
+    /// files, this check fails and the sentence stops being shown — which is the
+    /// correct coupling to have.
+    @Test("Removal that keeps the history leaves the evidence in place")
+    func removalKeepingHistoryLeavesEvidence() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let i = inst(home)
+        try FileManager.default.createDirectory(at: i.exchangeDirectory,
+                                                withIntermediateDirectories: true)
+        try "{}\n".write(to: i.exchangeDirectory.appending(path: "history.jsonl"),
+                         atomically: true, encoding: .utf8)
+        _ = try i.install()
+        _ = try i.uninstall(removingHistory: false)
+        #expect(i.hasDataFromBefore, "removal took the evidence with it")
+    }
+
+    @Test("Removal that deletes the history leaves none")
+    func removalDeletingHistoryLeavesNone() throws {
+        let home = sandbox()
+        makeContainer(in: home)
+        let i = inst(home)
+        try FileManager.default.createDirectory(at: i.exchangeDirectory,
+                                                withIntermediateDirectories: true)
+        for name in ["history.jsonl", "snapshot.json"] {
+            try "{}\n".write(to: i.exchangeDirectory.appending(path: name),
+                             atomically: true, encoding: .utf8)
+        }
+        _ = try i.install()
+        _ = try i.uninstall(removingHistory: true)
+        #expect(!i.hasDataFromBefore,
+                "somebody who asked for their data to be deleted is still told they have some")
+    }
+}

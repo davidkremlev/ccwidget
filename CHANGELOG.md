@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Removing the app stops it starting at login.** The switch registered
+  something with the system and nothing handed it back: a feature that registers
+  at login shipped without a removal path. **Remove…** now unregisters it and
+  says so, and says so louder if the system refuses.
+
+  Only the app can do this. `uninstall.sh` is a shell script and the registration
+  belongs to `SMAppService`; Homebrew's own `login_item` removal drives System
+  Events, which does not see an `SMAppService` registration at all. So if you use
+  background updates, remove through the app rather than through Homebrew — what
+  is otherwise left is an entry in System Settings that cannot start anything,
+  because the app it points at is gone.
+
+- **The setup screen knows you are not new.** A snapshot or a history file with no
+  exporter means the configuration was removed rather than never made, and the
+  screen says so instead of greeting somebody with three weeks of history as a
+  first-time user. It names no cause: the same state follows the Remove button, so
+  blaming an upgrade would be a guess dressed up as an explanation.
+
+  Why it matters: upgrading through Homebrew *does* clear the configuration,
+  because the cask's `uninstall` stanza is sorted ahead of the app it replaces and
+  only `signal` is skipped during an upgrade. Moving the removal to the `zap`
+  stanza was considered and rejected — it would leave the exporter running in the
+  prompt after a plain `brew uninstall`, for good, which is a worse thing to be
+  quiet about than a button press.
+
 ## [0.3.3] — 2026-08-17
 
 ### Added

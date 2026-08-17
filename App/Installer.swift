@@ -634,6 +634,30 @@ struct Installer {
         let editWasSurgical: Bool?
     }
 
+    /// Whether the exporter has run on this Mac before.
+    ///
+    /// Evidence rather than memory: a snapshot or a history file in the exchange
+    /// directory can only be there because the exporter put it there, and
+    /// removal leaves both alone — deleting them takes either the "Remove and
+    /// delete history" button or `brew uninstall --zap`. So data with no
+    /// exporter means the configuration was taken away, not that this is a first
+    /// run.
+    ///
+    /// It exists because the setup screen was greeting people who had been using
+    /// this for weeks as if they had just arrived. A Homebrew upgrade removes the
+    /// configuration on the way past — the cask's `uninstall` stanza is sorted
+    /// ahead of the app it replaces — and nothing on the screen hinted at that.
+    ///
+    /// The sentence it drives names no cause. The same state follows the Remove
+    /// button, so blaming an upgrade would be a guess dressed up as an
+    /// explanation.
+    var hasDataFromBefore: Bool {
+        let store = SnapshotStore(containerURL: exchangeDirectory)
+        let fm = FileManager.default
+        return fm.fileExists(atPath: store.snapshotURL.path(percentEncoded: false))
+            || fm.fileExists(atPath: store.historyURL.path(percentEncoded: false))
+    }
+
     func removalPlan() -> RemovalPlan {
         let history = (try? String(contentsOf: exchangeDirectory.appending(path: "history.jsonl"),
                                    encoding: .utf8))?
