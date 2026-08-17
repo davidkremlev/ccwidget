@@ -173,23 +173,27 @@ that is worth an issue: you would be the first to look.
 
 ## Installing
 
-Download **[CCWidget-0.3.1.dmg](../../releases/latest)**, open it, drag the app
-to Applications. It is signed with a Developer ID and notarized by Apple, so it
-opens without argument — including on a Mac that has never seen this source and
-including offline, because the notarization ticket is stapled to both the disk
-image and the app inside it.
+```sh
+brew install --cask davidkremlev/tap/ccwidget
+```
+
+Or download **[the disk image](../../releases/latest)** and drag the app to
+Applications. Either way it is signed with a Developer ID and notarized by
+Apple, so it opens without argument — including on a Mac that has never seen
+this source and including offline, because the notarization ticket is stapled to
+both the disk image and the app inside it.
 
 Verify what you downloaded, if you like:
 
 ```sh
-shasum -a 256 CCWidget-0.3.1.dmg
-# c462c80813d8d9e8b17b46cf2f6d847aeaaf611b7cc0c4b59d5726be9533249b
-
 spctl -a -vvv -t exec /Applications/CCWidget.app
 # accepted, source=Notarized Developer ID
 ```
 
-There is no Homebrew formula yet.
+Uninstalling through Homebrew undoes the configuration as well as removing the
+app — `brew uninstall --cask ccwidget` runs the uninstaller from inside the
+bundle, so your `statusLine` does not end up running a file that is no longer
+there. Add `--zap` to delete the collected history too.
 
 Then, in this order:
 
