@@ -170,7 +170,9 @@ struct OnboardingView: View {
                 Text(command)
                     .font(.caption.monospaced())
                     .textSelection(.enabled)
-                Text("Setup will replace it. The backup lets you put it back.")
+                // It used to say "Setup will replace it", which was true and is
+                // no longer: the exporter calls it and prints what it prints.
+                Text("Setup keeps it: the widget's exporter will call it and print its output. Removal puts it back.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -1732,6 +1732,41 @@
         }
       }
     },
+    "Setup keeps it: the widget's exporter will call it and print its output. Removal puts it back.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Setup behält sie: Der Exporter des Widgets ruft sie auf und gibt ihre Ausgabe aus. Beim Entfernen kommt sie zurück."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La instalación la conserva: el exportador del widget la ejecutará e imprimirá su salida. Al desinstalar, vuelve."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "セットアップはこれを保持します。ウィジェットのエクスポーターがこれを呼び出し、その出力を表示します。削除すると元に戻ります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройка её сохранит: экспортёр виджета вызовет её и напечатает её вывод. При удалении она вернётся."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装会保留它：小组件的导出脚本会调用它并输出其结果。卸载时会恢复。"
+          }
+        }
+      }
+    },
     "Setup needed": {
       "extractionState": "manual",
       "localizations": {
@@ -1763,41 +1798,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "需要设置"
-          }
-        }
-      }
-    },
-    "Setup will replace it. The backup lets you put it back.": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Einrichtung ersetzt sie. Mit der Sicherung können Sie sie zurückholen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La configuración la reemplazará. La copia de seguridad permite restaurarla."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セットアップはそれを置き換えます。バックアップから戻せます。"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Настройка её заменит. Резервная копия позволит вернуть прежнюю."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "设置将替换它。备份可用于还原。"
           }
         }
       }
@@ -2187,6 +2187,41 @@
         }
       }
     },
+    "The status line you had before is back.": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Statuszeile von vorher ist zurück."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La línea de estado que tenías antes ha vuelto."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以前のステータスラインが戻りました。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Строка состояния, которая была до этого, вернулась."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之前的状态栏已恢复。"
+          }
+        }
+      }
+    },
     "The statusLine key is removed from settings.json. Other keys are untouched.": {
       "extractionState": "manual",
       "localizations": {
@@ -2570,6 +2605,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "运行中"
+          }
+        }
+      }
+    },
+    "Your previous status line goes back: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre vorherige Statuszeile kommt zurück: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu línea de estado anterior volverá: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以前のステータスラインが戻ります: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прежняя строка состояния вернётся: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将恢复你之前的状态栏：%@"
           }
         }
       }

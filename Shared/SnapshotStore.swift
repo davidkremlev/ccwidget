@@ -50,6 +50,25 @@ public struct SnapshotStore: Sendable {
     /// be indistinguishable from Claude Code not running.
     public var skipNoticeURL: URL { containerURL.appending(path: "export-skipped.json") }
 
+    /// Where the exporter records that the status line it chains stopped
+    /// working. Section 11: installing this widget must not cost somebody their
+    /// prompt, and the failure mode of keeping that promise is a prompt that
+    /// went blank for a reason only this file knows.
+    public var chainNoticeURL: URL { containerURL.appending(path: "chain-failed.json") }
+
+    /// Why the chained status line last failed, and since when. `nil` when
+    /// nothing is chained or it is working, which is almost always.
+    public func loadChainNotice() -> ChainNotice? {
+        guard let data = try? Data(contentsOf: chainNoticeURL) else { return nil }
+        do {
+            return try JSONDecoder().decode(ChainNotice.self, from: data)
+        } catch {
+            ccwidgetParseLog.error(
+                "chain notice unreadable: \(error.localizedDescription, privacy: .private)")
+            return nil
+        }
+    }
+
     /// When the exporter last started declining to write, and why. `nil` when
     /// it is writing normally, which is almost always.
     public func loadSkipNotice() -> SkipNotice? {
@@ -212,6 +231,24 @@ public struct SnapshotStore: Sendable {
             )
         }
         return snapshot
+    }
+}
+
+/// Why the status line this one chains stopped working, and since when.
+public struct ChainNotice: Decodable, Sendable {
+    public let since: Date
+    public let reason: String
+
+    private enum CodingKeys: String, CodingKey { case since, reason }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        since = Date(timeIntervalSince1970: try c.decode(Double.self, forKey: .since))
+        reason = try c.decode(String.self, forKey: .reason)
+    }
+
+    public func age(at now: Date = Date()) -> TimeInterval {
+        max(0, now.timeIntervalSince(since))
     }
 }
 

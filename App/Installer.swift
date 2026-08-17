@@ -251,6 +251,49 @@ struct Installer {
         return text.trimmingCharacters(in: .whitespacesAndNewlines) == "3"
     }
 
+    // MARK: The status line we are sharing with
+
+    /// The command the installed exporter calls after doing its own work.
+    ///
+    /// Read back out of the exporter rather than kept anywhere else, because
+    /// the exporter is where it has to be true: one place to be wrong, and it
+    /// is the same place that uses it. `nil` means nothing is chained.
+    ///
+    /// This is what makes reinstalling safe. `reinstall.sh` runs `install()`
+    /// dozens of times a day, and by then the status line is already ours —
+    /// so asking `statusLineState()` what to chain would answer "ourselves",
+    /// and writing that would either lose somebody's status line or call this
+    /// exporter from itself for ever.
+    func chainedCommand() -> String? {
+        guard let body = try? String(contentsOf: exporterURL, encoding: .utf8) else { return nil }
+        for line in body.split(separator: "\n", omittingEmptySubsequences: true) {
+            guard line.hasPrefix("CHAINED = ") else { continue }
+            let literal = line.dropFirst("CHAINED = ".count)
+            if literal == "None" { return nil }
+            // The literal was written by `pythonStringLiteral`, which is JSON's
+            // escaping — so JSON is what reads it back. A round trip rather
+            // than an unescaper of our own.
+            guard let data = literal.data(using: .utf8),
+                  let text = try? JSONDecoder().decode(String.self, from: data)
+            else { return nil }
+            return text
+        }
+        return nil
+    }
+
+    /// What the next install would chain, given what is configured now.
+    ///
+    /// Three states in, three answers out: somebody else's command is chained,
+    /// ours means keep whatever we were already chaining, and nothing
+    /// configured means nothing to chain.
+    func commandToChain() -> String? {
+        switch statusLineState() {
+        case .foreign(let command): return command
+        case .ours: return chainedCommand()
+        case .absent: return nil
+        }
+    }
+
     // MARK: Installing
 
     @discardableResult
@@ -258,13 +301,16 @@ struct Installer {
         guard widgetContainerExists else { throw Failure.widgetContainerMissing }
         guard let interpreter = findInterpreter() else { throw Failure.pythonMissing }
 
-        try writeExporter(interpreter: interpreter)
+        // Read before anything is written: writing the exporter is what
+        // destroys the answer.
+        let chained = commandToChain()
+        try writeExporter(interpreter: interpreter, chaining: chained)
         let backup = try backupSettings()
         let surgical = try writeStatusLine()
         return Report(backup: backup, editWasSurgical: surgical, interpreter: interpreter)
     }
 
-    private func writeExporter(interpreter: URL) throws {
+    private func writeExporter(interpreter: URL, chaining chained: String?) throws {
         guard let templateURL,
               let body = try? String(contentsOf: templateURL, encoding: .utf8)
         else { throw Failure.templateMissing }
@@ -277,6 +323,14 @@ struct Installer {
         rendered = rendered.replacingOccurrences(
             of: "\"__GROUP_DIR__\"",
             with: Self.pythonStringLiteral(exchangeDirectory.path(percentEncoded: false))
+        )
+        // Same treatment as the path above, and for the same reason: this
+        // string is a shell command somebody wrote, so it is quite likely to
+        // contain quotes. It is substituted as a finished literal, never
+        // pasted between quotes of ours.
+        rendered = rendered.replacingOccurrences(
+            of: "__CHAINED__",
+            with: chained.map(Self.pythonStringLiteral) ?? "None"
         )
         rendered = Self.replacingShebang(in: rendered, with: interpreter)
 
@@ -442,11 +496,16 @@ struct Installer {
         // Write through to the link's target, not to the link itself.
         let destination = resolvedSettingsURL
         let original = try? String(contentsOf: destination, encoding: .utf8)
-        let value: [String: Any] = [
-            "type": "command",
-            "command": exporterURL.path(percentEncoded: false),
-            "padding": 0,
-        ]
+        // Their object, with one field changed — not a new object of ours.
+        //
+        // `padding`, `refreshInterval`, `hideVimModeIndicator`: all documented
+        // fields of `statusLine`, all somebody's settings, and none of them any
+        // business of ours. Replacing the whole object threw them away, and
+        // removal could not put back what installation had not kept.
+        var value = (readSettings()?["statusLine"] as? [String: Any]) ?? [:]
+        value["type"] = "command"
+        value["command"] = exporterURL.path(percentEncoded: false)
+        if value["padding"] == nil { value["padding"] = 0 }
 
         let text: String
         let surgical: Bool
@@ -474,6 +533,9 @@ struct Installer {
     /// What removal will do, and what will be left behind.
     struct RemovalPlan {
         let removesStatusLine: Bool
+        /// The status line that was there before this one goes back instead of
+        /// the key being deleted. Never both.
+        let restoresStatusLine: String?
         let removesExporter: Bool
         let historyLineCount: Int
         /// The app bundle and the extension's container cannot be removed by
@@ -483,6 +545,11 @@ struct Installer {
 
     struct RemovalReport {
         let statusLineRemoved: Bool
+        /// The command put back as the status line, when there was one to put
+        /// back. Removing a widget must not cost somebody the prompt they had
+        /// before installing it — the same reason the exporter chains it in the
+        /// first place.
+        let statusLineRestored: String?
         let exporterRemoved: Bool
         let historyRemoved: Bool
         let backup: URL?
@@ -501,8 +568,10 @@ struct Installer {
         let history = (try? String(contentsOf: exchangeDirectory.appending(path: "history.jsonl"),
                                    encoding: .utf8))?
             .split(separator: "\n", omittingEmptySubsequences: true).count ?? 0
+        let chained = statusLineState() == .ours ? chainedCommand() : nil
         return RemovalPlan(
-            removesStatusLine: statusLineState() == .ours,
+            removesStatusLine: statusLineState() == .ours && chained == nil,
+            restoresStatusLine: chained,
             removesExporter: FileManager.default.fileExists(
                 atPath: exporterURL.path(percentEncoded: false)),
             historyLineCount: history,
@@ -523,25 +592,47 @@ struct Installer {
     func uninstall(removingHistory: Bool) throws -> RemovalReport {
         var backup: URL?
         var statusLineRemoved = false
+        var statusLineRestored: String?
         var editWasSurgical: Bool?
 
         if statusLineState() == .ours {
+            // Read before the exporter is deleted below: the answer lives in
+            // the file that is about to go.
+            let chained = chainedCommand()
             backup = try backupSettings()
             let destination = resolvedSettingsURL
             let original = try? String(contentsOf: destination, encoding: .utf8)
 
-            let outcome = SettingsEditor.removing("statusLine", from: original)
+            // Somebody's own status line goes back where it was, and the rest
+            // of the object goes back untouched — installation only ever
+            // changed `command`, so padding and the rest were never ours to
+            // restore.
+            // Two different edits with two different outcome types — setting
+            // a key cannot come back "absent", and removing one cannot come
+            // back with a value — so they are unpacked separately rather than
+            // squeezed into one variable.
             let edited: String?
-            switch outcome {
-            case .surgical(let text): edited = text; editWasSurgical = true
-            case .rewritten(let text): edited = text; editWasSurgical = false
-            case .absent: edited = nil
+            if let chained {
+                var value = (readSettings()?["statusLine"] as? [String: Any]) ?? [:]
+                value["type"] = "command"
+                value["command"] = chained
+                switch SettingsEditor.setting("statusLine", to: value, in: original) {
+                case .surgical(let text): edited = text; editWasSurgical = true
+                case .rewritten(let text): edited = text; editWasSurgical = false
+                }
+                statusLineRestored = chained
+            } else {
+                switch SettingsEditor.removing("statusLine", from: original) {
+                case .surgical(let text): edited = text; editWasSurgical = true
+                case .rewritten(let text): edited = text; editWasSurgical = false
+                case .absent: edited = nil
+                }
             }
 
             if let edited {
                 do {
                     try edited.write(to: destination, atomically: true, encoding: .utf8)
-                    statusLineRemoved = true
+                    statusLineRemoved = statusLineRestored == nil
                 } catch {
                     throw Failure.writeFailed(destination, error)
                 }
@@ -563,11 +654,15 @@ struct Installer {
             // only one with an identifier in it.
             // Named through the store rather than spelled again here, so the
             // two cannot drift apart.
-            try? fm.removeItem(at: SnapshotStore(containerURL: exchangeDirectory).skipNoticeURL)
+            let store = SnapshotStore(containerURL: exchangeDirectory)
+            try? fm.removeItem(at: store.skipNoticeURL)
+            // And the other notice, for the same reason.
+            try? fm.removeItem(at: store.chainNoticeURL)
         }
 
         return RemovalReport(
             statusLineRemoved: statusLineRemoved,
+            statusLineRestored: statusLineRestored,
             exporterRemoved: exporterRemoved,
             historyRemoved: historyRemoved,
             backup: backup,

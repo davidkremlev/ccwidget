@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Your status line keeps working.** Installing this used to blank it: the
+  exporter prints nothing, so taking the `statusLine` key over left the prompt
+  with nothing to show. Now whatever command was there is called by the
+  exporter, handed the same input Claude Code sent, and its output printed
+  unchanged — `ccstatusline`, a script, an inline `jq` pipeline, all of them
+  keep rendering.
+
+  Your data is written first and their command second, so a broken status line
+  cannot also stop the widget getting data. Three seconds and a hanging command
+  is abandoned. A missing, failing or slow command is recorded in the container
+  and printed by `ccwidget-dump`, because the exporter cannot say it on stdout —
+  everything it prints lands in your prompt.
+
+  Setup now changes only `statusLine.command`, leaving `padding`,
+  `refreshInterval` and the rest of the key as you had them; removal puts your
+  command back rather than deleting the key. `SPEC` 13 had this filed under
+  "version 2" and that was an error of priority — the cost was already being
+  paid, and the uninstaller had already had to learn not to delete a wrapper
+  that chains the exporter.
+
+
 ## [0.3.1] — 2026-08-17
 
 ### Fixed

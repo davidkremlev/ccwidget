@@ -1,10 +1,35 @@
 #!/usr/bin/env python3
-import json, os, stat, sys, time
+import json, os, stat, subprocess, sys, time
 
 # The installer performs both substitutions:
 #   __GROUP_DIR__  quotes included, as a valid Python literal
 #   the first line replaced with an absolute interpreter path
 GROUP_DIR = "__GROUP_DIR__"
+
+# The status line that was configured before this one, substituted by the
+# installer as a Python literal the same way GROUP_DIR is, or None when there
+# was nothing there.
+#
+# This exists so that installing a widget does not cost somebody their prompt.
+# The exporter prints nothing of its own — it writes a file and exits — so
+# taking the statusLine key over used to leave the line blank, which for an
+# audience running ccstatusline or a script of their own is a bad trade. Now
+# the previous command is called with the same input Claude Code sent here,
+# and whatever it prints is printed.
+#
+# It runs through a shell because that is how Claude Code runs it: the status
+# line documentation says the command field "runs in a shell", and inline
+# `jq` pipelines are its own examples. Running it any other way would break
+# exactly the configurations this is meant to preserve. The string is the
+# user's own command, unchanged — nothing here composes or quotes it.
+CHAINED = __CHAINED__
+
+# How long the chained command may take before it is abandoned. Claude Code
+# redraws the status line dozens of times a minute, so a command that hangs
+# would hang every one of them; three seconds is long enough for a script that
+# shells out to git and short enough that a broken one is a stutter rather
+# than a freeze.
+CHAIN_TIMEOUT = 3.0
 
 # Anything larger is not our data. The status line sends kilobytes; a megabyte
 # is three hundred times the headroom. Without a limit a gigabyte of input
@@ -131,6 +156,72 @@ def note_skip(session_id):
         pass
 
 
+def note_chain(reason):
+    """Records that the chained status line did not work.
+
+    Loud rather than silent, for the reason in section 6.1 — and here the
+    symptom is somebody's prompt going blank, which they will blame on this
+    widget either way. `ccwidget-dump` prints it. Kept until the chain works
+    again, and holding the first moment rather than the last: what matters is
+    when it started.
+    """
+    if not os.path.isdir(GROUP_DIR):
+        return
+    path = os.path.join(GROUP_DIR, "chain-failed.json")
+    if os.path.exists(path):
+        return
+    payload = {"since": int(time.time()), "reason": reason}
+    try:
+        handle = open_new(path + ".tmp")
+        if handle is None:
+            return
+        with handle as f:
+            json.dump(payload, f)
+        os.replace(path + ".tmp", path)
+    except OSError:
+        pass
+
+
+def clear_chain_notice():
+    try:
+        os.unlink(os.path.join(GROUP_DIR, "chain-failed.json"))
+    except OSError:
+        pass
+
+
+def run_chained(raw):
+    """Runs the status line that was there before this one and prints it.
+
+    Its output goes to stdout unchanged, because that is the whole contract of
+    a status line command: Claude Code prints what it prints.
+    """
+    if not CHAINED:
+        return
+    try:
+        result = subprocess.run(
+            CHAINED, shell=True, input=raw,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            timeout=CHAIN_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        note_chain("the chained status line did not answer in %g s" % CHAIN_TIMEOUT)
+        return
+    except Exception as exc:
+        note_chain("the chained status line could not be run: %s" % type(exc).__name__)
+        return
+
+    if result.stdout:
+        try:
+            sys.stdout.buffer.write(result.stdout)
+            sys.stdout.buffer.flush()
+        except Exception:
+            pass
+    if result.returncode != 0:
+        note_chain("the chained status line exited %d" % result.returncode)
+    else:
+        clear_chain_notice()
+
+
 def clear_skip():
     try:
         os.unlink(os.path.join(GROUP_DIR, "export-skipped.json"))
@@ -138,10 +229,7 @@ def clear_skip():
         pass
 
 
-def main():
-    raw = sys.stdin.buffer.read(MAX_INPUT + 1)
-    if len(raw) > MAX_INPUT:
-        return
+def main(raw):
     try:
         d = json.loads(raw)
     except Exception:
@@ -279,7 +367,27 @@ def main():
             truncate_history(hist)
 
 
+# Our own work first, then theirs, and the order is deliberate.
+#
+# Writing the snapshot takes about twenty milliseconds and cannot fail in a way
+# that blocks; the chained command is somebody else's program and might hang
+# for the whole timeout. If it went first, a broken status line would stop the
+# widget getting data as well — one defect becoming two. This way the widget
+# keeps working even while the chained line is broken, and the prompt is late
+# by twenty milliseconds, which nobody can see.
+INPUT = b""
 try:
-    main()
+    INPUT = sys.stdin.buffer.read(MAX_INPUT + 1)
+except Exception:
+    pass
+
+if len(INPUT) <= MAX_INPUT:
+    try:
+        main(INPUT)
+    except Exception:
+        pass
+
+try:
+    run_chained(INPUT)
 except Exception:
     pass

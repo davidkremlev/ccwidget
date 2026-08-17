@@ -41,11 +41,31 @@ func reportSkipNotice(_ store: SnapshotStore) {
     print("")
 }
 
+/// The other notice: the status line this exporter chains is failing.
+///
+/// Somebody whose prompt has gone blank will look here, because the widget is
+/// what they changed last. The exporter cannot say it on stdout — anything it
+/// prints lands in the prompt — so it says it in a file, and this is the thing
+/// that reads the file.
+func reportChainNotice(_ store: SnapshotStore) {
+    guard let notice = store.loadChainNotice() else { return }
+    print("!! The status line chained behind this widget is failing.")
+    print("   since:   \(notice.since.formatted(date: .abbreviated, time: .standard))")
+    print("   for:     \(duration(notice.age()))")
+    print("   reason:  \(notice.reason)")
+    print("")
+    print("   The widget's own data is unaffected — it is written before the")
+    print("   chained command runs. What is missing is that command's output,")
+    print("   so the prompt shows nothing where it used to show something.")
+    print("")
+}
+
 let snapshot: Snapshot
 do {
     snapshot = try store.load()
 } catch let error as SnapshotStoreError {
     reportSkipNotice(store)
+    reportChainNotice(store)
     fail(error.description)
 } catch {
     fail("\(error)")
@@ -107,6 +127,7 @@ func report(_ title: String, _ window: LimitWindow?) {
 let age = snapshot.age()
 
 reportSkipNotice(store)
+reportChainNotice(store)
 
 print("Directory: \(store.containerURL.path)")
 print("File:      \(store.snapshotURL.lastPathComponent)")

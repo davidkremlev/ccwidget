@@ -1031,6 +1031,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | settings.json 不可写。 |
 
 
+**`Setup keeps it: the widget's exporter will call it and print its output. Removal puts it back.`**
+
+| | |
+|---|---|
+| German | Das Setup behält sie: Der Exporter des Widgets ruft sie auf und gibt ihre Ausgabe aus. Beim Entfernen kommt sie zurück. |
+| Spanish | La instalación la conserva: el exportador del widget la ejecutará e imprimirá su salida. Al desinstalar, vuelve. |
+| Japanese | セットアップはこれを保持します。ウィジェットのエクスポーターがこれを呼び出し、その出力を表示します。削除すると元に戻ります。 |
+| Simplified Chinese | 安装会保留它：小组件的导出脚本会调用它并输出其结果。卸载时会恢复。 |
+
+
 **`Setup needed`**
 
 | | |
@@ -1039,16 +1049,6 @@ Seen after clicking the widget, and during setup.
 | Spanish | Falta configurar |
 | Japanese | 設定が必要 |
 | Simplified Chinese | 需要设置 |
-
-
-**`Setup will replace it. The backup lets you put it back.`**
-
-| | |
-|---|---|
-| German | Die Einrichtung ersetzt sie. Mit der Sicherung können Sie sie zurückholen. |
-| Spanish | La configuración la reemplazará. La copia de seguridad permite restaurarla. |
-| Japanese | セットアップはそれを置き換えます。バックアップから戻せます。 |
-| Simplified Chinese | 设置将替换它。备份可用于还原。 |
 
 
 **`Setup writes the exporter to ~/.claude/ and adds one key to settings.json. Only that key changes — your formatting and key order are kept.`**
@@ -1171,6 +1171,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 状态行在每次重绘时运行，因此模型回复后几秒内就会出现第一批数字。 |
 
 
+**`The status line you had before is back.`**
+
+| | |
+|---|---|
+| German | Die Statuszeile von vorher ist zurück. |
+| Spanish | La línea de estado que tenías antes ha vuelto. |
+| Japanese | 以前のステータスラインが戻りました。 |
+| Simplified Chinese | 之前的状态栏已恢复。 |
+
+
 **`The statusLine key is removed from settings.json. Other keys are untouched.`**
 
 | | |
@@ -1281,6 +1291,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 运行中 |
 
 
+**`Your previous status line goes back: %@`**
+
+| | |
+|---|---|
+| German | Ihre vorherige Statuszeile kommt zurück: %@ |
+| Spanish | Tu línea de estado anterior volverá: %@ |
+| Japanese | 以前のステータスラインが戻ります: %@ |
+| Simplified Chinese | 将恢复你之前的状态栏：%@ |
+
+
 **`~/.claude/ccwidget-export.py is deleted.`**
 
 | | |
@@ -1293,4 +1313,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-122 strings in total.
+124 strings in total.

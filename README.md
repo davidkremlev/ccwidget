@@ -156,15 +156,52 @@ that is worth an issue: you would be the first to look.
 
 ## Installing
 
-There are no releases yet — no signed build, no Homebrew formula. The only
-way to run this today is to build it, which means **Xcode 16 or later** and
-**XcodeGen**, which generates the Xcode project from `project.yml`.
+Download **[CCWidget-0.3.1.dmg](../../releases/latest)**, open it, drag the app
+to Applications. It is signed with a Developer ID and notarized by Apple, so it
+opens without argument — including on a Mac that has never seen this source and
+including offline, because the notarization ticket is stapled to both the disk
+image and the app inside it.
 
-**With Xcode older than 26 the app builds without an icon.** The icon is an
-Icon Composer `.icon` file, which only Xcode 26 compiles, and Xcode 26 itself
-needs macOS 15.6 or later. Everything else works; the app just shows a generic
-placeholder in the Dock and the widget gallery. Measured on a CI runner, not
-guessed.
+Verify what you downloaded, if you like:
+
+```sh
+shasum -a 256 CCWidget-0.3.1.dmg
+# c462c80813d8d9e8b17b46cf2f6d847aeaaf611b7cc0c4b59d5726be9533249b
+
+spctl -a -vvv -t exec /Applications/CCWidget.app
+# accepted, source=Notarized Developer ID
+```
+
+There is no Homebrew formula yet.
+
+Then, in this order:
+
+1. **Add the widget to your desktop first** — right-click the desktop, choose
+   *Edit Widgets*, find *Usage Widget for Claude Code*. This step cannot be
+   skipped: the exchange directory is created by the system when the widget
+   extension first runs, and the app deliberately refuses to create it itself.
+2. Open the app and press **Set up automatically.** It writes the exporter to
+   `~/.claude/ccwidget-export.py` and adds one `statusLine` key to
+   `~/.claude/settings.json`. A timestamped copy of your settings is saved
+   first. Normally only that one key changes and your indentation and key order
+   survive; if the file cannot be patched in place — malformed JSON, comments —
+   it is rebuilt instead, and the app tells you so rather than hiding it.
+3. Send any message in Claude Code. The first numbers appear within seconds.
+
+**If you already have a status line, it keeps working.** Setup reads whatever
+`statusLine.command` was there and the exporter calls it, hands it the same
+input Claude Code sent, and prints its output — so `ccstatusline` or a script
+of your own goes on rendering your prompt while the widget gets its data. The
+command it chains is shown to you before setup, and removal puts it back as
+your `statusLine`. See *Sharing the status line* below.
+
+Prefer not to let an app edit your config? The setup screen has **Show manual
+instructions** with the exact lines to paste.
+
+### Building it yourself instead
+
+Needs **Xcode 16 or later** and **XcodeGen**, which generates the Xcode project
+from `project.yml`.
 
 ```sh
 brew install xcodegen
@@ -175,43 +212,24 @@ cd ccwidget
 
 `reinstall.sh` is a **development script, not an installer.** It generates the
 project, removes `/Applications/CCWidget.app` if present, copies a fresh build
-over it, and restarts `chronod` — the system daemon behind every widget on your
-Mac. The restart is unavoidable (see Development below) and harmless: the
-system brings it straight back and all widgets redraw. Read the script before
-running it; it is sixty lines.
+over it, restarts `chronod` — the system daemon behind every widget on your Mac
+— and then checks that the extension survived a render and that the tile drew
+something. The restart is unavoidable (see Development below) and harmless: the
+system brings it straight back and all widgets redraw.
 
-Then, in this order:
+Two things about a build you made yourself rather than downloaded:
 
-1. **Add the widget to your desktop first** — right-click the desktop, choose
-   *Edit Widgets*, find *Usage Widget for Claude Code*. This step cannot be skipped:
-   the exchange directory is created by the system when the widget extension
-   first runs, and the app deliberately refuses to create it itself.
-2. Open the app and press **Set up automatically.** It writes the exporter to
-   `~/.claude/ccwidget-export.py` and adds one `statusLine` key to
-   `~/.claude/settings.json`. A timestamped copy of your settings is saved
-   first, and an existing status line is shown to you before it is replaced.
-   Normally only that one key changes and your indentation and key order
-   survive; if the file cannot be patched in place — malformed JSON, comments
-   — it is rebuilt instead, and the app tells you so rather than hiding it.
-3. Send any message in Claude Code. The first numbers appear within seconds.
-
-Prefer not to let an app edit your config? The setup screen has **Show manual
-instructions** with the exact lines to paste.
-
-**On a build you did not compile yourself** — a copy from someone else, or a
-future release — macOS will refuse to open it. The app is ad-hoc signed and
-not notarized, so Gatekeeper treats it as untrusted. A locally built app opens
-without complaint. This is the main thing standing between the project and a
-real release; see SPEC.md section 14.
-
-Checked rather than assumed, by quarantining a copy the way a download would
-be. The dialog says *"'CCWidget.app' Not Opened — Apple could not verify
-'CCWidget.app' is free of malware that may harm your Mac or compromise your
-privacy"*, and it offers **Move to Trash** or **Done** — there is no "Open
-Anyway" in it. On current macOS that button lives in **System Settings →
-Privacy & Security**, below the message about the blocked app, and appears
-only after you have tried to open it once. Worth knowing before you conclude
-the app is broken.
+- **With Xcode older than 26 it has no icon.** The icon is an Icon Composer
+  `.icon` file, which only Xcode 26 compiles, and Xcode 26 itself needs macOS
+  15.6 or later. Everything else works; the app shows a generic placeholder in
+  the Dock and the widget gallery. Measured on a CI runner, not guessed.
+- **A locally built app is ad-hoc signed**, which is fine on the machine that
+  built it and refused everywhere else. If you pass such a copy to somebody,
+  macOS will tell them Apple could not verify it, and offer *Move to Trash* or
+  *Done* — there is no "Open Anyway" in that dialog. That button lives in
+  **System Settings › Privacy & Security**, below the message about the blocked
+  app, and only after they have tried to open it once. Checked by quarantining
+  a copy the way a download would be. Hand out the notarized release instead.
 
 ## When the numbers stop moving
 
@@ -255,6 +273,10 @@ at all. The usual causes, in the order worth checking:
 - The `statusLine` key in `~/.claude/settings.json` no longer points at
   `~/.claude/ccwidget-export.py`. The app's window says **Setup needed** when
   that is the case.
+- **Your other status line went blank instead** — that is a different problem
+  with the same look. `ccwidget-dump` prints a notice saying since when and
+  why: a chained command that is missing, failing or too slow. The widget's own
+  numbers are unaffected, because they are written before it runs.
 - The exporter file was deleted or replaced. The window's **Details** says
   *modified since installation* or *not installed*.
 
@@ -307,10 +329,36 @@ Claude Code ──status line JSON──▶ ccwidget-export.py ──▶ snapsho
 ```
 
 The exporter runs on every status line redraw, writes atomically, and always
-exits 0 — a broken exporter must never break your prompt. It prints nothing,
-which means **your status line goes blank**: this project takes the line over
-rather than sharing it. Composing with an existing status line is planned but
-not written.
+exits 0 — a broken exporter must never break your prompt.
+
+### Sharing the status line
+
+The exporter prints nothing of its own, so it used to leave your status line
+blank. It does not any more: whatever `statusLine.command` was there when you
+ran setup is called by the exporter, given the same input Claude Code sent, and
+its output is printed unchanged. `ccstatusline`, a shell script, an inline `jq`
+pipeline — they go on rendering your prompt.
+
+Four things worth knowing about how that is done:
+
+- **Your data is written first, their command second.** Writing the snapshot
+  takes about twenty milliseconds and cannot hang; someone else's program can.
+  This way a broken status line does not also stop the widget getting data —
+  one problem stays one problem. Your prompt is twenty milliseconds late, which
+  nobody can see.
+- **Three seconds and then it is abandoned.** The status line redraws dozens of
+  times a minute, so a command that hangs would hang every one of them.
+- **A failure is recorded rather than swallowed.** If the chained command is
+  missing, fails or times out, the exporter notes when and why in the container
+  and `./.build/ccwidget-dump` prints it. It cannot tell you on stdout —
+  anything it prints lands in your prompt — and a prompt that has gone blank
+  will be blamed on this widget, so silence is the one thing it must not do.
+- **Removal puts your command back** as your `statusLine`, with the rest of the
+  key — `padding`, `refreshInterval` — as you had it. Setup only ever changes
+  `command`.
+
+The command being chained is shown to you on the setup screen before you press
+anything.
 
 **How fast the widget updates depends on whether the app window is open.**
 With it open, a watcher notices new data and refreshes the widget within a

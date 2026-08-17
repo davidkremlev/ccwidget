@@ -450,6 +450,53 @@ expect_key_kept hooks
 expect_exporter_kept
 expect_says "hooks.Stop"
 
+# 15. Ours, with somebody's own status line chained behind it. Removal has to
+#     put theirs back rather than delete the key — the app does, and the two
+#     paths disagreeing is what the last batch was spent on.
+stage "ours with a chained status line"
+settings <<EOF
+{
+  "theme": "dark",
+  "statusLine": { "type": "command", "command": "$(exporter_path)", "padding": 4 }
+}
+EOF
+cat > "$STAGE/.claude/ccwidget-export.py" <<'INNER'
+#!/usr/bin/env python3
+CHAINED = "/usr/local/bin/theirs"
+print("exporter")
+INNER
+run_uninstall
+expect_status 0
+expect_says "/usr/local/bin/theirs"
+if python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get('statusLine',{}).get('command') == '/usr/local/bin/theirs' else 1)" "$STAGE/.claude/settings.json"; then
+    pass "their command is what the status line runs again"
+else
+    fail "the status line was not put back" "$(cat "$STAGE/.claude/settings.json")"
+fi
+expect_key_kept theme
+if python3 -c "import json,sys; d=json.load(open(sys.argv[1])); sys.exit(0 if d.get('statusLine',{}).get('padding') == 4 else 1)" "$STAGE/.claude/settings.json"; then
+    pass "and the rest of their object with it"
+else
+    fail "padding was lost while restoring"
+fi
+expect_exporter_gone
+
+# 16. Ours with nothing chained: the key goes, as it always did. The two cases
+#     must not be confused in either direction.
+stage "ours with nothing chained"
+settings <<EOF
+{ "theme": "dark", "statusLine": { "type": "command", "command": "$(exporter_path)" } }
+EOF
+cat > "$STAGE/.claude/ccwidget-export.py" <<'INNER'
+#!/usr/bin/env python3
+CHAINED = None
+INNER
+run_uninstall
+expect_status 0
+expect_no_status_line
+expect_key_kept theme
+expect_exporter_gone
+
 # --- verdict -------------------------------------------------------------
 
 echo

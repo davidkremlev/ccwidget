@@ -98,6 +98,32 @@ def spellings(exporter):
 FORMS = spellings(exporter)
 
 
+def chained_command():
+    """The status line the exporter calls after doing its own work.
+
+    Read out of the exporter, which is where the app keeps it, so the two
+    cannot disagree. `None` when there is nothing chained.
+    """
+    try:
+        with open(exporter, encoding="utf-8") as f:
+            body = f.read()
+    except OSError:
+        return None
+    for line in body.splitlines():
+        if not line.startswith("CHAINED = "):
+            continue
+        literal = line[len("CHAINED = "):]
+        if literal == "None":
+            return None
+        try:
+            # The literal was written as JSON escaping, so JSON reads it back.
+            value = json.loads(literal)
+        except ValueError:
+            return None
+        return value if isinstance(value, str) else None
+    return None
+
+
 def classify():
     """(state, what the status line runs, other places the exporter is named)
 
@@ -159,9 +185,12 @@ def classify():
 state, shown, references = classify()
 keeps_exporter = bool(references) or state == "invalid"
 
+restores = chained_command() if state == "ours" else None
+
 with open(verdict_path, "w") as f:
     f.write(f"STATE={state}\n")
     f.write(f"REMOVE_EXPORTER={'no' if keeps_exporter else 'yes'}\n")
+    f.write(f"RESTORES={'yes' if restores else 'no'}\n")
 
 if state == "invalid":
     print("    settings.json is not valid JSON, so nothing in it can be")
@@ -181,6 +210,9 @@ if mode == "inspect":
         print("    there is no settings.json — nothing there to undo")
     elif state == "absent":
         print("    settings.json has no statusLine — left alone")
+    elif state == "ours" and restores:
+        print("    the status line you had before this one goes back:")
+        print(f"      {restores}")
     elif state == "ours":
         print("    the statusLine key is ours and is removed (other keys untouched)")
     elif state == "foreign":
@@ -218,6 +250,29 @@ print(f"==> Settings backup: {os.path.basename(backup)}")
 
 text = original_bytes.decode("utf-8")
 data = json.loads(text)
+
+if restores:
+    # Their command goes back and the rest of the object is left as it is —
+    # installation only ever changed `command`, so padding and the rest were
+    # never ours to restore. Rebuilding the file is the honest route here: a
+    # surgical edit that changes a value inside an object is a different
+    # problem from cutting the object out, and this branch is not the place to
+    # invent one.
+    line = data.get("statusLine")
+    if not isinstance(line, dict):
+        line = {"type": "command"}
+    line["type"] = "command"
+    line["command"] = restores
+    data["statusLine"] = line
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    print("==> Putting your previous status line back")
+    print(f"    {restores}")
+    print("    settings.json was rebuilt, so key order and indentation changed;")
+    print("    the original is in the backup next to it.")
+    sys.exit(0)
+
 del data["statusLine"]
 
 # Cut out only this key so the neighbours keep their indentation. If that
@@ -261,11 +316,13 @@ PY
 read_verdict() {
     STATE=""
     REMOVE_EXPORTER="no"
+    RESTORES="no"
     # shellcheck disable=SC1090
     while IFS='=' read -r key value; do
         case "$key" in
             STATE) STATE="$value" ;;
             REMOVE_EXPORTER) REMOVE_EXPORTER="$value" ;;
+            RESTORES) RESTORES="$value" ;;
         esac
     done < "$VERDICT"
 }

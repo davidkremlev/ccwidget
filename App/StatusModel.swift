@@ -117,6 +117,12 @@ class StatusModel: ObservableObject {
             if let backup = report.backup {
                 parts.append(String(localized: "Settings backed up as \(backup.lastPathComponent)."))
             }
+            if report.statusLineRestored != nil {
+                // Said out loud because it is the opposite of what removal used
+                // to do, and because a person who installed this on top of an
+                // existing status line has been waiting to get it back.
+                parts.append(String(localized: "The status line you had before is back."))
+            }
             if report.editWasSurgical == false {
                 // The same sentence installation shows, for the same reason:
                 // the file was rebuilt and somebody's formatting is gone.
@@ -134,6 +140,9 @@ class StatusModel: ObservableObject {
         var lines: [String] = []
         if plan.removesStatusLine {
             lines.append(String(localized: "The statusLine key is removed from settings.json. Other keys are untouched."))
+        }
+        if let restored = plan.restoresStatusLine {
+            lines.append(String(localized: "Your previous status line goes back: \(restored)"))
         }
         if plan.removesExporter {
             lines.append(String(localized: "~/.claude/ccwidget-export.py is deleted."))
