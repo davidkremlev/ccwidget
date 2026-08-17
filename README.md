@@ -15,17 +15,17 @@ spent, how full the context window is, and when the weekly quota runs out.
 
 Everything else on this page assumes `claude` runs in your terminal.
 
-| | |
-|---|---|
-| ![Medium widget, dark](Docs/screenshots/medium-dark.png) | ![Small widget, dark](Docs/screenshots/small-dark.png) |
+![All three sizes](Docs/screenshots/poster-dark.png)
 
 <details>
-<summary>Large size with the forecast, and everything in light mode</summary>
+<summary>Light mode, and each size on its own</summary>
+
+![All three sizes, light](Docs/screenshots/poster-light.png)
 
 | | |
 |---|---|
-| ![Large widget, light](Docs/screenshots/large-light.png) | ![Large widget, dark](Docs/screenshots/large-dark.png) |
-| ![Medium widget, light](Docs/screenshots/medium-light.png) | ![Small widget, light](Docs/screenshots/small-light.png) |
+| ![Large widget, dark](Docs/screenshots/large-dark.png) | ![Medium widget, dark](Docs/screenshots/medium-dark.png) |
+| ![Large widget, light](Docs/screenshots/large-light.png) | ![Small widget, light](Docs/screenshots/small-light.png) |
 
 </details>
 

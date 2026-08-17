@@ -139,6 +139,16 @@ never opened. The third, **Icon**, was one until the HIG page was connected.
 Named here so that nobody goes looking for one and quietly settles for an
 analogy instead.
 
+- **How X lays out and crops several images in one post.** X's own
+  documentation covers upload limits and video aspect ratios and says nothing
+  about the timeline grid. Measured instead, and expensively: a post with a
+  wide tile and a square one side by side had the wide one centre-cropped to a
+  tall slot, cutting the row labels off its left edge. Third-party guides say a
+  single 16:9 image is shown whole and that a pair is cropped to roughly 7:8
+  each — that matches what was observed for the pair, and the 16:9 half of it
+  is **not yet observed here**. `Docs/state-2026-08-16.md` finding 29 has the
+  order of events, which is the part worth reading: the post went out first and
+  the reading happened after.
 - **`ImageRenderer`'s default scale.** The property is documented; its default
   value is not stated anywhere Apple publishes. The 1.0 in the baseline checks
   was measured, and the comments say so.

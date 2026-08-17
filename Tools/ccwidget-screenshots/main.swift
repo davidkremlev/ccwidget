@@ -181,3 +181,65 @@ for (suffix, scheme) in [("light", ColorScheme.light), ("dark", ColorScheme.dark
     shoot("medium-\(suffix)", medium, scheme) { MediumView(entry: entry) }
     shoot("large-\(suffix)", large, scheme) { LargeView(entry: entry) }
 }
+
+// MARK: The one image that goes somewhere else
+
+/// A single 16:9 picture holding two of the tiles.
+///
+/// **Why one and why this shape.** Posted to X as two separate images, they are
+/// laid side by side and *center-cropped to a tall slot* — roughly 7:8 each —
+/// which cut the labels off the left edge of the wide medium tile and reduced
+/// the square large one to a strip. A single image at 16:9 is shown whole.
+/// Learned the hard way, on a published post, and then read rather than guessed;
+/// the sources are in `SOURCES.md` under "how to do it right".
+///
+/// 800×450 points at `renderScale` 2 gives exactly the 1600×900 those sources
+/// name. The tiles keep their real dimensions from section 9 — nothing here is
+/// resized, because a tile drawn at the wrong size is no longer a picture of
+/// the product.
+@MainActor
+func shootPoster(_ name: String, _ scheme: ColorScheme) {
+    let backdrop = scheme == .dark
+        ? [Color(red: 0.09, green: 0.09, blue: 0.11), Color(red: 0.16, green: 0.15, blue: 0.19)]
+        : [Color(red: 0.94, green: 0.94, blue: 0.96), Color(red: 0.86, green: 0.87, blue: 0.91)]
+
+    /// One tile, dressed the way the system dresses it.
+    func tile(_ size: CGSize, @ViewBuilder _ content: () -> some View) -> some View {
+        content()
+            .padding(14)
+            .frame(width: size.width, height: size.height)
+            .background(scheme == .dark ? Color(white: 0.14) : Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    // All three sizes, and the arithmetic is the reason it composes: the medium
+    // and the small stacked with a 16-point gap come to 344 points, which is
+    // exactly the height of the large one beside them. Nothing is scaled to
+    // make that work.
+    let body = HStack(alignment: .top, spacing: 40) {
+        tile(large) { LargeView(entry: entry) }
+        VStack(alignment: .leading, spacing: 16) {
+            tile(medium) { MediumView(entry: entry) }
+            tile(small) { SmallView(entry: entry) }
+        }
+    }
+    .frame(width: 800, height: 450)
+    .background(LinearGradient(colors: backdrop, startPoint: .topLeading, endPoint: .bottomTrailing))
+    .environment(\.colorScheme, scheme)
+    .environment(\.dynamicTypeSize, typeSize)
+    .environment(\.timeZone, renderZone)
+
+    let renderer = ImageRenderer(content: body)
+    renderer.scale = renderScale
+    renderer.isOpaque = true
+    guard let png = encodePNG(renderer) else {
+        FileHandle.standardError.write(Data("could not render \(name)\n".utf8))
+        return
+    }
+    let url = outDir.appending(path: "\(name).png")
+    try! png.write(to: url)
+    print("\(url.lastPathComponent)  1600×900")
+}
+
+shootPoster("poster-dark", .dark)
+shootPoster("poster-light", .light)
