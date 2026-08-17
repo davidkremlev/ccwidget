@@ -116,11 +116,17 @@ class StatusModel: ObservableObject {
         }
     }
 
-    /// Turns background updates on or off, and says what happened.
+    /// Turns background updates on or off.
     ///
-    /// The notice matters more here than elsewhere: `register()` can succeed and
-    /// still leave the item waiting for the person in System Settings, which
-    /// looks from inside the app exactly like nothing having happened.
+    /// **Silent when it works, and that is the point.** It used to put the new
+    /// state into `notice`, which printed the same sentence twice on one screen:
+    /// once under the switch, where the state belongs, and once at the foot of
+    /// the window. Seen in a screenshot the owner sent while turning it on — the
+    /// kind of thing no check looks for and every reader does.
+    ///
+    /// The notice is for outcomes the line beside the switch cannot show, and
+    /// there is exactly one: the framework refusing. Approval is not one of
+    /// them — the line says it is waiting and a button beside it goes there.
     func setBackgroundUpdates(_ wanted: Bool) {
         do {
             if wanted {
@@ -128,7 +134,7 @@ class StatusModel: ObservableObject {
             } else {
                 try loginItem.disable()
             }
-            notice = loginItem.state.detail()
+            notice = nil
         } catch {
             notice = error.localizedDescription
         }
@@ -187,8 +193,12 @@ class StatusModel: ObservableObject {
 final class FixedStatusModel: StatusModel {
     init(snapshot: Snapshot?, integrity: Installer.Integrity,
          containerExists: Bool = true, statusLineIsOurs: Bool = true,
-         watcherSummary: String = "running · 3 reloads · last 14:02") {
-        super.init()
+         watcherSummary: String = "running · 3 reloads · last 14:02",
+         loginItem: LoginItem = LoginItem(read: { .notRegistered },
+                                          enable: {}, disable: {}),
+         notice: String? = nil) {
+        super.init(loginItem: loginItem)
+        self.notice = notice
         self.snapshot = snapshot
         self.diagnostics = snapshot?.diagnostics ?? []
         self.integrity = integrity

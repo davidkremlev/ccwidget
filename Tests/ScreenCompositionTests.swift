@@ -145,6 +145,66 @@ struct ScreenCompositionTests {
     private static let states: [WindowState] =
         [.needsWidget, .needsSetup, .waiting, .working, .outdated, .abandoned]
 
+    /// Bands that are the same picture as another band. Empty is the answer a
+    /// window should give.
+    private func repeatedBands(_ view: some View, locale: String = "en_US_POSIX") -> [String] {
+        guard let px = reader(view, width: Self.windowWidth, locale: locale) else { return [] }
+        var seen = Set<String>()
+        var repeats: [String] = []
+        for band in px.bands(px.inkOnWhite) {
+            // Bands under three pixels tall are rules and separators, and two
+            // dividers looking alike is not the window repeating itself.
+            guard band.count >= 3 else { continue }
+            let print = px.fingerprint(of: band, px.inkOnWhite)
+            if !seen.insert(print).inserted { repeats.append("\(band.lowerBound)-\(band.upperBound)") }
+        }
+        return repeats
+    }
+
+    /// The window must not say the same thing twice.
+    ///
+    /// It did, and nothing caught it: turning background updates on put the new
+    /// state into the notice line, so the same sentence appeared under the switch
+    /// and again at the foot of Details. It took a screenshot from the owner — the
+    /// kind of defect every reader sees and no check was looking for.
+    ///
+    /// Two identical sentences render as identical rows of ink at the same
+    /// offset, which makes this measurable rather than a matter of noticing.
+    /// Bands under three pixels tall are skipped: those are rules and
+    /// separators, and two dividers looking alike is not the window repeating
+    /// itself.
+    @Test("The window never says the same thing twice",
+          arguments: [WindowState.needsWidget, .needsSetup, .waiting,
+                      .working, .outdated, .abandoned])
+    func theWindowNeverRepeatsItself(state: WindowState) {
+        #expect(repeatedBands(window(state)).isEmpty,
+                "\(state) draws the same band twice: \(repeatedBands(window(state)))")
+    }
+
+    @Test("Nor with Details open, where most of its sentences are")
+    func theWindowNeverRepeatsItselfWithDetailsOpen() {
+        let on = LoginItem(read: { .enabled }, enable: {}, disable: {})
+        let view = StatusView(model: FixedStatusModel(snapshot: snapshot(),
+                                                     integrity: .matches,
+                                                     loginItem: on, notice: nil),
+                              expanded: true)
+        #expect(repeatedBands(view).isEmpty, "\(repeatedBands(view))")
+    }
+
+    /// And the instrument can fail, which is the only reason to trust it when it
+    /// passes. This is the defect as it shipped: the switch on, and the notice
+    /// repeating the line beside it.
+    @Test("The instrument notices a repeated line")
+    func theInstrumentNoticesARepeatedLine() {
+        let on = LoginItem(read: { .enabled }, enable: {}, disable: {})
+        let view = StatusView(model: FixedStatusModel(
+            snapshot: snapshot(), integrity: .matches, loginItem: on,
+            notice: LoginItem.State.on.detail(locale: Locale(identifier: "en_US_POSIX"))),
+                              expanded: true)
+        #expect(repeatedBands(view).count == 1,
+                "the duplication that shipped is invisible to this: \(repeatedBands(view))")
+    }
+
     // MARK: The window
 
     /// Six states, six drawings. `WindowState` is covered as arithmetic and

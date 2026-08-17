@@ -69,6 +69,20 @@ struct PixelReader {
         return out
     }
 
+    /// A fingerprint of one band's pixels, for comparing bands with each other.
+    ///
+    /// Two identical sentences on one screen render as identical rows of ink at
+    /// the same offset, so they come out with the same fingerprint. That is what
+    /// makes "the window says the same thing twice" a measurable property rather
+    /// than something a reader has to notice.
+    func fingerprint(of band: Range<Int>, _ isInk: (Int, Int) -> Bool) -> String {
+        var hasher = Hasher()
+        for y in band {
+            for x in 0..<width { hasher.combine(isInk(x, y)) }
+        }
+        return "\(band.count):\(hasher.finalize())"
+    }
+
     func inkShare(_ isInk: (Int, Int) -> Bool) -> Double {
         var ink = 0
         for y in 0..<height {

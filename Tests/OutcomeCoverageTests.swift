@@ -91,8 +91,12 @@ struct OutcomeCoverageTests {
         #expect(calls.enabled == 1 && calls.disabled == 0)
         #expect(model.loginItem.state.isOn, "and the switch reads as on")
         #expect(model.loginItem.state == .on)
-        #expect(model.notice?.contains("within a minute") == true,
-                "the window says what happened: \(model.notice ?? "nothing")")
+        #expect(model.notice == nil,
+                """
+                nothing to announce: the line beside the switch already says the \
+                state, and saying it again at the foot of the window printed the \
+                same sentence twice — \(model.notice ?? "nil")
+                """)
 
         model.setBackgroundUpdates(false)
         #expect(calls.enabled == 1 && calls.disabled == 1)
@@ -113,8 +117,8 @@ struct OutcomeCoverageTests {
         model.setBackgroundUpdates(true)
         #expect(model.loginItem.state == .waitingForApproval)
         #expect(model.loginItem.state.needsSettings, "and the window offers the way there")
-        #expect(model.notice?.contains("System Settings") == true,
-                "the notice sends them to Settings: \(model.notice ?? "nothing")")
+        #expect(model.notice == nil,
+                "the line and the button say it; a third copy at the foot of the window does not")
     }
 
     /// A failure from `SMAppService` reaches the person rather than the log.
