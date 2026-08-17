@@ -439,3 +439,162 @@ struct WatcherTests {
         #expect(spy.reloads == afterFirst, "it reloaded after being stopped")
     }
 }
+
+/// What the log says about a reload, which is the only place a maintainer can
+/// find out what the tile drew an hour ago.
+///
+/// Written after a question no log could answer: the owner closed one of two
+/// editor windows, the five-hour row read "closed", and deciding whether one
+/// caused the other needed to know whether that snapshot's window had already
+/// expired. It had — the period reset at 18:30 and the row was right — but the
+/// order of events had to be reconstructed from timestamps in Claude Code's own
+/// prompt history, because `widget reload #22 (snapshot changed)` says nothing
+/// about the snapshot.
+@Suite("What a reload writes down")
+struct ReloadDetailTests {
+
+    private func snapshot(fiveHour: LimitWindow?, week: LimitWindow?,
+                          context: Int? = 40,
+                          capturedAt: Date = Date(timeIntervalSince1970: 1_000_000)) -> Snapshot {
+        Snapshot(
+            schemaVersion: 1, capturedAt: capturedAt, sessionId: "abcd1234",
+            claudeCodeVersion: "2.1.220", model: nil, project: nil,
+            limits: Limits(fiveHour: fiveHour, sevenDay: week),
+            context: context.map { ContextInfo(usedPercentage: $0, totalInputTokens: nil,
+                                               windowSize: nil, cacheHitRatio: nil) },
+            cost: nil
+        )
+    }
+
+    private let now = Date(timeIntervalSince1970: 1_000_000)
+    private func open(_ percent: Int) -> LimitWindow {
+        LimitWindow(usedPercentage: percent, resetsAt: now.addingTimeInterval(60))
+    }
+    private func expired(_ percent: Int) -> LimitWindow {
+        LimitWindow(usedPercentage: percent, resetsAt: now.addingTimeInterval(-1))
+    }
+
+    private func detail(from previous: Snapshot?, to current: Snapshot) -> String {
+        SnapshotWatcher.reloadDetail(
+            from: previous.map(SnapshotWatcher.Signature.init(of:)),
+            to: SnapshotWatcher.Signature(of: current),
+            snapshot: current, at: now)
+    }
+
+    @Test("The first reload says so, rather than pretending nothing moved")
+    func theFirstOneSaysFirst() {
+        let s = snapshot(fiveHour: open(10), week: open(5))
+        #expect(detail(from: nil, to: s) == "first snapshot · five-hour open · week open")
+    }
+
+    /// The case the question was about: an expired window is named as expired,
+    /// so a reader an hour later knows the row said so because the period had
+    /// ended and not because of anything they did.
+    @Test("An expired window is named expired")
+    func expiredWindowIsNamed() {
+        let s = snapshot(fiveHour: expired(10), week: open(5))
+        #expect(detail(from: nil, to: s) == "first snapshot · five-hour expired · week open")
+    }
+
+    @Test("A window that never arrived is named absent, which is not the same thing")
+    func absentWindowIsNamed() {
+        let s = snapshot(fiveHour: nil, week: nil)
+        #expect(detail(from: nil, to: s) == "first snapshot · five-hour absent · week absent")
+    }
+
+    @Test("Each part that moves is named, in the order the tile draws them")
+    func everyPartIsNamed() {
+        let before = snapshot(fiveHour: open(10), week: open(5), context: 40)
+        let after = snapshot(fiveHour: open(11), week: open(6), context: 41,
+                             capturedAt: now.addingTimeInterval(30))
+        #expect(detail(from: before, to: after)
+                == "moved 5h,7d,context,moment · five-hour open · week open")
+    }
+
+    @Test("Only what moved is named")
+    func onlyWhatMovedIsNamed() {
+        let before = snapshot(fiveHour: open(10), week: open(5), context: 40)
+        let after = snapshot(fiveHour: open(10), week: open(5), context: 41)
+        #expect(detail(from: before, to: after) == "moved context · five-hour open · week open")
+    }
+
+    /// A reload with nothing moved is not a contradiction: crossing a freshness
+    /// threshold reloads the tile because it draws itself dimmer, and the log
+    /// has to be able to say that the numbers stood still.
+    @Test("Standing still is a thing the log can say")
+    func nothingMovedIsSayable() {
+        let s = snapshot(fiveHour: open(10), week: open(5))
+        #expect(detail(from: s, to: s) == "moved nothing · five-hour open · week open")
+    }
+
+    /// A field going missing is movement. It was, briefly, invisible: a
+    /// signature built by joining descriptions turned both `nil` and a real
+    /// value into text, and the placeholder for absence was a string like any
+    /// other, so this worked by luck rather than by construction.
+    @Test("A percentage disappearing counts as movement")
+    func disappearanceIsMovement() {
+        let before = snapshot(fiveHour: open(10), week: open(5), context: 40)
+        let after = snapshot(fiveHour: open(10), week: open(5), context: nil)
+        #expect(detail(from: before, to: after) == "moved context · five-hour open · week open")
+    }
+}
+
+/// A reading that goes backwards, which the log now names.
+///
+/// Measured on this machine's own history: 522 rows, 13 steps backwards inside
+/// one weekly window, the largest 27 % → 24 % six minutes apart. Consumption
+/// cannot fall before a reset, so those rows carry a reading older than the one
+/// before them — and until now nothing said so.
+@Suite("An older reading is named")
+struct OlderReadingTests {
+
+    private let reset = Date(timeIntervalSince1970: 2_000_000)
+    private func window(_ percent: Int, resetsAt: Date? = nil) -> LimitWindow {
+        LimitWindow(usedPercentage: percent, resetsAt: resetsAt ?? reset)
+    }
+    private func limits(_ fiveHour: LimitWindow?, _ week: LimitWindow?) -> Limits {
+        Limits(fiveHour: fiveHour, sevenDay: week)
+    }
+
+    @Test("A percentage that fell inside one window is named")
+    func fallInsideOneWindowIsNamed() {
+        let before = limits(window(30), window(27))
+        let after = limits(window(30), window(24))
+        #expect(SnapshotWatcher.olderReadings(previous: before, current: after) == ["7d"])
+    }
+
+    @Test("Both windows can go back at once")
+    func bothCanGoBack() {
+        #expect(SnapshotWatcher.olderReadings(previous: limits(window(30), window(27)),
+                                              current: limits(window(29), window(24)))
+                == ["5h", "7d"])
+    }
+
+    @Test("Growing is not an older reading")
+    func growthIsNotNamed() {
+        #expect(SnapshotWatcher.olderReadings(previous: limits(window(30), window(27)),
+                                              current: limits(window(31), window(28))).isEmpty)
+    }
+
+    /// The case that would make this cry wolf every five hours. After a reset
+    /// the percentage is supposed to fall, which is why the comparison is per
+    /// window rather than per number.
+    @Test("A reset is not an older reading")
+    func resetIsNotNamed() {
+        let before = limits(window(90), window(27))
+        let after = limits(window(0, resetsAt: reset.addingTimeInterval(18_000)), window(27))
+        #expect(SnapshotWatcher.olderReadings(previous: before, current: after).isEmpty)
+    }
+
+    @Test("With nothing to compare against, nothing is claimed")
+    func firstSnapshotClaimsNothing() {
+        #expect(SnapshotWatcher.olderReadings(previous: nil,
+                                              current: limits(window(30), window(27))).isEmpty)
+    }
+
+    @Test("A window that arrives or disappears is not an older reading")
+    func appearanceIsNotNamed() {
+        #expect(SnapshotWatcher.olderReadings(previous: limits(nil, window(27)),
+                                              current: limits(window(30), nil)).isEmpty)
+    }
+}

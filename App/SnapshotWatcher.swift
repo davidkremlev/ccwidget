@@ -87,7 +87,10 @@ final class SnapshotWatcher: ObservableObject {
     /// back for. See `handleChange`.
     private var reloadIsOwed = false
     private var tickTimer: Timer?
-    private var lastSignature: String?
+    private var lastSignature: Signature?
+    /// The windows the last reload drew, kept only so that a reading which goes
+    /// backwards can be named. See `olderReadings`.
+    private var lastLimits: Limits?
 
     init(
         store: SnapshotStore = .default(),
@@ -222,13 +225,108 @@ final class SnapshotWatcher: ObservableObject {
     /// "2 minutes ago". A message had been sent, the context had grown by a
     /// thousand tokens and stayed on 76 %, so not one of the three percentages
     /// moved and nothing asked the widget to look again.
-    private func signature(of snapshot: Snapshot) -> String {
-        [
-            snapshot.limits.fiveHour?.usedPercentage.description ?? "-",
-            snapshot.limits.sevenDay?.usedPercentage.description ?? "-",
-            snapshot.context?.usedPercentage?.description ?? "-",
-            snapshot.capturedAt.timeIntervalSince1970.description,
-        ].joined(separator: "|")
+    ///
+    /// A type rather than the joined string it used to be. The string answered
+    /// "is this different" and nothing else, so when the log needed to say
+    /// *what* had changed the only way to get it was to split the string back
+    /// apart and hope the pieces still lined up with their names. A value that
+    /// can be asked a question does not need parsing back.
+    struct Signature: Equatable {
+        var fiveHour: Int?
+        var sevenDay: Int?
+        var context: Int?
+        var capturedAt: Date
+
+        init(of snapshot: Snapshot) {
+            fiveHour = snapshot.limits.fiveHour?.usedPercentage
+            sevenDay = snapshot.limits.sevenDay?.usedPercentage
+            context = snapshot.context?.usedPercentage
+            capturedAt = snapshot.capturedAt
+        }
+
+        /// What moved, named in the order the tile draws it.
+        ///
+        /// "nothing" is a real answer, not a placeholder: a reload also happens
+        /// when freshness crosses a threshold, and then the log should say the
+        /// numbers stood still rather than leave the reader to assume they did
+        /// not.
+        func changes(from previous: Signature) -> [String] {
+            var moved: [String] = []
+            if fiveHour != previous.fiveHour { moved.append("5h") }
+            if sevenDay != previous.sevenDay { moved.append("7d") }
+            if context != previous.context { moved.append("context") }
+            if capturedAt != previous.capturedAt { moved.append("moment") }
+            return moved
+        }
+    }
+
+    /// Which windows came back with a *lower* percentage than the one already
+    /// drawn, inside the same window.
+    ///
+    /// Consumption cannot go down before a reset, so this can only mean the
+    /// snapshot carries an older reading than the one before it — the limits
+    /// arrive with a model's reply and sit in the session until the next one, so
+    /// whichever session renders a status line writes the reading *it* last saw,
+    /// which need not be the newest one. A fresh `capturedAt` is no promise of
+    /// fresh limits.
+    ///
+    /// **Measured, and this is why it is here.** 522 rows of this machine's own
+    /// history hold 13 steps backwards inside one weekly window, the largest
+    /// 27 % → 24 % six minutes later on 7 August. Not rounding: `used_percentage`
+    /// can be fractional, but consistent rounding cannot lose three points.
+    ///
+    /// Nothing is discarded on the strength of it. The forecast fits a weighted
+    /// regression and gates on how well the line describes the points, so an
+    /// older reading costs confidence rather than producing a confident wrong
+    /// answer — section 7. What it must not do is pass unmentioned.
+    ///
+    /// A different `resetsAt` is not this: after a reset the percentage is
+    /// *supposed* to fall, which is why the comparison is per window and not
+    /// per number.
+    nonisolated static func olderReadings(previous: Limits?, current: Limits) -> [String] {
+        func wentBack(_ was: LimitWindow?, _ now: LimitWindow?) -> Bool {
+            guard let was, let now, was.resetsAt == now.resetsAt else { return false }
+            return now.usedPercentage < was.usedPercentage
+        }
+        guard let previous else { return [] }
+        var names: [String] = []
+        if wentBack(previous.fiveHour, current.fiveHour) { names.append("5h") }
+        if wentBack(previous.sevenDay, current.sevenDay) { names.append("7d") }
+        return names
+    }
+
+    /// What the log says about a reload besides the fact that one happened.
+    ///
+    /// It used to say the count and the reason, and on 17 August the question
+    /// was whether the five-hour window was already expired in the snapshot the
+    /// tile had at 18:31 — the owner had closed one of two editor windows and
+    /// the row read as being about that. No log answered it, and the order of
+    /// events had to be reconstructed from timestamps in Claude Code's own
+    /// prompt history. What the tile drew belongs in the log; `ccwidget-replay`
+    /// and this line are the same kind of surface as the screen.
+    ///
+    /// The numbers stay out of it. Percentages are raw field values, this
+    /// project keeps those `.private`, and a `.private` value read back without
+    /// a logging profile is redacted — so a line built from them would answer
+    /// nothing. What is public is what the row *draws*: which of the four parts
+    /// moved, and whether each window had expired by then.
+    nonisolated static func reloadDetail(from previous: Signature?, to current: Signature,
+                                         snapshot: Snapshot, at now: Date) -> String {
+        func standing(_ name: String, _ window: LimitWindow?) -> String {
+            guard let window else { return "\(name) absent" }
+            return window.hasClosed(at: now) ? "\(name) expired" : "\(name) open"
+        }
+
+        let movement: String
+        if let previous {
+            let moved = current.changes(from: previous)
+            movement = "moved \(moved.isEmpty ? "nothing" : moved.joined(separator: ","))"
+        } else {
+            movement = "first snapshot"
+        }
+        return [movement,
+                standing("five-hour", snapshot.limits.fiveHour),
+                standing("week", snapshot.limits.sevenDay)].joined(separator: " · ")
     }
 
     /// The single point where the snapshot is read. Reachable from the file
@@ -248,7 +346,7 @@ final class SnapshotWatcher: ObservableObject {
         }
 
         guard let snapshot else { return }
-        let current = signature(of: snapshot)
+        let current = Signature(of: snapshot)
 
         if !force {
             // Either reason is enough. The signature is the obvious one; the
@@ -285,12 +383,22 @@ final class SnapshotWatcher: ObservableObject {
             }
         }
 
+        var detail = Self.reloadDetail(from: lastSignature, to: current,
+                                       snapshot: snapshot, at: state.now)
+        let older = Self.olderReadings(previous: lastLimits, current: snapshot.limits)
+        if !older.isEmpty {
+            detail += " · older reading: \(older.joined(separator: ","))"
+        }
         lastSignature = current
+        lastLimits = snapshot.limits
         reloadWidgets()
         state.lastReload = state.now
         state.reloadCount += 1
         ccwidgetStoreLog.notice(
-            "widget reload #\(self.state.reloadCount, privacy: .public) (\(reason, privacy: .public))"
+            """
+            widget reload #\(self.state.reloadCount, privacy: .public) \
+            (\(reason, privacy: .public)) \(detail, privacy: .public)
+            """
         )
     }
 
@@ -309,7 +417,7 @@ final class SnapshotWatcher: ObservableObject {
         schedule(seconds) { [weak self] in
             guard let self, self.reloadIsOwed, self.state.isRunning else { return }
             self.reloadIsOwed = false
-            self.handleChange(reason: "budget window closed", force: false)
+            self.handleChange(reason: "reload budget elapsed", force: false)
         }
     }
 
