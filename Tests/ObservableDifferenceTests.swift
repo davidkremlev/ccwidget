@@ -232,10 +232,10 @@ struct ObservableDifferenceTests {
     /// send them nowhere.
     @Test("Every background-updates state says something different")
     func loginItemStatesDiffer() {
-        let cases: [LoginItem.State] = [.off, .on, .waitingForApproval, .unavailable]
+        let cases: [LoginItem.State] = [.off, .on, .waitingForApproval]
         allDistinct("LoginItem.State", cases) { state in
             Fingerprint(parts: [state.detail(locale: Self.locale),
-                                "\(state.canBeChanged)",
+                                "\(state.isOn)",
                                 "\(state.needsSettings)"])
         }
     }

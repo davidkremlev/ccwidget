@@ -3459,41 +3459,6 @@
         }
       }
     },
-    "unavailable — macOS cannot find the background job": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "nicht verfügbar — macOS findet den Hintergrunddienst nicht"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "no disponible: macOS no encuentra la tarea en segundo plano"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "利用できません — macOS がバックグラウンドジョブを見つけられません"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "недоступно — macOS не находит фоновую задачу"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不可用 — macOS 找不到后台任务"
-          }
-        }
-      }
-    },
     "waiting for your approval in System Settings": {
       "extractionState": "manual",
       "localizations": {

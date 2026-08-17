@@ -160,6 +160,13 @@ analogy instead.
   aside is one observation on one machine.
 - **`chronod` holding a stale extension.** Apple does not document the daemon
   at all. Everything in `SPEC` 5.1 about it is measured here.
+- **`SMAppService.mainApp.status` reports `notFound` before the first
+  registration.** Apple's page for that case says "an error occurred and the
+  framework couldn't find this service", and a probe inside the bundle says
+  `before: notFound` → `register: succeeded` → `after: enabled`. Building on the
+  documented meaning hid the switch in the state every user starts in. Measured
+  on macOS 26.5; the documentation is not wrong about anything else here, and
+  `openSystemSettingsLoginItems()` on the same page replaced a hand-written URL.
 - **A process that is not the app cannot reload the widget.** `WidgetCenter`
   refuses an auxiliary executable shipped inside the app bundle —
   `ChronoCoreErrorDomain` code 27 from `getCurrentConfigurations`, and a

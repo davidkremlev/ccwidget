@@ -100,6 +100,17 @@ targets:
       # person may never have cloned.
       - path: Scripts/uninstall.sh
         buildPhase: resources
+    # Xcode leaves Contents/Library behind after a copy-files phase that once
+    # pointed there and no longer does. An empty directory inside a shipped
+    # bundle is not a crime, but it is a leftover that suggests a helper this app
+    # does not have — and the agent it was for turned out to be impossible.
+    postBuildScripts:
+      - name: Remove the empty Contents/Library
+        script: |
+          LIB="$TARGET_BUILD_DIR/$WRAPPER_NAME/Contents/Library"
+          [ -d "$LIB" ] && find "$LIB" -type d -empty -delete || true
+          true
+        basedOnDependencyAnalysis: false
     dependencies:
       - target: CCWidgetExtension
         embed: true

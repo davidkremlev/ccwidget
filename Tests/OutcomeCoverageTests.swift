@@ -24,25 +24,34 @@ struct OutcomeCoverageTests {
     /// launch notification's `launchIsDefaultUserInfoKey` — and the case that
     /// matters is the missing key: nothing said about the launch has to mean a
     /// person did it, or an ordinary double-click would start a hidden app.
-    @Test("Only a launch the system calls not-default stays out of the way",
-          arguments: [("a person opened it", true, false),
-                      ("something else started it", false, true)])
+    @Test("It stays out of the way only when it runs at login and nobody asked",
+          arguments: [("a person opened it, item on", true, true, false),
+                      ("something started it, item on", false, true, true),
+                      ("a person opened it, item off", true, false, false),
+                      ("something started it, item off", false, false, false)])
     @MainActor
-    func onlyANonDefaultLaunchHides(name: String, isDefault: Bool, hides: Bool) {
+    func staysOutOfTheWayOnlyWhenBoth(name: String, isDefault: Bool,
+                                      runsAtLogin: Bool, hides: Bool) {
         let userInfo: [AnyHashable: Any] = [LaunchKind.key: isDefault]
-        #expect(LaunchKind.staysOutOfTheWay(userInfo: userInfo, key: LaunchKind.key) == hides,
-                "\(name)")
+        #expect(LaunchKind.staysOutOfTheWay(userInfo: userInfo, key: LaunchKind.key,
+                                            runsAtLogin: runsAtLogin) == hides, "\(name)")
     }
 
-    /// The case that would have been got wrong: a missing key must mean a
-    /// person, or an ordinary double-click starts a hidden app.
+    /// Two cases that would each have hidden a window somebody asked for. The
+    /// missing key: absence has to mean a person, or an ordinary double-click
+    /// starts a hidden app. And not running at login: `open` from a terminal is
+    /// reported as not-default — measured — so without this condition the app
+    /// hid itself on a launch that was plainly a person's doing.
     @MainActor
-    @Test("Nothing said about the launch means a person did it")
-    func nothingSaidMeansAPerson() {
-        #expect(!LaunchKind.staysOutOfTheWay(userInfo: nil, key: LaunchKind.key))
-        #expect(!LaunchKind.staysOutOfTheWay(userInfo: [:], key: LaunchKind.key))
-        #expect(!LaunchKind.staysOutOfTheWay(userInfo: ["something else": 1],
-                                             key: LaunchKind.key))
+    @Test("Neither a silent notification nor a terminal launch hides a window")
+    func neitherSilenceNorATerminalLaunchHides() {
+        #expect(!LaunchKind.staysOutOfTheWay(userInfo: nil, key: LaunchKind.key, runsAtLogin: true))
+        #expect(!LaunchKind.staysOutOfTheWay(userInfo: [:], key: LaunchKind.key, runsAtLogin: true))
+        #expect(!LaunchKind.staysOutOfTheWay(userInfo: ["other": 1], key: LaunchKind.key,
+                                             runsAtLogin: true))
+        #expect(!LaunchKind.staysOutOfTheWay(userInfo: [LaunchKind.key: false],
+                                             key: LaunchKind.key, runsAtLogin: false),
+                "not registered to run at login, so nothing to hide for")
     }
 
     // MARK: LoginItem.State — every one produced from what SMAppService says
@@ -51,11 +60,16 @@ struct OutcomeCoverageTests {
     /// looks obviously right and is wrong in one place: `requiresApproval` means
     /// registered-and-waiting, not failed, and treating it as off would make the
     /// switch flick back by itself.
+    /// `notFound` is the one that matters, and the one that was wrong. It is
+    /// what `mainApp` reports before it has ever been registered — the state
+    /// every user starts in — and it was mapped to "unavailable", which hid the
+    /// switch and made the feature unreachable for everybody. Measured against
+    /// the framework: notFound, register, enabled.
     @Test("Every SMAppService status becomes the state it means",
           arguments: [(SMAppService.Status.notRegistered, LoginItem.State.off),
                       (.enabled, .on),
                       (.requiresApproval, .waitingForApproval),
-                      (.notFound, .unavailable)])
+                      (.notFound, .off)])
     func everyStatusMapsToItsState(status: SMAppService.Status, expected: LoginItem.State) {
         let item = LoginItem(read: { status }, enable: {}, disable: {})
         #expect(item.state == expected)
@@ -75,6 +89,7 @@ struct OutcomeCoverageTests {
 
         model.setBackgroundUpdates(true)
         #expect(calls.enabled == 1 && calls.disabled == 0)
+        #expect(model.loginItem.state.isOn, "and the switch reads as on")
         #expect(model.loginItem.state == .on)
         #expect(model.notice?.contains("within a minute") == true,
                 "the window says what happened: \(model.notice ?? "nothing")")

@@ -20,7 +20,22 @@ enum LaunchKind {
     /// Absent means a person did it: the key is only there when the system has
     /// something to say about the launch, and a missing key must not turn an
     /// ordinary launch into a hidden one.
-    static func staysOutOfTheWay(userInfo: [AnyHashable: Any]?, key: AnyHashable) -> Bool {
+    /// **Both conditions, and the second one was missing.** A launch nobody asked
+    /// for is not enough on its own: `open /Applications/CCWidget.app` from a
+    /// terminal is reported as not-default too — measured, the app hid itself on
+    /// a launch that was very much a person's doing. So the app only stays out of
+    /// the way when it is *also* registered to run at login, which is the only
+    /// situation this exists for.
+    ///
+    /// What remains, and it is a small thing: a shell `open` with background
+    /// updates on starts the app hidden. The Dock icon is there and clicking it
+    /// brings the window. Whether a double-click in Finder counts as default is
+    /// **not measured** — nothing here can simulate one — so if it does not, that
+    /// is the same mild outcome.
+    static func staysOutOfTheWay(userInfo: [AnyHashable: Any]?,
+                                 key: AnyHashable,
+                                 runsAtLogin: Bool) -> Bool {
+        guard runsAtLogin else { return false }
         guard let value = userInfo?[key] as? Bool else { return false }
         return !value
     }
@@ -28,8 +43,17 @@ enum LaunchKind {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Said at `notice` rather than `info`: `.info` lives in a ring buffer the
+        // whole machine shares and is gone within minutes, which this project
+        // has already been caught by twice. What the window says about the
+        // background item has to be answerable from a log an hour later.
+        let item = LoginItem.live().state
+        ccwidgetStoreLog.notice(
+            "login item: \(item.detail(locale: Locale(identifier: "en_US_POSIX")), privacy: .public)"
+        )
         guard LaunchKind.staysOutOfTheWay(userInfo: notification.userInfo,
-                                          key: LaunchKind.key) else { return }
+                                          key: LaunchKind.key,
+                                          runsAtLogin: item.isOn) else { return }
         // Hidden rather than closed: the window goes on existing, so clicking
         // the Dock icon brings it back with nothing to reopen. Closing it would
         // mean teaching the app how to make a second one, which is a way to

@@ -327,14 +327,12 @@ struct StatusView: View {
                 Text("Background updates")
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 8)
-                if state.canBeChanged {
-                    Toggle("", isOn: Binding(
-                        get: { state == .on || state == .waitingForApproval },
-                        set: { model.setBackgroundUpdates($0) }
-                    ))
-                    .labelsHidden()
-                    .controlSize(.mini)
-                }
+                Toggle("", isOn: Binding(
+                    get: { state.isOn },
+                    set: { model.setBackgroundUpdates($0) }
+                ))
+                .labelsHidden()
+                .controlSize(.mini)
             }
             Text(verbatim: state.detail(locale: locale))
                 .font(.caption)
@@ -342,7 +340,7 @@ struct StatusView: View {
                 .fixedSize(horizontal: false, vertical: true)
             if state.needsSettings {
                 Button("Open Login Items in System Settings") {
-                    NSWorkspace.shared.open(LoginItem.settingsURL)
+                    model.loginItem.openSettings()
                 }
                 .controlSize(.small)
             }

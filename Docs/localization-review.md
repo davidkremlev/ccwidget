@@ -1271,16 +1271,6 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 该小组件读取 Claude Code 的状态行，因此需要安装终端版并至少使用一次。 |
 
 
-**`unavailable — macOS cannot find the background job`**
-
-| | |
-|---|---|
-| German | nicht verfügbar — macOS findet den Hintergrunddienst nicht |
-| Spanish | no disponible: macOS no encuentra la tarea en segundo plano |
-| Japanese | 利用できません — macOS がバックグラウンドジョブを見つけられません |
-| Simplified Chinese | 不可用 — macOS 找不到后台任务 |
-
-
 **`Updated at %@`** — Quiet line when there is no weekly window: the clock time of the snapshot
 
 | | |
@@ -1403,4 +1393,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-133 strings in total.
+132 strings in total.
