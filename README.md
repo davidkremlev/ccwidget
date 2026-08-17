@@ -381,12 +381,24 @@ Four things worth knowing about how that is done:
 The command being chained is shown to you on the setup screen before you press
 anything.
 
-**How fast the widget updates depends on whether the app window is open.**
-With it open, a watcher notices new data and refreshes the widget within a
-minute. With it closed — the normal case after setup — nothing pushes updates,
-and WidgetKit comes back on its own roughly every half hour. The numbers are
-never wrong, only older than they could be, and the widget always says how old
-they are. A proper background agent is version 1.1.
+**How fast the widget updates depends on whether anything of ours is running.**
+The watcher inside the app notices a new snapshot and asks WidgetKit to redraw —
+rationed to once a minute, so the reload budget lasts. With nothing running,
+WidgetKit comes back on its own roughly every half hour. The numbers are never
+wrong, only older than they could be, and the widget always says how old they
+are.
+
+**Background updates** — the switch under *Details* in the window — registers the
+app as a login item so that watcher runs whether or not you have a window open.
+It is off until you turn it on: a login item runs on every session without being
+asked, which is yours to grant rather than ours to assume. Turning it on may send
+you to System Settings to confirm, and the window says so when it does.
+
+There is no separate helper doing this, and that is not for want of trying: a
+small executable inside the app bundle, registered as a launch agent, is refused
+by WidgetKit — `ChronoCoreErrorDomain` 27 — and a reload from it changes nothing.
+Measured, with a control. Only the app can reload its own widget, so background
+freshness is the app running in the background.
 
 **Everything happens on your machine.** There is no network code in this
 project: nothing is uploaded, no telemetry is collected, and no account is

@@ -166,6 +166,7 @@ targets:
       - path: App/StatusModel.swift
       - path: App/WindowState.swift
       - path: App/LoginItem.swift
+      - path: App/CCWidgetApp.swift
       # The polarity rule from section 8 — the bar and the number beside it
       # describe the same quantity — lives in these two and is checkable
       # without rendering anything.

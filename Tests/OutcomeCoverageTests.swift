@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import ServiceManagement
 import Testing
 
@@ -15,6 +16,34 @@ import Testing
 /// none of the results is unreachable.
 @Suite("Every enum case is produced")
 struct OutcomeCoverageTests {
+
+    // MARK: LaunchKind — whether a person opened the app
+
+    /// A login item that opened a window at every login would be the behaviour
+    /// this project complains about elsewhere. The signal is documented — the
+    /// launch notification's `launchIsDefaultUserInfoKey` — and the case that
+    /// matters is the missing key: nothing said about the launch has to mean a
+    /// person did it, or an ordinary double-click would start a hidden app.
+    @Test("Only a launch the system calls not-default stays out of the way",
+          arguments: [("a person opened it", true, false),
+                      ("something else started it", false, true)])
+    @MainActor
+    func onlyANonDefaultLaunchHides(name: String, isDefault: Bool, hides: Bool) {
+        let userInfo: [AnyHashable: Any] = [LaunchKind.key: isDefault]
+        #expect(LaunchKind.staysOutOfTheWay(userInfo: userInfo, key: LaunchKind.key) == hides,
+                "\(name)")
+    }
+
+    /// The case that would have been got wrong: a missing key must mean a
+    /// person, or an ordinary double-click starts a hidden app.
+    @MainActor
+    @Test("Nothing said about the launch means a person did it")
+    func nothingSaidMeansAPerson() {
+        #expect(!LaunchKind.staysOutOfTheWay(userInfo: nil, key: LaunchKind.key))
+        #expect(!LaunchKind.staysOutOfTheWay(userInfo: [:], key: LaunchKind.key))
+        #expect(!LaunchKind.staysOutOfTheWay(userInfo: ["something else": 1],
+                                             key: LaunchKind.key))
+    }
 
     // MARK: LoginItem.State — every one produced from what SMAppService says
 

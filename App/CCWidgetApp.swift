@@ -1,7 +1,48 @@
+import AppKit
 import SwiftUI
+
+/// Whether a launch was somebody opening the app, or something else starting it.
+///
+/// A login item that opens a window at every login is the behaviour this project
+/// would complain about in somebody else's app. The signal is documented:
+/// `NSApplication.launchIsDefaultUserInfoKey`, "a Boolean value that indicates
+/// if the app launch is a default launch" — `apple/appkit-launch-user-info-keys.md`
+/// in the reference store.
+///
+/// Separate from the delegate so that it can be checked. The delegate then does
+/// one thing with the answer.
+enum LaunchKind {
+    /// The key, read once on the main actor where AppKit keeps it, so the
+    /// decision itself needs no actor at all — and can therefore be checked
+    /// without one.
+    @MainActor static var key: AnyHashable { NSApplication.launchIsDefaultUserInfoKey }
+
+    /// Absent means a person did it: the key is only there when the system has
+    /// something to say about the launch, and a missing key must not turn an
+    /// ordinary launch into a hidden one.
+    static func staysOutOfTheWay(userInfo: [AnyHashable: Any]?, key: AnyHashable) -> Bool {
+        guard let value = userInfo?[key] as? Bool else { return false }
+        return !value
+    }
+}
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard LaunchKind.staysOutOfTheWay(userInfo: notification.userInfo,
+                                          key: LaunchKind.key) else { return }
+        // Hidden rather than closed: the window goes on existing, so clicking
+        // the Dock icon brings it back with nothing to reopen. Closing it would
+        // mean teaching the app how to make a second one, which is a way to
+        // spend an afternoon on a window nobody asked to see.
+        ccwidgetStoreLog.info("launched without being asked; staying hidden")
+        NSApp.hide(nil)
+    }
+}
 
 @main
 struct CCWidgetApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+
     /// One model for the whole app, started when the app starts rather than when
     /// a window appears.
     ///
