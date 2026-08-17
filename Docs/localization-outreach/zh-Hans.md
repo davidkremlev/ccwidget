@@ -20,7 +20,7 @@ read an English request first. Label it "help wanted" and pin it.
 中文目前用的是 `本周已用`，我认为是地道的，但也可能有别的地方不是。
 
 全部 112 条字符串都在
-[`Docs/localization-review.md`](../Docs/localization-review.md) 里，同时列出了
+[`Docs/localization-review.md`](https://github.com/davidkremlev/ccwidget/blob/main/Docs/localization-review.md) 里，同时列出了
 会影响措辞的背景：例如三条进度条都是「越多越糟」的方向，以及在 338 点宽的卡片
 上，标题超过 22 个字符左右就会被截断。
 

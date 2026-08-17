@@ -7,6 +7,16 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only, explicitly.
+#
+# In a public repository anybody can open a pull request, and `pull_request`
+# runs this workflow against their branch. The default token permissions are
+# whatever the account's settings say; naming them here means a fork's build
+# cannot write to this repository whatever those settings are. Nothing in this
+# workflow needs more — it builds, checks and uploads artifacts.
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

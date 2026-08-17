@@ -23,7 +23,7 @@ ejemplo que ya salió: la etiqueta de una fila decía `Semana usada`, que suena 
 dice `Consumo semanal`. Seguro que quedan más.
 
 Las 112 cadenas están en
-[`Docs/localization-review.md`](../Docs/localization-review.md), junto con el
+[`Docs/localization-review.md`](https://github.com/davidkremlev/ccwidget/blob/main/Docs/localization-review.md), junto con el
 contexto que condiciona la redacción: por ejemplo, que las tres barras crecen
 en la misma dirección, y que en una tarjeta de 338 puntos de ancho el texto se
 corta a partir de unos 22 caracteres.

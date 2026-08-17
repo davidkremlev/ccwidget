@@ -3,7 +3,9 @@ Ready to post as an issue once the repository exists. Title and body are in
 German on purpose: someone who reads German should not have to read an English
 request first. Label it "help wanted" and pin it.
 
-Replace nothing before posting except the link, if the paths move.
+The link is absolute on purpose: posted as an issue, a relative one
+resolves to nothing at all. It was relative until 17 August, and wrong in
+both places — the repository and the issue.
 -->
 
 **Titel:** Deutsche Übersetzung: Muttersprachler:innen gesucht
@@ -26,7 +28,7 @@ Woche bedeutet und nicht „so viel der Woche ist verbraucht“. Sie heißt jetz
 `Diese Woche verbraucht`. Von dieser Sorte gibt es mit Sicherheit mehr.
 
 Alle 112 Strings stehen in
-[`Docs/localization-review.md`](../Docs/localization-review.md), zusammen mit
+[`Docs/localization-review.md`](https://github.com/davidkremlev/ccwidget/blob/main/Docs/localization-review.md), zusammen mit
 dem Kontext, der die Wortwahl beeinflusst — zum Beispiel, dass alle drei
 Balken in dieselbe Richtung wachsen und dass in einer Kachel von 338 Punkten
 Breite nach etwa 22 Zeichen abgeschnitten wird.

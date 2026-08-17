@@ -22,7 +22,7 @@ English request first. Label it "help wanted" and pin it.
 `週の使用率` のほうが自然だと考えて直しました。同じような箇所はまだあるはずです。
 
 112 個すべての文字列は
-[`Docs/localization-review.md`](../Docs/localization-review.md) にあります。
+[`Docs/localization-review.md`](https://github.com/davidkremlev/ccwidget/blob/main/Docs/localization-review.md) にあります。
 表現に影響する前提も併記しています。たとえば3本のバーはいずれも「増えるほど
 悪い」方向にそろえていること、幅 338 ポイントのタイルでは 22 文字あたりから
 省略が始まることなどです。
