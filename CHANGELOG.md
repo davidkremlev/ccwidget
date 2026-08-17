@@ -135,6 +135,15 @@ would be claiming a state that already has a mark.
 
 ### Known gaps
 
+- **On more than one Mac the estimate reads low.** The limits are per account
+  and arrive correct everywhere; the history behind the estimate is per machine
+  and sees only that machine's work, so the rate is measured from a fraction of
+  the spending and the date lands later than the truth. Now stated in the README
+  where the estimate is described. Not fixed, and the three obvious fixes are
+  each worse than the warning — pooling histories would send data off the
+  machine, suppressing the estimate on one machine needs a signal the data does
+  not carry, and hiding it everywhere takes the feature from everybody.
+
 - **Code comments and SPEC.md are in Russian.** Comments are being translated;
   the specification follows later.
 - **Larger text has no effect anywhere in this app.** macOS offers no route to

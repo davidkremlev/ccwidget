@@ -77,6 +77,20 @@ answers instead of two:
 - **Nothing** — too few points, too short a span, or a line that does not
   describe the data. A wrong estimate is worse than none.
 
+> **If you use Claude Code on more than one Mac, the estimate is low.** The
+> limits belong to your account and arrive correct on every machine — Claude
+> Code sends them. The history behind the estimate does not: each machine keeps
+> its own, and sees only its own work. So the rate is measured from a fraction
+> of what you are actually spending, and the date it names is later than the
+> truth.
+>
+> Nothing detects this, and nothing here corrects for it. The three obvious
+> fixes are all worse than the warning: pooling the histories would mean data
+> leaving your machine, which this project does not do; showing the estimate
+> only on one machine needs a signal the data does not carry; and hiding it
+> would take the feature away from everybody to protect a few. If you work from
+> two Macs, read the estimate as a floor rather than a forecast.
+
 ## Trusting the numbers
 
 The status line format is undocumented, so the numbers deserve verification.
