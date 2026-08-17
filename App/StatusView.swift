@@ -14,7 +14,7 @@ import WidgetKit
 struct StatusView: View {
     /// The state source comes from outside — section 5.2. There is not one
     /// "what if this is a screenshot" branch inside the type.
-    @StateObject private var model: StatusModel
+    @ObservedObject private var model: StatusModel
     @State private var showsDetails: Bool
     @State private var showsRemoval = false
 
@@ -27,7 +27,7 @@ struct StatusView: View {
     @Environment(\.timeZone) private var timeZone
 
     init(model: StatusModel = StatusModel(), expanded: Bool = false) {
-        _model = StateObject(wrappedValue: model)
+        _model = ObservedObject(wrappedValue: model)
         _showsDetails = State(initialValue: expanded)
     }
 
@@ -55,8 +55,11 @@ struct StatusView: View {
         }
         .padding(20)
         .frame(width: 340)
-        .onAppear { model.start() }
-        .onDisappear { model.stop() }
+        // Neither started nor stopped here any more. The app owns the
+        // watcher's lifetime now, because a login item has to keep watching
+        // with no window in sight — and a window that stopped it on the way out
+        // would turn the background item into a process that does nothing.
+        .onAppear { model.refresh() }
         .confirmationDialog("Remove ccwidget?", isPresented: $showsRemoval, titleVisibility: .visible) {
             Button("Remove, keep history", role: .destructive) { model.uninstall(removingHistory: false) }
             Button("Remove and delete history", role: .destructive) { model.uninstall(removingHistory: true) }
@@ -309,10 +312,48 @@ struct StatusView: View {
 
     // MARK: Details
 
+    /// The switch that decides whether the tile is a minute behind or half an
+    /// hour behind.
+    ///
+    /// A line in Details rather than anything louder, deliberately: it is off
+    /// until somebody turns it on, and a widget nagging for permission to launch
+    /// itself at every login is the behaviour this project would complain about
+    /// in somebody else's app.
+    @ViewBuilder
+    private var backgroundUpdates: some View {
+        let state = model.loginItem.state
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Background updates")
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                if state.canBeChanged {
+                    Toggle("", isOn: Binding(
+                        get: { state == .on || state == .waitingForApproval },
+                        set: { model.setBackgroundUpdates($0) }
+                    ))
+                    .labelsHidden()
+                    .controlSize(.mini)
+                }
+            }
+            Text(verbatim: state.detail(locale: locale))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if state.needsSettings {
+                Button("Open Login Items in System Settings") {
+                    NSWorkspace.shared.open(LoginItem.settingsURL)
+                }
+                .controlSize(.small)
+            }
+        }
+    }
+
     private var details: some View {
         VStack(alignment: .leading, spacing: 6) {
             detailRow("Exporter", exporterDescription)
             detailRow("Watcher", model.watcherSummary)
+            backgroundUpdates
             if let snapshot = model.snapshot {
                 detailRow("Snapshot", snapshotDescription(snapshot))
                 detailRow("Claude Code", snapshot.claudeCodeVersion ?? "—")

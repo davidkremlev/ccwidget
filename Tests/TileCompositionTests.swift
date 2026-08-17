@@ -106,46 +106,21 @@ struct TileCompositionTests {
         return NSBitmapImageRep(cgImage: cg)
     }
 
-    private func bands(_ view: some View, size: CGSize, locale: String = "en_US_POSIX") -> [Range<Int>] {
-        guard let rep = render(view, size: size, locale: locale) else { return [] }
-
-        var inked: [Bool] = []
-        for y in 0..<rep.pixelsHigh {
-            var any = false
-            for x in 0..<rep.pixelsWide where !any {
-                if let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB),
-                   c.alphaComponent > 0.15 {
-                    any = true
-                }
-            }
-            inked.append(any)
-        }
-
-        var result: [Range<Int>] = []
-        var start: Int?
-        for (y, hasInk) in inked.enumerated() {
-            switch (hasInk, start) {
-            case (true, nil): start = y
-            case (false, let s?): result.append(s..<y); start = nil
-            default: break
-            }
-        }
-        if let s = start { result.append(s..<inked.count) }
-        return result
+    private func reader(_ view: some View, size: CGSize, locale: String) -> PixelReader? {
+        guard let rep = render(view, size: size, locale: locale) else { return nil }
+        return PixelReader(rep)
     }
 
-    /// How much of the tile is ink at all. The floor below which "it drew
-    /// something" stops being true.
-    private func inkShare(_ view: some View, size: CGSize, locale: String = "en_US_POSIX") -> Double {
-        guard let rep = render(view, size: size, locale: locale) else { return 0 }
-        var ink = 0
-        for y in 0..<rep.pixelsHigh {
-            for x in 0..<rep.pixelsWide {
-                if let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB),
-                   c.alphaComponent > 0.15 { ink += 1 }
-            }
-        }
-        return Double(ink) / Double(rep.pixelsWide * rep.pixelsHigh) * 100
+    private func bands(_ view: some View, size: CGSize,
+                       locale: String = "en_US_POSIX") -> [Range<Int>] {
+        guard let px = reader(view, size: size, locale: locale) else { return [] }
+        return px.bands(px.inkByAlpha)
+    }
+
+    private func inkShare(_ view: some View, size: CGSize,
+                          locale: String = "en_US_POSIX") -> Double {
+        guard let px = reader(view, size: size, locale: locale) else { return 0 }
+        return px.inkShare(px.inkByAlpha)
     }
 
     /// The longest horizontal run of ink inside each band.
@@ -154,19 +129,8 @@ struct TileCompositionTests {
     /// a bar makes one of tens. Measured band by band so the answer is "which
     /// rows have a bar", not "does this tile have a bar somewhere".
     private func rowRuns(_ view: some View, size: CGSize) -> [Int] {
-        guard let rep = render(view, size: size, locale: "en_US_POSIX") else { return [] }
-        return bands(view, size: size).map { band in
-            var widest = 0
-            for y in band {
-                var run = 0
-                for x in 0..<rep.pixelsWide {
-                    let ink = (rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB)?.alphaComponent ?? 0) > 0.15
-                    run = ink ? run + 1 : 0
-                    widest = max(widest, run)
-                }
-            }
-            return widest
-        }
+        guard let px = reader(view, size: size, locale: "en_US_POSIX") else { return [] }
+        return px.bands(px.inkByAlpha).map { px.longestRun(in: $0, px.inkByAlpha) }
     }
 
     // MARK: What each size is made of

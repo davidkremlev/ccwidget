@@ -531,6 +531,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 已配置了另一个状态行。 |
 
 
+**`Background updates`**
+
+| | |
+|---|---|
+| German | Aktualisierung im Hintergrund |
+| Spanish | Actualización en segundo plano |
+| Japanese | バックグラウンド更新 |
+| Simplified Chinese | 后台更新 |
+
+
 **`Cancel`**
 
 | | |
@@ -839,6 +849,36 @@ Seen after clicking the widget, and during setup.
 | Spanish | no instalado |
 | Japanese | 未インストール |
 | Simplified Chinese | 未安装 |
+
+
+**`off — the widget updates about every half hour`**
+
+| | |
+|---|---|
+| German | aus — das Widget aktualisiert sich etwa halbstündlich |
+| Spanish | desactivado: el widget se actualiza cada media hora aproximadamente |
+| Japanese | オフ — ウィジェットの更新は30分ほどおきです |
+| Simplified Chinese | 已关闭 — 小组件大约每半小时更新一次 |
+
+
+**`on — the widget updates within a minute`**
+
+| | |
+|---|---|
+| German | ein — das Widget aktualisiert sich innerhalb einer Minute |
+| Spanish | activado: el widget se actualiza en menos de un minuto |
+| Japanese | オン — ウィジェットは1分以内に更新されます |
+| Simplified Chinese | 已开启 — 小组件在一分钟内更新 |
+
+
+**`Open Login Items in System Settings`**
+
+| | |
+|---|---|
+| German | Anmeldeobjekte in den Systemeinstellungen öffnen |
+| Spanish | Abrir Ítems de inicio en Ajustes del Sistema |
+| Japanese | 「システム設定」でログイン項目を開く |
+| Simplified Chinese | 在“系统设置”中打开登录项 |
 
 
 **`Refresh`**
@@ -1231,6 +1271,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 该小组件读取 Claude Code 的状态行，因此需要安装终端版并至少使用一次。 |
 
 
+**`unavailable — macOS cannot find the background job`**
+
+| | |
+|---|---|
+| German | nicht verfügbar — macOS findet den Hintergrunddienst nicht |
+| Spanish | no disponible: macOS no encuentra la tarea en segundo plano |
+| Japanese | 利用できません — macOS がバックグラウンドジョブを見つけられません |
+| Simplified Chinese | 不可用 — macOS 找不到后台任务 |
+
+
 **`Updated at %@`** — Quiet line when there is no weekly window: the clock time of the snapshot
 
 | | |
@@ -1269,6 +1319,16 @@ Seen after clicking the widget, and during setup.
 | Spanish | Esperando datos de Claude Code. Envía cualquier mensaje en el terminal. |
 | Japanese | Claude Code からのデータを待っています。ターミナルで何かメッセージを送ってください。 |
 | Simplified Chinese | 正在等待 Claude Code 发送数据。在终端中发送任意消息即可。 |
+
+
+**`waiting for your approval in System Settings`**
+
+| | |
+|---|---|
+| German | wartet auf Ihre Bestätigung in den Systemeinstellungen |
+| Spanish | esperando tu aprobación en Ajustes del Sistema |
+| Japanese | 「システム設定」での許可を待っています |
+| Simplified Chinese | 等待你在“系统设置”中允许 |
 
 
 **`Watcher`**
@@ -1343,4 +1403,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-127 strings in total.
+133 strings in total.

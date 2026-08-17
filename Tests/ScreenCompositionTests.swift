@@ -45,65 +45,30 @@ struct ScreenCompositionTests {
         return NSBitmapImageRep(cgImage: cg)
     }
 
+    private func reader(_ view: some View, width: CGFloat, locale: String) -> PixelReader? {
+        render(view, width: width, locale: locale).flatMap(PixelReader.init)
+    }
+
     private func bands(_ view: some View,
                        width: CGFloat = ScreenCompositionTests.windowWidth,
                        locale: String = "en_US_POSIX") -> [Range<Int>] {
-        guard let rep = render(view, width: width, locale: locale) else { return [] }
-        var inked: [Bool] = []
-        for y in 0..<rep.pixelsHigh {
-            var any = false
-            for x in 0..<rep.pixelsWide where !any {
-                if let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB),
-                   c.redComponent < 0.9 || c.greenComponent < 0.9 || c.blueComponent < 0.9 {
-                    any = true
-                }
-            }
-            inked.append(any)
-        }
-        var out: [Range<Int>] = []
-        var start: Int?
-        for (y, ink) in inked.enumerated() {
-            switch (ink, start) {
-            case (true, nil): start = y
-            case (false, let s?): out.append(s..<y); start = nil
-            default: break
-            }
-        }
-        if let s = start { out.append(s..<inked.count) }
-        return out
+        guard let px = reader(view, width: width, locale: locale) else { return [] }
+        return px.bands(px.inkOnWhite)
     }
 
     private func inkShare(_ view: some View,
                           width: CGFloat = ScreenCompositionTests.windowWidth,
                           locale: String = "en_US_POSIX") -> Double {
-        guard let rep = render(view, width: width, locale: locale) else { return 0 }
-        var ink = 0
-        for y in 0..<rep.pixelsHigh {
-            for x in 0..<rep.pixelsWide {
-                if let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB),
-                   c.redComponent < 0.9 || c.greenComponent < 0.9 || c.blueComponent < 0.9 { ink += 1 }
-            }
-        }
-        return Double(ink) / Double(rep.pixelsWide * rep.pixelsHigh) * 100
+        guard let px = reader(view, width: width, locale: locale) else { return 0 }
+        return px.inkShare(px.inkOnWhite)
     }
 
     /// The longest horizontal run of ink on the whole screen. A gauge row's bar
     /// is tens of points wide; letters are not. Used the same way
     /// `TileCompositionTests` uses it: to ask whether bars are drawn at all.
     private func longestRun(_ view: some View, locale: String = "en_US_POSIX") -> Int {
-        guard let rep = render(view, width: Self.windowWidth, locale: locale) else { return 0 }
-        var widest = 0
-        for y in 0..<rep.pixelsHigh {
-            var run = 0
-            for x in 0..<rep.pixelsWide {
-                let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB)
-                let ink = (c?.redComponent ?? 1) < 0.9 || (c?.greenComponent ?? 1) < 0.9
-                    || (c?.blueComponent ?? 1) < 0.9
-                run = ink ? run + 1 : 0
-                widest = max(widest, run)
-            }
-        }
-        return widest
+        guard let px = reader(view, width: Self.windowWidth, locale: locale) else { return 0 }
+        return px.longestRun(px.inkOnWhite)
     }
 
     /// A fingerprint of the whole drawing, not of its layout.
@@ -247,19 +212,11 @@ struct ScreenCompositionTests {
     /// weaker claim than "three rows have one", and the window has exactly
     /// three gauges.
     private func barCount(_ view: some View) -> Int {
-        guard let rep = render(view, width: Self.windowWidth, locale: "en_US_POSIX") else { return 0 }
+        guard let px = reader(view, width: Self.windowWidth, locale: "en_US_POSIX") else { return 0 }
         var count = 0
         var inBar = false
-        for y in 0..<rep.pixelsHigh {
-            var run = 0, widest = 0
-            for x in 0..<rep.pixelsWide {
-                let c = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB)
-                let ink = (c?.redComponent ?? 1) < 0.9 || (c?.greenComponent ?? 1) < 0.9
-                    || (c?.blueComponent ?? 1) < 0.9
-                run = ink ? run + 1 : 0
-                widest = max(widest, run)
-            }
-            if widest > Self.barFloor {
+        for y in 0..<px.height {
+            if px.longestRun(in: y..<(y + 1), px.inkOnWhite) > Self.barFloor {
                 if !inBar { count += 1; inBar = true }
             } else {
                 inBar = false

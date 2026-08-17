@@ -29,11 +29,17 @@ class StatusModel: ObservableObject {
     @Published var notice: String?
 
     let installer: Installer
+    /// Injected like the installer, and for the same reason: the four states it
+    /// can be in have to be producible without four machines.
+    var loginItem: LoginItem
     private let watcher: SnapshotWatcher
     private var observation: Task<Void, Never>?
 
-    init(installer: Installer = .live(), watcher: SnapshotWatcher = SnapshotWatcher()) {
+    init(installer: Installer = .live(),
+         watcher: SnapshotWatcher = SnapshotWatcher(),
+         loginItem: LoginItem = .live()) {
         self.installer = installer
+        self.loginItem = loginItem
         self.watcher = watcher
         watcherSummary = String(localized: "stopped")
     }
@@ -108,6 +114,25 @@ class StatusModel: ObservableObject {
         } catch {
             notice = error.localizedDescription
         }
+    }
+
+    /// Turns background updates on or off, and says what happened.
+    ///
+    /// The notice matters more here than elsewhere: `register()` can succeed and
+    /// still leave the item waiting for the person in System Settings, which
+    /// looks from inside the app exactly like nothing having happened.
+    func setBackgroundUpdates(_ wanted: Bool) {
+        do {
+            if wanted {
+                try loginItem.enable()
+            } else {
+                try loginItem.disable()
+            }
+            notice = loginItem.state.detail()
+        } catch {
+            notice = error.localizedDescription
+        }
+        objectWillChange.send()
     }
 
     func uninstall(removingHistory: Bool) {

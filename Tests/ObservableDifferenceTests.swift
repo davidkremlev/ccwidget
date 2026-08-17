@@ -223,6 +223,23 @@ struct ObservableDifferenceTests {
         }
     }
 
+    // MARK: LoginItem.State — the line in Details and what it offers
+
+    /// Responsible for whether the widget is a minute behind or half an hour
+    /// behind, and for whether the window offers a switch or sends somebody to
+    /// System Settings. `requiresApproval` in particular must not read like a
+    /// failure: macOS is waiting for the person, and saying "unavailable" would
+    /// send them nowhere.
+    @Test("Every background-updates state says something different")
+    func loginItemStatesDiffer() {
+        let cases: [LoginItem.State] = [.off, .on, .waitingForApproval, .unavailable]
+        allDistinct("LoginItem.State", cases) { state in
+            Fingerprint(parts: [state.detail(locale: Self.locale),
+                                "\(state.canBeChanged)",
+                                "\(state.needsSettings)"])
+        }
+    }
+
     // MARK: Installer.Failure — the message and the action it suggests
 
     /// Responsible for what the person is told to do next. Telling someone to

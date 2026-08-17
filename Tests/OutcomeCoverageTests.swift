@@ -1,4 +1,5 @@
 import Foundation
+import ServiceManagement
 import Testing
 
 /// Every case of every enum, produced on purpose.
@@ -14,6 +15,77 @@ import Testing
 /// none of the results is unreachable.
 @Suite("Every enum case is produced")
 struct OutcomeCoverageTests {
+
+    // MARK: LoginItem.State — every one produced from what SMAppService says
+
+    /// The mapping is the whole of this type, and it is the kind of mapping that
+    /// looks obviously right and is wrong in one place: `requiresApproval` means
+    /// registered-and-waiting, not failed, and treating it as off would make the
+    /// switch flick back by itself.
+    @Test("Every SMAppService status becomes the state it means",
+          arguments: [(SMAppService.Status.notRegistered, LoginItem.State.off),
+                      (.enabled, .on),
+                      (.requiresApproval, .waitingForApproval),
+                      (.notFound, .unavailable)])
+    func everyStatusMapsToItsState(status: SMAppService.Status, expected: LoginItem.State) {
+        let item = LoginItem(read: { status }, enable: {}, disable: {})
+        #expect(item.state == expected)
+    }
+
+    /// And the switch does what it says: on registers, off unregisters, and
+    /// neither is called for the other.
+    @Test("The switch calls register and unregister, and not the other way round")
+    @MainActor func theSwitchCallsTheRightThing() {
+        final class Calls { var enabled = 0; var disabled = 0 }
+        let calls = Calls()
+        var status = SMAppService.Status.notRegistered
+        let item = LoginItem(read: { status },
+                             enable: { calls.enabled += 1; status = .enabled },
+                             disable: { calls.disabled += 1; status = .notRegistered })
+        let model = StatusModel(loginItem: item)
+
+        model.setBackgroundUpdates(true)
+        #expect(calls.enabled == 1 && calls.disabled == 0)
+        #expect(model.loginItem.state == .on)
+        #expect(model.notice?.contains("within a minute") == true,
+                "the window says what happened: \(model.notice ?? "nothing")")
+
+        model.setBackgroundUpdates(false)
+        #expect(calls.enabled == 1 && calls.disabled == 1)
+        #expect(model.loginItem.state == .off)
+    }
+
+    /// The case that looks like nothing happening. `register()` succeeds and the
+    /// item still waits for the person, so the notice has to send them onward
+    /// rather than report success.
+    @Test("Registering into approval says so instead of claiming success")
+    @MainActor func approvalIsReported() {
+        var status = SMAppService.Status.notRegistered
+        let item = LoginItem(read: { status },
+                             enable: { status = .requiresApproval },
+                             disable: { status = .notRegistered })
+        let model = StatusModel(loginItem: item)
+
+        model.setBackgroundUpdates(true)
+        #expect(model.loginItem.state == .waitingForApproval)
+        #expect(model.loginItem.state.needsSettings, "and the window offers the way there")
+        #expect(model.notice?.contains("System Settings") == true,
+                "the notice sends them to Settings: \(model.notice ?? "nothing")")
+    }
+
+    /// A failure from `SMAppService` reaches the person rather than the log.
+    @Test("A refusal to register is reported")
+    @MainActor func aRefusalIsReported() {
+        struct Refused: LocalizedError {
+            var errorDescription: String? { "Operation not permitted" }
+        }
+        let item = LoginItem(read: { .notRegistered },
+                             enable: { throw Refused() },
+                             disable: {})
+        let model = StatusModel(loginItem: item)
+        model.setBackgroundUpdates(true)
+        #expect(model.notice == "Operation not permitted")
+    }
 
     // MARK: Installer.Integrity
 
