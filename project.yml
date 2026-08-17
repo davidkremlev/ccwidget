@@ -37,8 +37,8 @@ settings:
     # not minimal: the watcher hands state across actors.
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_VERSION: "6.0"
-    CURRENT_PROJECT_VERSION: 4
-    MARKETING_VERSION: "0.3.1"
+    CURRENT_PROJECT_VERSION: 5
+    MARKETING_VERSION: "0.3.2"
     # Ad-hoc signing throughout. No restricted entitlement is used, so no
     # provisioning profile is involved and no team is needed — see SPEC 2.2
     # for why App Group was dropped and what that bought.
@@ -92,6 +92,13 @@ targets:
       # shape rather than a string, so it is checked against pictures.
       - path: Widget/ForecastChart.swift
       - path: Scripts/ccwidget-export.py.template
+        buildPhase: resources
+      # Shipped inside the bundle so that `brew uninstall --cask` can undo the
+      # configuration instead of deleting the app and leaving a statusLine
+      # pointing at a file that is gone. A cask can run a script out of the
+      # bundle it is removing; it cannot run one out of a git repository the
+      # person may never have cloned.
+      - path: Scripts/uninstall.sh
         buildPhase: resources
     dependencies:
       - target: CCWidgetExtension

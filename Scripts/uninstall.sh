@@ -23,6 +23,12 @@
 #   ./Scripts/uninstall.sh              # undo the install, keep the history
 #   ./Scripts/uninstall.sh --purge      # remove the history and the app too
 #   ./Scripts/uninstall.sh --dry-run    # only show what would happen
+#   ./Scripts/uninstall.sh --yes        # do not ask; for `brew uninstall`
+#
+# This file ships inside the app bundle as well as living here, because that is
+# what lets `brew uninstall --cask ccwidget` undo the configuration instead of
+# deleting the app and leaving a statusLine pointing at a file that is gone —
+# which would mean a broken prompt on every redraw, caused by uninstalling.
 #
 set -euo pipefail
 
@@ -37,10 +43,12 @@ APP="/Applications/CCWidget.app"
 
 PURGE=0
 DRY=0
+ASSUME_YES=0
 for arg in "$@"; do
     case "$arg" in
         --purge) PURGE=1 ;;
         --dry-run) DRY=1 ;;
+        --yes) ASSUME_YES=1 ;;
         *) echo "unknown argument: $arg" >&2; exit 2 ;;
     esac
 done
@@ -362,10 +370,14 @@ else
 fi
 echo
 
-if [ "$DRY" -eq 0 ]; then
+if [ "$DRY" -eq 0 ] && [ "$ASSUME_YES" -eq 0 ]; then
     printf "Continue? [y/N] "
     read -r answer
     case "$answer" in y|Y|yes|Yes) ;; *) echo "cancelled"; exit 0 ;; esac
+elif [ "$ASSUME_YES" -eq 1 ]; then
+    # Said out loud rather than silently assumed: somebody reading a brew
+    # uninstall log should see that this went ahead without being asked.
+    echo "==> --yes: going ahead without asking"
 fi
 
 if [ "$STATE" = "ours" ]; then

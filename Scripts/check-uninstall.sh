@@ -71,6 +71,14 @@ run_uninstall() {
     STATUS=$?
 }
 
+# With no answer on stdin at all: --yes must not wait for one. Without --yes the
+# same call must refuse rather than proceed, because a removal that happens
+# because nobody said no is the same defect as one that happens silently.
+run_uninstall_unattended() {
+    OUT="$(HOME="$STAGE" bash "$UNDER_TEST" "$@" < /dev/null 2>&1)"
+    STATUS=$?
+}
+
 # --- assertions ----------------------------------------------------------
 
 fail() {
@@ -496,6 +504,36 @@ expect_status 0
 expect_no_status_line
 expect_key_kept theme
 expect_exporter_gone
+
+# 17. `--yes`, which is how `brew uninstall` invokes this: no terminal, no
+#     answer to give. It has to go ahead, say that it is going ahead, and the
+#     same call without the flag has to do nothing.
+stage "unattended with --yes"
+settings <<EOF
+{ "theme": "dark", "statusLine": { "type": "command", "command": "$(exporter_path)" } }
+EOF
+cat > "$STAGE/.claude/ccwidget-export.py" <<'INNER'
+#!/usr/bin/env python3
+CHAINED = None
+INNER
+run_uninstall_unattended --yes
+expect_status 0
+expect_no_status_line
+expect_exporter_gone
+expect_says "going ahead without asking"
+
+stage "unattended without --yes"
+settings <<EOF
+{ "theme": "dark", "statusLine": { "type": "command", "command": "$(exporter_path)" } }
+EOF
+before="$(cat "$STAGE/.claude/settings.json")"
+run_uninstall_unattended
+expect_settings_unchanged "$before"
+if [ -e "$(exporter_path)" ]; then
+    pass "nothing was removed without an answer"
+else
+    fail "it removed things with nobody there to agree"
+fi
 
 # --- verdict -------------------------------------------------------------
 

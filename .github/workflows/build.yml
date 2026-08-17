@@ -116,6 +116,12 @@ jobs:
             || { echo "::error::widget extension missing from the bundle"; exit 1; }
           test -f "$APP/Contents/Resources/ccwidget-export.py.template" \
             || { echo "::error::exporter template missing from the bundle"; exit 1; }
+          # The uninstaller ships inside the bundle because that is what a
+          # Homebrew cask runs when somebody types `brew uninstall`. Missing, the
+          # cask deletes the app and leaves a statusLine pointing at a file that
+          # is gone — a broken prompt on every redraw, caused by uninstalling.
+          test -x "$APP/Contents/Resources/uninstall.sh" \
+            || { echo "::error::uninstall.sh missing from the bundle, or not executable"; exit 1; }
           # The icon is compiled from CCWidget.icon by actool, not copied. Both
           # products matter and both can go missing without the build saying a
           # word: Assets.car is what macOS 26 draws, CCWidget.icns is the

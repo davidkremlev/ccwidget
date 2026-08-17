@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-08-17
+
+### Added
+
+- **`brew install --cask davidkremlev/tap/ccwidget`.** One command instead of
+  downloading a disk image and dragging.
+
+  The uninstaller now ships inside the app bundle, and the cask runs it. That
+  is the whole reason this is a release rather than a formula pointing at the
+  last one: `brew uninstall` would otherwise delete the app and leave your
+  `statusLine` running a file that no longer exists — a broken prompt on every
+  redraw, caused by uninstalling. It takes `--yes` now, since nobody is there
+  to answer, and says out loud that it went ahead without asking. Without the
+  flag and with nobody at the terminal it does nothing, which is the other half
+  of the same rule.
+
 ### Changed
 
 - **The README screenshots are rendered from a fixture, not from a live
@@ -596,7 +612,8 @@ Data path, widget, forecast.
 - `~/.claude` is created with mode `0700` when this project is the one
   creating it.
 
-[Unreleased]: ../../compare/v0.3.1...HEAD
+[Unreleased]: ../../compare/v0.3.2...HEAD
+[0.3.2]: ../../compare/v0.3.1...v0.3.2
 [0.3.1]: ../../compare/v0.3.0...v0.3.1
 [0.3.0]: ../../compare/v0.2.0-dev...v0.3.0
 [0.2.0-dev]: ../../compare/v0.1.0-dev...v0.2.0-dev
