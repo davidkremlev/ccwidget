@@ -349,6 +349,11 @@ struct StatusView: View {
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 6) {
+            // First, because every other row is about something this app is
+            // looking at and this one is about the app doing the looking. A
+            // report that starts "the exporter says" is worth less than one
+            // that starts by naming which build made it.
+            detailRow("This app", AppBuild.current.text())
             detailRow("Exporter", exporterDescription)
             detailRow("Watcher", model.watcherSummary)
             backgroundUpdates

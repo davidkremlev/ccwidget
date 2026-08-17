@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] — 2026-08-17
+
 ### Added
 
 - **Background updates.** A switch in the window's Details registers the app as a
@@ -35,6 +37,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   write inside the window, then three and a half minutes of an unchanged tile
   with the app running. Postponed rather than dropped now, one reload owed per
   window however many writes arrive, and cancelled if the watcher stops.
+
+- **The window says which build it is.** A row at the top of Details naming the
+  version and, for a release, the commit that produced it. It said nothing about
+  itself before, and that cost real time twice in one day: an installed bundle
+  reported `0.3.2` while carrying work the `v0.3.2` tag does not contain, and
+  answering "which build am I running" took `strings` on the binary and the
+  modification date of the executable. A build made between two releases carries
+  the same version number as the release before it, so the commit is the part
+  that identifies it.
+
+### Changed
+
+- **The five-hour row says «сброшено» where it said «закрылось».** Russian only.
+  On a screen, «окно» is a program's window, so «закрылось» was read as being
+  about one — the owner closed an editor window, saw the row, and asked whether
+  one had caused the other. It had not; the period had reset. The new word cannot
+  mean an application window and matches the vocabulary the rest of the interface
+  uses. German, Japanese and Chinese already said *ended* rather than *closed* and
+  are untouched.
+
+- **The reload log says what the tile drew.** `widget reload #22 (snapshot
+  changed)` was the whole record, which could not answer whether a window had
+  already expired in that snapshot. It now reads `moved 5h,context · five-hour
+  expired · week open`. No values in it: percentages are raw fields, kept
+  `.private`, and a `.private` value read back without a logging profile is
+  redacted. The reason `budget window closed` is now `reload budget elapsed`,
+  because it is about the reload ration and not about a limit window.
+
+- **A reading that goes backwards is named.** Limits arrive with a model's reply
+  and sit in the session until the next one, so a session writes the reading *it*
+  last saw and a fresh timestamp promises nothing about the numbers. Measured on
+  one machine's history: 522 rows, 13 steps backwards inside a single weekly
+  window, the largest 27 % → 24 % six minutes apart. Nothing is discarded on that
+  basis — the estimate gates on how well its line fits, so an old reading costs
+  confidence rather than yielding a confident wrong answer — but it now logs
+  `older reading: 7d` instead of passing in silence.
+
+### Fixed
+
+- **The window said the same thing twice.** Turning background updates on printed
+  the new state under the switch, where it belongs, and again at the foot of
+  Details. There is now an instrument for it rather than a promise to look
+  harder: two identical sentences render as identical rows of pixels at the same
+  offset, so a fingerprint per band finds them, and a check of its own fails if
+  that instrument ever stops working.
 
 ## [0.3.2] — 2026-08-17
 
@@ -650,7 +697,8 @@ Data path, widget, forecast.
 - `~/.claude` is created with mode `0700` when this project is the one
   creating it.
 
-[Unreleased]: ../../compare/v0.3.2...HEAD
+[Unreleased]: ../../compare/v0.3.3...HEAD
+[0.3.3]: ../../compare/v0.3.2...v0.3.3
 [0.3.2]: ../../compare/v0.3.1...v0.3.2
 [0.3.1]: ../../compare/v0.3.0...v0.3.1
 [0.3.0]: ../../compare/v0.2.0-dev...v0.3.0

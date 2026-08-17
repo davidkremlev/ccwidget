@@ -431,3 +431,65 @@ struct OutcomeCoverageTests {
         }
     }
 }
+
+/// Which build the app admits to being.
+///
+/// Every case is produced here, because the row is the only place the answer
+/// appears and a row that lies is worse than no row: on 17 August the installed
+/// bundle said `0.3.2` while carrying work the `v0.3.2` tag does not have, and
+/// nothing in the app could say so.
+@Suite("The build the app admits to")
+struct AppBuildTests {
+
+    private let english = Locale(identifier: "en_US_POSIX")
+
+    @Test("A release names its commit")
+    func aReleaseNamesItsCommit() {
+        let build = AppBuild(version: "0.3.3", commit: "2ccab9f")
+        #expect(build == .stamped(version: "0.3.3", commit: "2ccab9f"))
+        #expect(build.text(locale: english) == "0.3.3 (2ccab9f)")
+    }
+
+    /// An empty build setting arrives as an empty string, not as a missing key,
+    /// which is why this is trimmed rather than compared to `nil`.
+    @Test("An ordinary build says it is not a release, rather than leaving a blank",
+          arguments: ["", "   "])
+    func anOrdinaryBuildSaysSo(commit: String) {
+        let build = AppBuild(version: "0.3.3", commit: commit)
+        #expect(build == .unstamped(version: "0.3.3"))
+        #expect(build.text(locale: english) == "0.3.3 · not a release build")
+    }
+
+    @Test("No commit at all is the same answer as an empty one")
+    func absentCommitIsTheSame() {
+        #expect(AppBuild(version: "0.3.3", commit: nil) == .unstamped(version: "0.3.3"))
+    }
+
+    @Test("A bundle that will not say its version says exactly that",
+          arguments: [nil, "", " "])
+    func noVersionIsNamed(version: String?) {
+        let build = AppBuild(version: version, commit: "2ccab9f")
+        #expect(build == .unknown)
+        #expect(build.text(locale: english) == "unknown")
+    }
+
+    /// The three readings must differ on screen, not merely as values — the row
+    /// exists to be read.
+    @Test("The three readings are three different sentences")
+    func theThreeReadingsDiffer() {
+        let texts = [AppBuild.stamped(version: "0.3.3", commit: "2ccab9f"),
+                     .unstamped(version: "0.3.3"),
+                     .unknown].map { $0.text(locale: english) }
+        #expect(Set(texts).count == 3, "\(texts)")
+    }
+
+    /// And the running bundle answers. In a test bundle there is no
+    /// `CCWidgetCommit`, so this is `unknown` or `unstamped` and never
+    /// `stamped` — which is the point: a check cannot be fooled into thinking a
+    /// test host is a release.
+    @Test("The running bundle gives an answer of its own")
+    func theRunningBundleAnswers() {
+        #expect(AppBuild.current != .stamped(version: "0.3.3", commit: "2ccab9f"))
+        #expect(!AppBuild.current.text(locale: english).isEmpty)
+    }
+}

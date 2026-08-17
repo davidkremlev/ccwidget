@@ -103,6 +103,7 @@ xcodebuild \
     DEVELOPMENT_TEAM="$TEAM_ID" \
     OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime" \
     ENABLE_CODE_COVERAGE=NO \
+    CCWIDGET_COMMIT="$COMMIT" \
     build \
     | grep -E "error:|warning:|BUILD" || true
 

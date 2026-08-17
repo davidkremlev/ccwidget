@@ -38,7 +38,12 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_VERSION: "6.0"
     CURRENT_PROJECT_VERSION: 5
-    MARKETING_VERSION: "0.3.2"
+    MARKETING_VERSION: "0.3.3"
+    # Stamped by Scripts/release.sh, empty otherwise. A bundle that cannot say
+    # which commit built it is a bundle nobody can check: on 17 August the
+    # installed app said 0.3.2 while carrying work the v0.3.2 tag does not have,
+    # and answering "which build am I running" took `strings` and a file date.
+    CCWIDGET_COMMIT: ""
     # Ad-hoc signing throughout. No restricted entitlement is used, so no
     # provisioning profile is involved and no team is needed — see SPEC 2.2
     # for why App Group was dropped and what that bought.
@@ -178,6 +183,7 @@ targets:
       - path: App/WindowState.swift
       - path: App/LoginItem.swift
       - path: App/CCWidgetApp.swift
+      - path: App/Build.swift
       # The polarity rule from section 8 — the bar and the number beside it
       # describe the same quantity — lives in these two and is checkable
       # without rendering anything.
