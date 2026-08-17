@@ -3311,37 +3311,37 @@
         }
       }
     },
-    "on — the widget updates within a minute": {
+    "on — within a minute while this app is in front, about every 15 minutes behind it": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "ein — das Widget aktualisiert sich innerhalb einer Minute"
+            "value": "an — innerhalb einer Minute, solange diese App im Vordergrund ist, sonst etwa alle 15 Minuten"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "activado: el widget se actualiza en menos de un minuto"
+            "value": "activado: en menos de un minuto mientras esta app está en primer plano, y cada 15 minutos aproximadamente cuando no lo está"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "オン — ウィジェットは1分以内に更新されます"
+            "value": "オン — このアプリが前面にある間は1分以内、背面では約15分ごと"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "включено — плитка обновляется в пределах минуты"
+            "value": "включено — в пределах минуты, пока приложение на переднем плане, и примерно раз в 15 минут, когда нет"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已开启 — 小组件在一分钟内更新"
+            "value": "已开启 — 本应用在前台时一分钟内更新，在后台约每 15 分钟一次"
           }
         }
       }

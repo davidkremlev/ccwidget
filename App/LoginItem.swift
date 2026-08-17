@@ -10,11 +10,22 @@ import ServiceManagement
 /// on demand. So background freshness is this app running in the background,
 /// and the thing that arranges that is `SMAppService.mainApp`.
 ///
-/// **What it buys.** With nothing running, WidgetKit comes back on its own about
-/// every half hour, so the tile can be that stale. The watcher inside this app
-/// notices a new snapshot within a minute and asks for a reload — rationed, per
-/// section 2.3. Registered as a login item, that happens whether or not anybody
-/// has a window open.
+/// **What it buys, and what it does not.** With nothing running, WidgetKit comes
+/// back on its own about every half hour, so the tile can be that stale. The
+/// watcher inside this app notices a new snapshot and asks for a reload.
+///
+/// How often that reload is allowed depends on where the app is. Apple exempts
+/// reloads made "while the widget's containing app is in the foreground" from
+/// the daily budget of 40 to 70, so in front the watcher may ask every minute;
+/// behind, every reload is paid for and it waits a quarter of an hour and only
+/// for a change in the numbers. Section 2.3, and the arithmetic that forced it
+/// is in `SnapshotWatcher.backgroundReloadInterval`.
+///
+/// So this buys a tile that follows real changes within a quarter of an hour
+/// instead of within half an hour of whenever the system feels like asking —
+/// and a tile that keeps up minute by minute whenever the app is in front,
+/// which it could already do. Less than the first version of this comment
+/// claimed, and it claimed it in the window as well.
 ///
 /// **What it costs, and why it is off by default.** A login item is a thing
 /// somebody has to trust: it runs without being asked, on every session, for
@@ -59,7 +70,12 @@ struct LoginItem {
             case .off:
                 resource = LocalizedStringResource("off — the widget updates about every half hour")
             case .on:
-                resource = LocalizedStringResource("on — the widget updates within a minute")
+                // Two numbers because there are two regimes, and saying only the
+                // good one would be an advertisement. A reload is free while the
+                // app is in front and comes out of a 40-to-70-a-day budget when
+                // it is not, so behind your terminal the watcher waits — see
+                // `SnapshotWatcher.backgroundReloadInterval` and `SPEC` 2.3.
+                resource = LocalizedStringResource("on — within a minute while this app is in front, about every 15 minutes behind it")
             case .waitingForApproval:
                 resource = LocalizedStringResource("waiting for your approval in System Settings")
             }

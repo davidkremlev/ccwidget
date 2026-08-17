@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import SwiftUI
+import ServiceManagement
 import Testing
 
 /// What the window and the setup screen are made of.
@@ -201,8 +202,14 @@ struct ScreenCompositionTests {
             snapshot: snapshot(), integrity: .matches, loginItem: on,
             notice: LoginItem.State.on.detail(locale: Locale(identifier: "en_US_POSIX"))),
                               expanded: true)
-        #expect(repeatedBands(view).count == 1,
-                "the duplication that shipped is invisible to this: \(repeatedBands(view))")
+        // At least one, not exactly one. How many bands a repeated sentence
+        // occupies is a fact about where it wraps, not about whether the window
+        // said the same thing twice — and the difference bit: this asked for
+        // exactly one and started failing the moment the sentence beside the
+        // switch grew long enough to wrap onto two lines. Measured with the
+        // current wording — on: 2 bands, off: 1, waiting for approval: 1.
+        #expect(!repeatedBands(view).isEmpty,
+                "the duplication that shipped is invisible to this")
     }
 
     // MARK: The window

@@ -75,7 +75,14 @@ struct CCWidgetApp: App {
     /// window, nothing to keep fresh. It is wrong now that the app can be
     /// launched at login to do exactly that — the watcher would never start, and
     /// the login item would be a process that runs and achieves nothing.
-    @StateObject private var model = StatusModel()
+    /// The live watcher is built here rather than defaulted inside itself,
+    /// because only the app knows it is the app. `NSApplication.isActive`
+    /// decides whether a widget reload is free or comes out of the daily budget
+    /// — section 2.3 — and asking that question from anywhere other than a real
+    /// running app is both wrong and, in a process with no GUI session, slow
+    /// enough to hang.
+    @StateObject private var model = StatusModel(
+        watcher: SnapshotWatcher(isForeground: { NSApplication.shared.isActive }))
 
     var body: some Scene {
         Window("Usage Widget for Claude Code", id: "main") {

@@ -44,9 +44,36 @@ struct WatcherState {
 ///    beside it showed numbers from two seconds ago.
 @MainActor
 final class SnapshotWatcher: ObservableObject {
-    /// Minimum gap between widget reloads. Less is wasteful; more puts a
-    /// noticeable delay between doing the work and seeing the widget catch up.
+    /// Minimum gap between widget reloads **while the app is in the
+    /// foreground**, where the documentation says they are free.
+    ///
+    /// Less is wasteful; more puts a noticeable delay between doing the work and
+    /// seeing the widget catch up.
     static let minimumReloadInterval: TimeInterval = 60
+
+    /// And the gap when it is not, where they are not free.
+    ///
+    /// **Why there have to be two.** Apple's page — cached as
+    /// `apple/widgetkit-keeping-up-to-date.md`, quoted in `SPEC` 2.3 — gives a
+    /// daily budget of 40 to 70 reloads for a widget somebody looks at often,
+    /// and exempts the case where "the widget's containing app is in the
+    /// foreground". Section 2.3 leant on that exemption with an argument that
+    /// was true when it was written and false the day background updates
+    /// shipped: the watcher used to live in the window, so a closed window meant
+    /// a silent watcher and no reloads to pay for. It now lives in the app, and
+    /// the app can run all day with nothing on screen.
+    ///
+    /// Measured on the owner's machine within an hour of that shipping: reloads
+    /// #22 through #27, one a minute, `reload budget elapsed` each time, the app
+    /// not in front. Sixty an hour against a budget of forty to seventy a day
+    /// spends the whole day's allowance before lunch — and the symptom is the
+    /// tile freezing until the budget rolls over, which `SPEC` 2.3 describes and
+    /// nothing in the code reports, because the system refuses in silence.
+    ///
+    /// Fifteen minutes is four an hour at worst, and in practice fewer, because
+    /// in the background a reload also has to be *worth* something — see
+    /// `visibleChange`.
+    static let backgroundReloadInterval: TimeInterval = 15 * 60
     /// The exporter writes the snapshot and the history back to back; wait
     /// for the dust to settle.
     static let debounce: TimeInterval = 2
@@ -77,6 +104,16 @@ final class SnapshotWatcher: ObservableObject {
     /// for it is a hope rather than a check. The live one sleeps; a check fires
     /// it when it chooses and can say what delay was asked for.
     private let schedule: (TimeInterval, @escaping @MainActor () -> Void) -> Void
+    /// Whether the app is in front, which decides what a reload costs.
+    ///
+    /// Injected rather than read from `NSApp` where it is needed, for the usual
+    /// reason: a check cannot bring the app to the front, and a regime nothing
+    /// can put into a state is a regime nothing can test.
+    ///
+    /// `NSApplication.isActive` and not "is a window open": the exemption in the
+    /// documentation is about the app being in the foreground, and a window
+    /// behind somebody's terminal is not that.
+    private let isForeground: () -> Bool
 
     private var fileSource: DispatchSourceFileSystemObject?
     private var directorySource: DispatchSourceFileSystemObject?
@@ -102,13 +139,27 @@ final class SnapshotWatcher: ObservableObject {
                 try? await Task.sleep(for: .seconds(seconds))
                 work()
             }
-        }
+        },
+        // Defaults to the budgeted regime rather than to `NSApp.isActive`.
+        // Reaching for `NSApplication` from in here broke this project's own
+        // rule — dependencies are injected, not computed — and it broke it
+        // expensively: the window's `onAppear` calls `refresh()`, so rendering
+        // the window inside a check touched `NSApplication.shared`, which in a
+        // process with no GUI session blocks in `open()`. A suite that used to
+        // take eighty seconds ran past ten minutes.
+        //
+        // False is also the right default on its own merits: it is the regime
+        // that spends budget, so anything that forgets to say where it is
+        // errs towards spending less rather than towards burning a day's
+        // allowance before lunch.
+        isForeground: @escaping () -> Bool = { false }
     ) {
         self.store = store
         self.read = read ?? { try store.load() }
         self.reloadWidgets = reloadWidgets
         self.clock = clock
         self.schedule = schedule
+        self.isForeground = isForeground
         self.state = WatcherState(now: clock())
     }
 
@@ -244,6 +295,19 @@ final class SnapshotWatcher: ObservableObject {
             capturedAt = snapshot.capturedAt
         }
 
+        /// Whether any of the three percentages moved — that is, whether the
+        /// tile would draw a different *number*.
+        ///
+        /// The moment is left out on purpose, and that is the whole distinction
+        /// this type exists to make. A write that only moves the moment changes
+        /// the age the tile reports, which matters when reloads are free and is
+        /// not worth a day's budget when they are not.
+        func numbersMoved(from previous: Signature) -> Bool {
+            fiveHour != previous.fiveHour
+                || sevenDay != previous.sevenDay
+                || context != previous.context
+        }
+
         /// What moved, named in the order the tile draws it.
         ///
         /// "nothing" is a real answer, not a placeholder: a reload also happens
@@ -348,21 +412,37 @@ final class SnapshotWatcher: ObservableObject {
         guard let snapshot else { return }
         let current = Signature(of: snapshot)
 
+        let inFront = isForeground()
+
         if !force {
-            // Either reason is enough. The signature is the obvious one; the
-            // freshness matters because it changes how the widget draws itself
-            // — a stale snapshot is dimmed — and a write that revives a dimmed
-            // widget without changing a single percentage would otherwise
-            // leave it dimmed until the next time a number moved.
+            // **What counts as worth a reload depends on what one costs.**
             //
-            // Since the signature now carries the moment, every write is a
-            // change and the minute below is what actually rations reloads.
-            // That is the ceiling the interval was chosen for; section 2.3 has
-            // what it costs.
-            guard current != lastSignature || state.freshness != wasFresh else { return }
+            // In front, the documentation says reloads are free, so anything
+            // that changes what the tile would draw is enough — including the
+            // moment, because a new snapshot puts the reported age back to zero
+            // and the timeline already in the widget's hands cannot know that.
+            //
+            // Not in front, they come out of a budget of forty to seventy a day.
+            // The moment alone is then not worth one: what the tile would draw
+            // differently is a clock time in its footer, and paying a day's
+            // allowance for that buys a frozen tile by lunchtime. So the numbers
+            // have to have moved, or freshness has to have crossed a threshold —
+            // the latter because a stale snapshot is *drawn* differently, dimmed,
+            // and a write that revives a dimmed widget has to get through.
+            let freshnessMoved = state.freshness != wasFresh
+            let worthIt: Bool
+            if let last = lastSignature {
+                worthIt = inFront
+                    ? (current != last || freshnessMoved)
+                    : (current.numbersMoved(from: last) || freshnessMoved)
+            } else {
+                worthIt = true
+            }
+            guard worthIt else { return }
+            let ration = inFront ? Self.minimumReloadInterval : Self.backgroundReloadInterval
             if let last = state.lastReload {
                 let waited = state.now.timeIntervalSince(last)
-                if waited < Self.minimumReloadInterval {
+                if waited < ration {
                     // New numbers, and the budget says not yet. **Postponed,
                     // not dropped** — and the difference is the last write of a
                     // session.
@@ -377,7 +457,7 @@ final class SnapshotWatcher: ObservableObject {
                     // and looks at the widget. Measured on 17 August: a single
                     // write inside the window, then three and a half minutes of
                     // an unchanged tile with the app running.
-                    scheduleOwedReload(in: Self.minimumReloadInterval - waited)
+                    scheduleOwedReload(in: ration - waited)
                     return
                 }
             }
@@ -385,6 +465,10 @@ final class SnapshotWatcher: ObservableObject {
 
         var detail = Self.reloadDetail(from: lastSignature, to: current,
                                        snapshot: snapshot, at: state.now)
+        // Which regime paid for it. Without this the two are indistinguishable
+        // in the one place a maintainer can look, and "the budget ran out" and
+        // "the watcher stopped" read the same.
+        detail += inFront ? " · in front, free" : " · in background, budgeted"
         let older = Self.olderReadings(previous: lastLimits, current: snapshot.limits)
         if !older.isEmpty {
             detail += " · older reading: \(older.joined(separator: ","))"

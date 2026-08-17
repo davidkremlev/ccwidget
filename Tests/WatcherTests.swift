@@ -46,7 +46,13 @@ struct WatcherTests {
         }
     }
 
-    private func watcher(_ spy: Spy, in home: URL) -> SnapshotWatcher {
+    /// `inFront` is stated rather than defaulted by accident. Left to the live
+    /// value it would be `NSApplication.isActive`, which in a test process is
+    /// false — so every check below would have been silently measuring the
+    /// background regime, which is exactly how four of them started failing when
+    /// the second regime arrived. Which regime a check is about is part of what
+    /// it is asserting.
+    private func watcher(_ spy: Spy, in home: URL, inFront: Bool = true) -> SnapshotWatcher {
         SnapshotWatcher(
             store: SnapshotStore(containerURL: SnapshotStore.exchangeURL(home: home)),
             read: {
@@ -56,7 +62,8 @@ struct WatcherTests {
             },
             reloadWidgets: { spy.reloads += 1 },
             clock: { spy.now },
-            schedule: { seconds, work in spy.postponed.append((seconds, work)) }
+            schedule: { seconds, work in spy.postponed.append((seconds, work)) },
+            isForeground: { inFront }
         )
     }
 
@@ -596,5 +603,118 @@ struct OlderReadingTests {
     func appearanceIsNotNamed() {
         #expect(SnapshotWatcher.olderReadings(previous: limits(nil, window(27)),
                                               current: limits(window(30), nil)).isEmpty)
+    }
+}
+
+/// The two regimes, and what each one costs.
+///
+/// Apple exempts reloads made "while the widget's containing app is in the
+/// foreground" from a daily budget of 40 to 70 — `apple/widgetkit-keeping-up-to-date.md`,
+/// quoted in `SPEC` 2.3. Background updates broke the argument that section
+/// leant on: the watcher used to live in the window, so a closed window meant a
+/// silent watcher and nothing to pay for. It lives in the app now, and the app
+/// can run all day behind everything else.
+///
+/// Measured on the owner's machine an hour after that shipped: reloads #22
+/// through #27, one a minute, the app not in front. Sixty an hour against
+/// forty-to-seventy a day spends the day's allowance before lunch, and the
+/// symptom is a tile frozen until the budget rolls over.
+@MainActor
+@Suite("What a reload costs where")
+struct ReloadRegimeTests {
+
+    private func snapshot(at moment: Date, context: Int) -> Snapshot {
+        Snapshot(schemaVersion: 1, capturedAt: moment, sessionId: "abcd1234",
+                 claudeCodeVersion: "2.1.220", model: nil, project: nil,
+                 limits: Limits(fiveHour: LimitWindow(usedPercentage: 10,
+                                                      resetsAt: moment.addingTimeInterval(3600)),
+                                sevenDay: LimitWindow(usedPercentage: 5,
+                                                      resetsAt: moment.addingTimeInterval(86400))),
+                 context: ContextInfo(usedPercentage: context, totalInputTokens: nil,
+                                      windowSize: nil, cacheHitRatio: nil),
+                 cost: nil)
+    }
+
+    private final class Spy {
+        var reloads = 0
+        var now = Date(timeIntervalSince1970: 1_000_000)
+        var current: Snapshot?
+        var postponed: [(after: TimeInterval, work: @MainActor () -> Void)] = []
+    }
+
+    private func watcher(_ spy: Spy, inFront: Bool) -> SnapshotWatcher {
+        SnapshotWatcher(
+            store: SnapshotStore(containerURL: sandbox()),
+            read: {
+                guard let snapshot = spy.current else { throw CocoaError(.fileNoSuchFile) }
+                return snapshot
+            },
+            reloadWidgets: { spy.reloads += 1 },
+            clock: { spy.now },
+            schedule: { seconds, work in spy.postponed.append((seconds, work)) },
+            isForeground: { inFront })
+    }
+
+    /// The write that only moves the moment. In front it is worth a reload —
+    /// a new snapshot puts the reported age back to zero and the timeline
+    /// already in the widget's hands cannot know that. Behind, it is worth a
+    /// clock time in a footer and costs a share of the day.
+    @Test("A write that moves only the moment reloads in front and not behind",
+          arguments: [(true, 1), (false, 0)])
+    func onlyTheMomentMoved(inFront: Bool, expected: Int) {
+        let spy = Spy()
+        let w = watcher(spy, inFront: inFront)
+        spy.current = snapshot(at: spy.now, context: 40)
+        w.handleChange(reason: "first", force: true)
+        let after = spy.reloads
+
+        spy.now = spy.now.addingTimeInterval(30 * 60)
+        spy.current = snapshot(at: spy.now, context: 40)
+        w.handleChange(reason: "same numbers", force: false)
+
+        #expect(spy.reloads - after == expected)
+    }
+
+    @Test("A number that moves is worth a reload in either regime",
+          arguments: [true, false])
+    func numbersAlwaysCount(inFront: Bool) {
+        let spy = Spy()
+        let w = watcher(spy, inFront: inFront)
+        spy.current = snapshot(at: spy.now, context: 40)
+        w.handleChange(reason: "first", force: true)
+        let after = spy.reloads
+
+        spy.now = spy.now.addingTimeInterval(30 * 60)
+        spy.current = snapshot(at: spy.now, context: 41)
+        w.handleChange(reason: "context moved", force: false)
+
+        #expect(spy.reloads == after + 1)
+    }
+
+    /// And the ration each regime waits out, which is where the budget is
+    /// actually saved: four an hour at worst rather than sixty.
+    @Test("The ration is a minute in front and a quarter of an hour behind",
+          arguments: [(true, 60.0), (false, 900.0)])
+    func rationMatchesTheRegime(inFront: Bool, ration: TimeInterval) {
+        let spy = Spy()
+        let w = watcher(spy, inFront: inFront)
+        spy.current = snapshot(at: spy.now, context: 40)
+        w.handleChange(reason: "first", force: true)
+
+        spy.now = spy.now.addingTimeInterval(5)
+        spy.current = snapshot(at: spy.now, context: 41)
+        w.handleChange(reason: "too soon", force: false)
+
+        let owed = try? #require(spy.postponed.first)
+        #expect(owed?.after == ration - 5,
+                "asked to come back in \(String(describing: owed?.after)), wanted \(ration - 5)")
+    }
+
+    /// The named numbers themselves, so that changing one is a decision rather
+    /// than a typo somebody notices a month later.
+    @Test("The two rations are the ones section 2.3 argues for")
+    func theRationsAreWhatTheyClaim() {
+        #expect(SnapshotWatcher.minimumReloadInterval == 60)
+        #expect(SnapshotWatcher.backgroundReloadInterval == 900)
     }
 }
