@@ -156,6 +156,12 @@ analogy instead.
   aside is one observation on one machine.
 - **`chronod` holding a stale extension.** Apple does not document the daemon
   at all. Everything in `SPEC` 5.1 about it is measured here.
+- **A process that is not the app cannot reload the widget.** `WidgetCenter`
+  refuses an auxiliary executable shipped inside the app bundle —
+  `ChronoCoreErrorDomain` code 27 from `getCurrentConfigurations`, and a
+  `reloadAllTimelines()` that changes nothing. `ChronoCoreErrorDomain` appears
+  in no Apple documentation at all. Measured on macOS 26.5 with a control, and
+  `Tools/ccwidget-widgetkit-probe` re-establishes it on demand.
 - **`statusLine` existing only in the terminal build.** The status line
   documentation never says it, and the whole audience limit in `SPEC` 14 rests
   on it.

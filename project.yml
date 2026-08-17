@@ -105,6 +105,8 @@ targets:
         embed: true
         codeSign: false
         removeHeaders: true
+      # Into Contents/MacOS, beside the app's own executable, which is where
+      # the launchd plist below points.
     settings:
       base:
         INFOPLIST_FILE: App/Info.plist
