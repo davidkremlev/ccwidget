@@ -7,11 +7,22 @@ import WidgetKit
 /// adds a line to the Claude Code config. This screen exists precisely so
 /// that step cannot be missed and cannot be done wrong.
 struct OnboardingView: View {
-    @State private var step: OnboardingStep = .checkClaudeCode
+    @State private var step: OnboardingStep
     @State private var failure: String?
     @State private var backupPath: String?
     @State private var wasSurgical = true
-    private let installer = Installer.live()
+
+    /// From outside — section 5.2, and this was the last view still deciding
+    /// for itself. `Installer.live()` inside the type meant no check could put
+    /// this screen in a state: it read whatever machine it was running on. The
+    /// first thing every new user sees was therefore the least checked code in
+    /// the project.
+    private let installer: Installer
+
+    init(installer: Installer = .live(), step: OnboardingStep = .checkClaudeCode) {
+        self.installer = installer
+        _step = State(initialValue: step)
+    }
     @State private var showsManual = false
     @State private var firstSnapshot: Snapshot?
     @State private var pollTask: Task<Void, Never>?
