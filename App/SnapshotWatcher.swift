@@ -69,12 +69,23 @@ final class SnapshotWatcher: ObservableObject {
     /// something a check can move. Waiting five real minutes to watch a
     /// threshold get crossed is not a check, it is a hope.
     private let clock: () -> Date
+    /// Doing something later, from outside.
+    ///
+    /// The clock is injected because freshness is a function of it, and this is
+    /// injected for the same reason one step further: a reload the budget window
+    /// postponed happens *later*, and a check that waits fifty-five real seconds
+    /// for it is a hope rather than a check. The live one sleeps; a check fires
+    /// it when it chooses and can say what delay was asked for.
+    private let schedule: (TimeInterval, @escaping @MainActor () -> Void) -> Void
 
     private var fileSource: DispatchSourceFileSystemObject?
     private var directorySource: DispatchSourceFileSystemObject?
     private var fileDescriptor: CInt = -1
     private var directoryDescriptor: CInt = -1
     private var debounceTask: Task<Void, Never>?
+    /// Whether the budget window postponed a reload that something has to come
+    /// back for. See `handleChange`.
+    private var reloadIsOwed = false
     private var tickTimer: Timer?
     private var lastSignature: String?
 
@@ -82,12 +93,19 @@ final class SnapshotWatcher: ObservableObject {
         store: SnapshotStore = .default(),
         read: (() throws -> Snapshot)? = nil,
         reloadWidgets: @escaping () -> Void = { WidgetCenter.shared.reloadAllTimelines() },
-        clock: @escaping () -> Date = { Date() }
+        clock: @escaping () -> Date = { Date() },
+        schedule: @escaping (TimeInterval, @escaping @MainActor () -> Void) -> Void = { seconds, work in
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(seconds))
+                work()
+            }
+        }
     ) {
         self.store = store
         self.read = read ?? { try store.load() }
         self.reloadWidgets = reloadWidgets
         self.clock = clock
+        self.schedule = schedule
         self.state = WatcherState(now: clock())
     }
 
@@ -108,6 +126,7 @@ final class SnapshotWatcher: ObservableObject {
     }
 
     func stop() {
+        reloadIsOwed = false
         debounceTask?.cancel()
         tickTimer?.invalidate()
         tickTimer = nil
@@ -243,12 +262,26 @@ final class SnapshotWatcher: ObservableObject {
             // That is the ceiling the interval was chosen for; section 2.3 has
             // what it costs.
             guard current != lastSignature || state.freshness != wasFresh else { return }
-            if let last = state.lastReload,
-               state.now.timeIntervalSince(last) < Self.minimumReloadInterval {
-                // New numbers, but the budget has to last: do not fire early.
-                // The exporter's next write will wake us again.
-                ccwidgetStoreLog.debug("watcher: reload deferred, budget window")
-                return
+            if let last = state.lastReload {
+                let waited = state.now.timeIntervalSince(last)
+                if waited < Self.minimumReloadInterval {
+                    // New numbers, and the budget says not yet. **Postponed,
+                    // not dropped** — and the difference is the last write of a
+                    // session.
+                    //
+                    // This used to return here, on the reasoning that "the
+                    // exporter's next write will wake us again". True while
+                    // somebody is working, and false exactly when it matters:
+                    // the write that lands after the final prompt has no
+                    // successor, so it was thrown away and the tile kept the
+                    // previous snapshot until WidgetKit came round on its own —
+                    // up to half an hour, at the moment a person stops working
+                    // and looks at the widget. Measured on 17 August: a single
+                    // write inside the window, then three and a half minutes of
+                    // an unchanged tile with the app running.
+                    scheduleOwedReload(in: Self.minimumReloadInterval - waited)
+                    return
+                }
             }
         }
 
@@ -259,6 +292,25 @@ final class SnapshotWatcher: ObservableObject {
         ccwidgetStoreLog.notice(
             "widget reload #\(self.state.reloadCount, privacy: .public) (\(reason, privacy: .public))"
         )
+    }
+
+    /// Comes back when the budget window closes and does the reload the window
+    /// postponed.
+    ///
+    /// One task at a time: a burst of writes inside one window owes exactly one
+    /// reload, not one per write. Re-reads the snapshot when it fires rather
+    /// than remembering the one that was current — by then it may not be.
+    private func scheduleOwedReload(in seconds: TimeInterval) {
+        guard !reloadIsOwed else { return }
+        reloadIsOwed = true
+        ccwidgetStoreLog.debug(
+            "watcher: reload postponed \(Int(seconds), privacy: .public)s by the budget window"
+        )
+        schedule(seconds) { [weak self] in
+            guard let self, self.reloadIsOwed, self.state.isRunning else { return }
+            self.reloadIsOwed = false
+            self.handleChange(reason: "budget window closed", force: false)
+        }
     }
 
     // MARK: Ticking

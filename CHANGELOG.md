@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Background updates.** A switch in the window's Details registers the app as a
+  login item, so the tile keeps up with your usage whether or not a window is
+  open. Off until you turn it on: a login item runs on every session without
+  being asked, and that is somebody's trust to give rather than a default to
+  take.
+
+  What it took to get there is in `SPEC` 2.4. The obvious design — a small
+  helper executable inside the app bundle, registered as a launch agent — does
+  not work: WidgetKit refuses a process that is not the app, with
+  `ChronoCoreErrorDomain` 27, and a reload from it changes nothing. Measured with
+  a control, so background freshness had to be the app running in the background.
+
+### Fixed
+
+- **The last snapshot of a session was thrown away.** The watcher rations widget
+  reloads to one a minute, and inside that minute it *dropped* a change instead
+  of postponing it — on the reasoning that the exporter's next write would wake
+  it again. True while you are working; false exactly when it matters, because
+  the write that lands after your last prompt has no successor. So the tile kept
+  the previous snapshot until WidgetKit came round on its own, up to half an
+  hour, at the moment you stop working and look at the widget.
+
+  Found by measuring the background agent rather than by reading the code: one
+  write inside the window, then three and a half minutes of an unchanged tile
+  with the app running. Postponed rather than dropped now, one reload owed per
+  window however many writes arrive, and cancelled if the watcher stops.
+
 ## [0.3.2] — 2026-08-17
 
 ### Added

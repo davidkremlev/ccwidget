@@ -35,6 +35,15 @@ struct WatcherTests {
         var reloads = 0
         var current: Snapshot?
         var now = Date()
+        /// What the watcher asked to have done later, and after how long. Held
+        /// rather than run, so a check decides when later is.
+        var postponed: [(after: TimeInterval, work: @MainActor () -> Void)] = []
+
+        @MainActor func firePostponed() {
+            let due = postponed
+            postponed.removeAll()
+            for item in due { item.work() }
+        }
     }
 
     private func watcher(_ spy: Spy, in home: URL) -> SnapshotWatcher {
@@ -46,7 +55,8 @@ struct WatcherTests {
                 return snapshot
             },
             reloadWidgets: { spy.reloads += 1 },
-            clock: { spy.now }
+            clock: { spy.now },
+            schedule: { seconds, work in spy.postponed.append((seconds, work)) }
         )
     }
 
@@ -324,5 +334,108 @@ struct WatcherTests {
 
         #expect(spy.reloads == reloadsAfterLoad + 2,
                 "two and a half minutes of writing bought \(spy.reloads - reloadsAfterLoad) reloads")
+    }
+
+    /// The write that lands after the last prompt.
+    ///
+    /// The budget window used to *drop* a change rather than postpone it, on the
+    /// reasoning that the exporter's next write would wake the watcher again.
+    /// That holds while somebody is working and fails exactly when it matters:
+    /// the final write of a session has no successor, so the tile kept the
+    /// previous snapshot until WidgetKit came round on its own — up to half an
+    /// hour, at the moment a person stops and looks at the widget.
+    ///
+    /// Measured before it was fixed: one write inside the window, then three and
+    /// a half minutes of an unchanged tile with the app running in the
+    /// background. That is what this forbids.
+    @Test("A change inside the budget window is postponed, not dropped")
+    func aChangeInsideTheBudgetWindowIsPostponed() async {
+        let home = sandbox()
+        makeContainer(in: home)
+        let spy = Spy()
+        spy.current = snapshot(capturedAt: spy.now, fiveHour: 10, week: 20, context: 9)
+
+        let w = watcher(spy, in: home)
+        let model = StatusModel(installer: installer(home: home, template: makeTemplate(in: home)),
+                                watcher: w)
+        model.start()
+        defer { model.stop() }
+        #expect(await eventually { spy.reloads >= 1 }, "the first read reloads")
+        let afterFirst = spy.reloads
+
+        // Half a minute later: inside the window, so nothing fires — and the
+        // watcher says it will come back, with how long it means to wait.
+        spy.now += 30
+        spy.current = snapshot(capturedAt: spy.now, fiveHour: 11, week: 21, context: 10)
+        w.handleChange(reason: "test", force: false)
+
+        #expect(spy.reloads == afterFirst, "still rationed, as before")
+        #expect(spy.postponed.count == 1, "and something is owed")
+        #expect(spy.postponed.first?.after == 30,
+                "postponed by what is left of the window, not by the whole of it")
+
+        // Nothing else happens — no second write, which is the whole point.
+        spy.now += 30
+        spy.firePostponed()
+        #expect(spy.reloads == afterFirst + 1,
+                "the postponed reload never came: the last write of a session was dropped")
+    }
+
+    /// A burst inside one window owes one reload, not one per write. Otherwise
+    /// the fix for the dropped write would spend the budget it exists to
+    /// protect.
+    @Test("A burst inside one window owes exactly one reload")
+    func aBurstOwesOneReload() async {
+        let home = sandbox()
+        makeContainer(in: home)
+        let spy = Spy()
+        spy.current = snapshot(capturedAt: spy.now, fiveHour: 10, week: 20, context: 9)
+
+        let w = watcher(spy, in: home)
+        let model = StatusModel(installer: installer(home: home, template: makeTemplate(in: home)),
+                                watcher: w)
+        model.start()
+        defer { model.stop() }
+        #expect(await eventually { spy.reloads >= 1 })
+        let afterFirst = spy.reloads
+
+        for step in 1...5 {
+            spy.now += 5
+            spy.current = snapshot(capturedAt: spy.now, fiveHour: 10 + step, week: 20, context: 9)
+            w.handleChange(reason: "burst \(step)", force: false)
+        }
+        #expect(spy.reloads == afterFirst, "none of the burst fired early")
+        #expect(spy.postponed.count == 1, "five writes, one thing owed")
+
+        spy.now += 60
+        spy.firePostponed()
+        #expect(spy.reloads == afterFirst + 1,
+                "the burst owed one reload and produced \(spy.reloads - afterFirst)")
+    }
+
+    /// And a postponed reload does not fire after the watcher has been stopped.
+    /// A window that closes, or an app quitting, must not reload the widget on
+    /// its way out.
+    @Test("Stopping cancels what the budget window postponed")
+    func stoppingCancelsThePostponedReload() async {
+        let home = sandbox()
+        makeContainer(in: home)
+        let spy = Spy()
+        spy.current = snapshot(capturedAt: spy.now, fiveHour: 10, week: 20, context: 9)
+
+        let w = watcher(spy, in: home)
+        w.start()
+        #expect(await eventually { spy.reloads >= 1 })
+        let afterFirst = spy.reloads
+
+        spy.now += 10
+        spy.current = snapshot(capturedAt: spy.now, fiveHour: 11, week: 20, context: 9)
+        w.handleChange(reason: "test", force: false)
+        #expect(spy.postponed.count == 1)
+
+        w.stop()
+        spy.now += 60
+        spy.firePostponed()
+        #expect(spy.reloads == afterFirst, "it reloaded after being stopped")
     }
 }
