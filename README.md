@@ -26,8 +26,11 @@ Everything else on this page assumes `claude` runs in your terminal.
 
 </details>
 
-Screenshots are real data from a working session, not mock-ups. Re-shoot them
-with `./.build/ccwidget-screenshots Docs/screenshots -AppleLocale en_US -AppleLanguages "(en)"`.
+Rendered by the same code the widget runs, from made-up data: one command,
+`./Scripts/readme-screenshots.sh`. The numbers are a fixture rather than
+somebody's account — they used to be live, which put a real session cost into a
+public README and photographed the estimate saying *Not enough data yet*,
+because the shots happened to be taken just after a weekly reset.
 
 ---
 
@@ -417,6 +420,13 @@ arguments, and a layout that fits in English can fail in Russian or German:
 ```sh
 ./.build/ccwidget-screenshots /tmp/shots -AppleLocale ru_RU -AppleLanguages "(ru)"
 ```
+
+The README's own six come from `./Scripts/readme-screenshots.sh`, which writes a
+fixture and shoots against it. The fixture is generated at shoot time rather
+than committed, and that is not a preference: a row's countdown is a **dynamic
+date**, drawn by the system from the real clock and not from the moment the
+entry carries, so fixed timestamps render "2 yrs, 9 mths". Measured — the same
+trap `RowCompositionTests` documents at the top of its file.
 
 CI builds the first two of these on every push. The third is not built there —
 so unlike the others, it can rot unnoticed — and the flags differ: CI adds
