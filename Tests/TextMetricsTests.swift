@@ -167,8 +167,9 @@ struct TextMetricsTests {
     /// The word a closed window puts where the countdown was. It shares the
     /// slot with the countdown, so it is measured against the same budget —
     /// and it is why the wording is one word: "window closed" needs 82 pt in
-    /// Russian and 81 in German against a slot of 66, while "закрылось" needs
-    /// 55 and "beendet" 41.
+    /// Russian and 81 in German against a slot of 66, while "сброшено" needs
+    /// 52 and "beendet" 41. Two words do not fit in Russian either way:
+    /// "период истёк" needs 69.
     @Test("The closed-window word fits where the countdown sat")
     func closedWordFitsTheAuxiliarySlot() throws {
         let strings = try widgetStrings()
