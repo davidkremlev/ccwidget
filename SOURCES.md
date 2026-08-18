@@ -81,6 +81,7 @@ the second kind. That was not a shortage of documents — Apple publishes them
 | Liquid Glass | `apple/appkit-nsglasseffectview.md` | `NSGlassEffectView`: AppKit's glass view — `contentView`, `cornerRadius`, `style`, `tintColor`. Consulted for a glass window background on 18 August 2026 and **rejected on measurement**: it refracts only what is inside its own window; behind a transparent window, and over a behind-window blur, it draws opaque. What the reference page does not say and the store now does | 2026-08-18 | macOS 26 / Xcode 26 |
 | Liquid Glass | `apple/appkit-nsglasseffectview-style.md` | the two glass styles, `regular` and `clear` — both measured opaque as a window background, see above | 2026-08-18 | macOS 26 / Xcode 26 |
 | Liquid Glass | `apple/appkit-nsvisualeffectview.md` | `NSVisualEffectView`: the pre-glass translucent materials; `.behindWindow` does show the desktop through a transparent window — measured the same day, and it is a material, not Liquid Glass. Not used: the owner chose the opaque window, which is what Apple's adoption guide describes | 2026-08-18 | macOS 26 |
+| App Groups | `apple/entitlement-application-groups.md` | the App Groups entitlement: what it grants, the two identifier forms on macOS | 2026-08-18 | macOS 26 / Xcode 26 |
 | Layout | `apple/swiftui-grid.md` | `Grid`: columns take the width of their widest cell; what a non-row element becomes; how flexible cells share space | 2026-08-18 | macOS 26 / Xcode 26 |
 | Layout | `apple/swiftui-gridrow.md` | `GridRow`: cells of a row; a modifier on a row applies to every cell, like a `Group` | 2026-08-18 | macOS 26 / Xcode 26 |
 | Layout | `apple/swiftui-gridcolumnalignment.md` | `gridColumnAlignment(_:)`: aligning a whole column | 2026-08-18 | macOS 26 / Xcode 26 |
@@ -98,6 +99,7 @@ the second kind. That was not a shortage of documents — Apple publishes them
 | Typography | `apple/hig-typography.md` | the built-in text styles and their point sizes per platform, and each platform's minimum | 2026-08-07 | macOS 26 |
 | Icon | `apple/hig-app-icons.md` | how an app icon is supposed to look: layers, shape, legibility, what not to put in it | 2026-08-06 | macOS 26 |
 | Concurrency | `tooling/swift6-data-race-safety.md` | what `complete` checking asks of you: `Sendable`, isolation domains | 2026-08-06 | Swift 6 |
+| App Groups | `apple/xcode-configuring-app-groups.md` | how app groups are set up; the macOS `<Team ID>.<name>` form and the rule that the accessing process's signature must carry that Team ID — the mechanism behind section 2.2's EPERM under ad-hoc | 2026-08-18 | macOS 26 / Xcode 26 |
 | Liquid Glass | `apple/liquid-glass-adopting.md` | what the system applies on its own when built with the macOS 26 SDK; where custom glass belongs (controls, the toolbar layer) and where it does not (content); "sparingly"; a label for every toolbar icon | 2026-08-18 | macOS 26 / Xcode 26 |
 
 ## Read live, never cached
@@ -130,6 +132,7 @@ looks identical to an area where the missing genre does not exist.
 | Concurrency | — | ✓ 1 | the mechanics are the language itself; *The Swift Programming Language* is the reference and is not cached. Connect it if a claim ever turns on language semantics rather than on the migration rules |
 | Liquid Glass | ✓ 6 | ✓ 1 + HIG live | complete; three of the six record a measurement the reference pages do not carry
 | Layout | ✓ 3 | — | none published for `Grid` beyond the reference; the layout rules this project follows are its own, section 9 |
+| App Groups | ✓ 1 | ✓ 1 | complete; the guidance page carries the Team-ID rule the reference page does not
 | Sandbox | ✓ 4 | — | Apple's App Sandbox Design Guide has been retired and its URL 404s. The reference pages are all that remains published; treat design decisions here as our own, not as Apple's advice |
 | Distribution | ✓ 2 | — | no separate guidance is published; the notarization page carries what advice there is |
 | Icon | ✓ 1 | ✓ 1 | complete. HIG App icons is cached rather than read live: unlike the widget layout guidance it is referenced for facts about layers and shape, and a claim needs a copy that can be quoted |
