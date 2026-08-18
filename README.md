@@ -270,8 +270,11 @@ Two things about a build you made yourself rather than downloaded:
   `.icon` file, which only Xcode 26 compiles, and Xcode 26 itself needs macOS
   15.6 or later. Everything else works; the app shows a generic placeholder in
   the Dock and the widget gallery. Measured on a CI runner, not guessed.
-- **A locally built app is ad-hoc signed**, which is fine on the machine that
-  built it and refused everywhere else. If you pass such a copy to somebody,
+- **A locally built app is ad-hoc signed** unless the machine has a Developer
+  ID certificate, in which case `Scripts/reinstall.sh` re-signs the build with
+  it — so that permissions macOS grants the app (it asks once for access to
+  the widget's data) stay granted across rebuilds. Ad-hoc is fine on the
+  machine that built it and refused everywhere else. If you pass such a copy to somebody,
   macOS will tell them Apple could not verify it, and offer *Move to Trash* or
   *Done* — there is no "Open Anyway" in that dialog. That button lives in
   **System Settings › Privacy & Security**, below the message about the blocked

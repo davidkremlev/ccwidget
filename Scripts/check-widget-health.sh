@@ -71,11 +71,18 @@ fi
 crashes=$(since_epoch "$REPORTS" "$cutoff")
 crash_count=$(printf '%s' "$crashes" | grep -c . || true)
 
-# 2. Did the provider get as far as building a timeline? Its log is at .info,
-#    which `log show` hides unless asked — a trap that cost half a day once.
-built=$(/usr/bin/log show --info --last "${MINUTES}m" \
+# 2. Did the provider get as far as building a timeline? Counted on the
+#    `timeline scheduled` line the provider writes at .notice — not on the
+#    `timeline built` line at .info. The info ring buffer is shared by the whole
+#    machine and gone within minutes: on 18 August 2026 this script reported
+#    "the provider genuinely was not called" for a build whose extension had
+#    scheduled three timelines a minute earlier, because their .info lines had
+#    already been evicted while chronod's own record of the reloads was still
+#    there. A health check that reads a buffer with a shorter memory than its
+#    own window measures the buffer, not the widget.
+built=$(/usr/bin/log show --last "${MINUTES}m" \
         --predicate "subsystem == \"$SUBSYSTEM\" AND category == \"widget\"" \
-        --style compact 2>/dev/null | grep -c "timeline built" || true)
+        --style compact 2>/dev/null | grep -c "timeline scheduled" || true)
 
 echo "    timelines built: $built"
 echo "    crash reports:   $crash_count"

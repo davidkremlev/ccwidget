@@ -34,6 +34,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prompt after a plain `brew uninstall`, for good, which is a worse thing to be
   quiet about than a button press.
 
+### Changed
+
+- **Development builds are signed with the Developer ID when there is one.**
+  `Scripts/reinstall.sh` re-signs the built app and its extension with the
+  same identity `release.sh` uses, and stays ad-hoc only on a machine without
+  it. macOS ties a granted permission to the app's signing requirement; a
+  Developer ID requirement is the same for every build, an ad-hoc one is the
+  build's own hash. Seen in the tccd log on 18 August 2026: an ad-hoc copy
+  running against a stored Developer ID record was asked for access to the
+  widget's data on every read and never had its answer stored. The health
+  script now counts the provider's `notice`-level schedule line rather than an
+  `.info` line the system evicts within minutes — it had just reported a
+  healthy build as "not called".
+
 ### Fixed
 
 - **A window that closes within five minutes of a rebuild still gets its

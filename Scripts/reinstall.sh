@@ -69,7 +69,41 @@ sleep 2
 echo "==> Installing into $APP"
 rm -rf "$APP"
 cp -R "$BUILT" "$APP"
+
+# Re-sign with the Developer ID when the machine has one — the same identity
+# release.sh uses — and stay ad-hoc when it does not, so that a clone still
+# builds and installs without a developer account.
+#
+# Why this is here at all: TCC ties a permission to the app's code signing
+# requirement, not to its name. For a Developer ID signature that requirement
+# is "this identifier, this team", the same for every build; for an ad-hoc
+# signature it is the cdhash of the binary, so a permission granted to one
+# build does not carry to the next. Seen in the tccd log on 18 August 2026:
+# with the release's requirement stored and an ad-hoc copy running, every
+# "access to data from other apps" prompt ended in "Failed to match existing
+# code requirement" and "DB Action: None" — asked, answered, not remembered.
+# What is *not* claimed: that every ad-hoc rebuild prompts. After the stale
+# record was reset, three ad-hoc rebuilds in a row asked nothing; the prompts
+# coincided with two copies of the app running at once. Signing with the
+# release identity removes the mismatch either way, and makes a local build
+# the same app to the system that the release is.
+#
+# Inside out, extension first, as release.sh does; without --timestamp and
+# without the hardened runtime, because neither is needed to run here and
+# the timestamp needs the network.
+IDENTITY="$(security find-identity -v -p codesigning \
+            | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -1)"
+if [ -n "$IDENTITY" ]; then
+    echo "==> Signing with the Developer ID, so TCC answers survive the next rebuild"
+    codesign --force --sign "$IDENTITY" \
+        --entitlements "$ROOT/Widget/CCWidgetExtension.entitlements" \
+        "$APP/Contents/PlugIns/CCWidgetExtension.appex"
+    codesign --force --sign "$IDENTITY" "$APP"
+else
+    echo "==> No Developer ID in the keychain: staying ad-hoc (TCC will ask again after every rebuild)"
+fi
 codesign -v --deep --strict "$APP"
+codesign -dv "$APP" 2>&1 | grep -E "^Signature|^Authority=Developer" | head -1 | sed 's/^/    /'
 sleep 1
 
 echo "==> Launching (this registers the extension with the system)"
