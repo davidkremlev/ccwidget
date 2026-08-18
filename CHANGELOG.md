@@ -50,6 +50,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A Homebrew upgrade no longer leaves the widget blocked at the next
+  login.** The bundle arrives quarantined, and the first thing macOS runs out
+  of it is judged: opened by you, a notarized app gets the ordinary
+  "downloaded from the internet — Open?" dialog; run first by the widget
+  daemon — which is what happened after an upgrade under a running app, at the
+  next login — the same bundle got the hard "Apple could not verify" dialog
+  with no Open button, and the widget stayed blank until *Open Anyway* in
+  System Settings. Reproduced both ways on 18 August 2026 in the syspolicyd
+  log; neither signing nor notarization changes which dialog the daemon's
+  launch gets. The cask now quits the app on upgrade and opens the new copy,
+  so the approval happens right away in the ordinary dialog — verified on a
+  notarized build that had never been approved. The recovery path for anyone
+  already caught is in the README under "When the numbers stop moving".
+
 - **A window that closes within five minutes of a rebuild still gets its
   timeline entry.** The moments the tile changes on its own — the two
   freshness thresholds and the close of each window — went through the same

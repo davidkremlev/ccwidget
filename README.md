@@ -283,6 +283,19 @@ Two things about a build you made yourself rather than downloaded:
 
 ## When the numbers stop moving
 
+**First, one dialog to rule out.** If macOS has shown *"CCWidget.app" was not
+opened — Apple could not verify it is free of malware*, with only *Move to
+Trash* and *Done*, the widget is blocked, not broken. It happens when the
+system runs the widget out of a freshly installed copy before you have opened
+the app yourself — typically at the first login after an upgrade that ran
+while the app was open. Press *Done*, then open **System Settings › Privacy &
+Security**, scroll to the note about CCWidget and press **Open Anyway**; the
+widget comes back within a minute. The Homebrew cask now quits the app on
+upgrade and opens the new copy so that you approve it right away, in the
+ordinary "downloaded from the internet — Open?" dialog, and this one does not
+appear. Reproduced and closed on 18 August 2026; details in `SPEC.md`,
+section 2.2.
+
 Claude Code is running, you are working, and the widget has not changed in a
 while. On screen that looks exactly like Claude Code not running at all — the
 numbers simply age. These are different problems and there is one command that
