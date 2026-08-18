@@ -34,6 +34,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prompt after a plain `brew uninstall`, for good, which is a worse thing to be
   quiet about than a button press.
 
+### Fixed
+
+- **The countdowns on the medium tile sit on the right edge.** The two upper
+  rows end in a countdown the system draws — laid out once when the tile is
+  archived, drawn many times after with words the layout never saw — and the
+  words were being drawn from the leading edge of a box sized for some other
+  words. Measured on the live tile: the plain string in the third row ended on
+  the edge at 344 points, the two countdowns at 313 and 305. The line now keeps
+  to the trailing side of whatever it is given, and all three end at 344–345.
+  No check in `Tests/` can see this: rendering there lays out and draws in one
+  step, and box and text always agree.
+
+- **The small tile's composition check asserted one line where two are
+  allowed.** The caption under the bar has always been allowed two lines; the
+  check counted exactly four bands, which is one line, and whether English
+  needs one or two depends on the digits of the moment. It passed at 09:47 and
+  failed at 10:25 with nothing changed but the clock. Four or five now.
+
 ### Changed
 
 - **The window looks like a macOS 26 window.** *Refresh*, *Details* and

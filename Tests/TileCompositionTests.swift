@@ -140,17 +140,30 @@ struct TileCompositionTests {
     /// apart in Russian and German, and this project has shipped that twice.
     ///
     /// medium: header, three gauge rows, footer. Five.
-    /// small:  header, the number, its caption, and the reset line. Four.
+    /// small:  header, the number, the bar, and the caption — which is allowed
+    ///         two lines, so four or five.
     /// large:  fifteen, which is the medium's parts plus the estimate block and
     ///         the two extra detail lines the height affords.
+    ///
+    /// **The small tile's count used to be exactly four, and that was the check
+    /// asserting something the view does not promise.** The caption under the
+    /// bar has `lineLimit(2)` on purpose — `SmallView` says why, and
+    /// `TextMetricsTests` holds it to fitting in two lines in every language.
+    /// Whether it takes one line or two depends on the wording of the moment,
+    /// and in English the moment matters: "used · resets Tue 11:47 PM" fits on
+    /// one line at the minimum scale and "used · resets Wed 12:28 AM" does
+    /// not, by less than a point. So the check passed at 09:47 on 18 August
+    /// 2026 and failed at 10:25 with nothing changed but the clock. A count of
+    /// four was not the property; a caption that is drawn, on the lines it is
+    /// allowed, is.
     @Test("Each size draws the parts section 9 says it draws",
           arguments: ["de", "en", "es", "ja", "ru", "zh-Hans"])
     func eachSizeDrawsItsParts(language: String) {
         let full = entry()
         #expect(bands(MediumView(entry: full), size: Self.medium, locale: language).count == 5,
                 "\(language): the medium tile is a header, three rows and a footer")
-        #expect(bands(SmallView(entry: full), size: Self.small, locale: language).count == 4,
-                "\(language): the small tile is a header, a number, a caption and a reset")
+        #expect((4...5).contains(bands(SmallView(entry: full), size: Self.small, locale: language).count),
+                "\(language): the small tile is a header, a number, a bar and a caption of one or two lines")
         #expect(bands(LargeView(entry: full), size: Self.large, locale: language).count >= 12,
                 "\(language): the large tile lost most of what it draws")
     }

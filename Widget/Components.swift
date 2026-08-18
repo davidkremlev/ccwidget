@@ -261,6 +261,29 @@ struct DetailLine: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
+            // The countdown is laid out once, when the system archives the
+            // tile, and drawn many times after, with words the layout never
+            // saw. The box it was given is the width of *some* countdown; the
+            // one drawn into it is usually narrower, and a narrower line drawn
+            // from the box's leading edge leaves the row's right edge ragged.
+            // Seen on the live medium tile on 18 August 2026: "3 ч 40 мин" and
+            // "1 дн 20 ч" each stopped short of the edge by their own amount,
+            // while "ccwidget" — a plain string, no box to be short of — sat
+            // on it. Trailing alignment tells the text to keep to the far side
+            // of whatever it was given.
+            //
+            // Only where the line ends the row. On the large tile it has a row
+            // of its own under the bar, starting at the leading edge like the
+            // caption above it, and the same shift there would read as a stray
+            // indent rather than as alignment.
+            //
+            // Not visible to any check in `Tests/`: `ImageRenderer` lays out
+            // and draws in one step, so box and text always agree there. Only
+            // the archived tile shows it. Measured on the live medium tile
+            // before and after, in pixels from the capture: the three rows'
+            // right edges were 313, 305 and 344 (the plain string on the
+            // edge, the two countdowns short of it) and are 345, 344 and 344.
+            .multilineTextAlignment(compact ? .trailing : .leading)
     }
 }
 
