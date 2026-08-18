@@ -240,7 +240,7 @@ struct StatusView: View {
     /// agreement by assertion — see section 2.4.
     private func rows(_ snapshot: Snapshot) -> some View {
         let entry = CCWidgetEntry(date: Date(), snapshot: snapshot, failure: nil, forecast: nil)
-        return VStack(spacing: 8) {
+        return GaugeTable(spacing: 8) {
             GaugeRow(caption: "5-hour used",
                      reading: entry.limitReading(snapshot.limits.fiveHour),
                      dimmed: entry.isDimmed,

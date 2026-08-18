@@ -399,6 +399,32 @@ extension CCWidgetEntry {
 
 // MARK: - Compact row (medium size)
 
+/// The rows of a tile or of the window, as one table.
+///
+/// A row used to be an `HStack` and three rows a `VStack` of them, and each
+/// row laid itself out alone: its own caption, then a bar across whatever was
+/// left. Three captions of three widths gave three bars starting at three
+/// places, and the percentages and the lines beside them stood wherever their
+/// row's bar happened to end. Seen on the desktop by the owner on 18 August
+/// 2026, and it is what a table is for.
+///
+/// `Grid` sizes every column to its widest cell — `apple/swiftui-grid.md`:
+/// "the grid sets the width of all the cells in a column to match the needs
+/// of column's widest cell" — so the captions share one column, the bars
+/// another and start together, and the numbers stand in a column of their own.
+/// The spacing is the row's old spacing; the vertical one is the caller's,
+/// because the tile and the window never agreed on it.
+struct GaugeTable<Content: View>: View {
+    var spacing: CGFloat = 7
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        Grid(alignment: .leading, horizontalSpacing: 6, verticalSpacing: spacing) {
+            content
+        }
+    }
+}
+
 struct GaugeRow: View {
     let caption: LocalizedStringResource
     /// Anything but `.measured` draws a dash and an empty bar; what stands to
@@ -414,15 +440,41 @@ struct GaugeRow: View {
 
     @Environment(\.locale) private var locale
 
+    /// One row of a `GaugeTable`: five cells, glyph to detail.
+    ///
+    /// A `GridRow` inside a view of its own, so that the tile and the window
+    /// keep sharing one row type. `apple/swiftui-grid.md` says a grid element
+    /// that is not a `GridRow` becomes a row spanning every column; a view
+    /// *whose body is* a `GridRow` is not that case — measured, and
+    /// `RowCompositionTests` holds the three columns to lining up, which is
+    /// what would fail first if it ever became that case.
+    ///
+    /// **The announcement is on the glyph, not on the row.** A modifier on a
+    /// `GridRow` is applied to each cell "similar to how a Group behaves" —
+    /// `apple/swiftui-gridrow.md` — so an accessibility label on the row would
+    /// have been five elements saying the same sentence. The first cell
+    /// carries the whole row's sentence and the other four are hidden, which
+    /// is one element per row, as before.
     var body: some View {
-        HStack(spacing: 6) {
+        GridRow {
             LevelGlyph(level: reading.metric?.level, dimmed: dimmed)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(gaugeAnnouncement(
+                    caption, reading,
+                    detail: spokenDetail(detail, at: moment, compact: true, locale: locale)
+                        ?? reading.auxiliary(locale: locale),
+                    locale: locale))
 
+            // The caption yields last: the priority is what stops the grid
+            // giving the bar the caption's width and truncating the row's
+            // name — measured on the way here, "Использовано за 5 ча…" beside
+            // a bar twice the width it needs.
             Text(caption)
                 .font(.caption)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .layoutPriority(1)
+                .accessibilityHidden(true)
 
             // The floor `TextMetricsTests` has always assumed when working out
             // what is left for the caption — now stated to the layout instead
@@ -431,21 +483,33 @@ struct GaugeRow: View {
             // read.
             Bar(fraction: reading.metric?.fraction ?? 0, tint: tint)
                 .frame(minWidth: 40)
+                .accessibilityHidden(true)
 
             Text(verbatim: reading.metric?.value ?? "—")
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(dimmed ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                 .lineLimit(1)
                 .layoutPriority(2)
+                .gridColumnAlignment(.trailing)
+                .accessibilityHidden(true)
 
             if case .none = detail {
                 if let auxiliary = reading.auxiliary() {
+                    // No `layoutPriority` on this cell — it used to carry 2,
+                    // and in a `Grid` a priority on the last column is what
+                    // stopped the bar's column from taking the width left
+                    // over: the table ended at 283 of 330 points with the
+                    // bars at their 40-point floor, measured on the rendered
+                    // medium tile and bisected to this one modifier. A grid
+                    // column is as wide as its widest cell with or without
+                    // the priority, so nothing is lost by dropping it.
                     Text(verbatim: auxiliary)
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .layoutPriority(2)
+                        .gridColumnAlignment(.trailing)
+                        .accessibilityHidden(true)
                 }
             } else {
                 // No layoutPriority here, deliberately. Giving the line
@@ -469,14 +533,10 @@ struct GaugeRow: View {
                 // draws this row correctly, because a test process has no
                 // archiving step. `Scripts/tile-probe.swift` is what sees it.
                 DetailLine(detail: detail, compact: true)
+                    .gridColumnAlignment(.trailing)
+                    .accessibilityHidden(true)
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(gaugeAnnouncement(
-            caption, reading,
-            detail: spokenDetail(detail, at: moment, compact: true, locale: locale)
-                ?? reading.auxiliary(locale: locale),
-            locale: locale))
     }
 
     private var tint: Color { metricTint(reading, dimmed: dimmed) }

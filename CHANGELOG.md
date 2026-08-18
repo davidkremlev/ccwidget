@@ -36,6 +36,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The rows of the medium tile and of the window are a table.** Each row
+  used to lay itself out alone, and three captions of three widths gave three
+  bars starting at three places, with the percentages and the lines beside
+  them standing wherever their row's bar happened to end. The three rows are
+  one `Grid` now: the captions share a column, the bars start and end
+  together, the percentages are right-aligned in a column of their own and the
+  countdowns end on the edge. Measured on the live tile: bars from 181 in every
+  row, percentages ending at 274, the last column at 344 — where the footer
+  ends.
+
+  Two things learned on the way and kept in the code: a caption in a grid
+  needs its layout priority, or the grid gives the bar the caption's width and
+  truncates the row's name; and a priority on the last column stops the bar's
+  column from taking what is left, which left the table at 283 of 330 points
+  with the bars at their floor. Bisected on the rendered tile to that one
+  modifier.
+
 - **The countdowns on the medium tile sit on the right edge.** The two upper
   rows end in a countdown the system draws — laid out once when the tile is
   archived, drawn many times after with words the layout never saw — and the

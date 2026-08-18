@@ -29,9 +29,11 @@ struct MediumView: View {
                     // The context row still means something, so it stays and
                     // the two windows are explained rather than dashed out.
                     MessageView.noLimits(compact: true)
-                    GaugeRow(caption: "Context used",
-                             reading: entry.contextReading.withAuxiliary(entry.projectName),
-                             dimmed: entry.isDimmed)
+                    GaugeTable(spacing: 7) {
+                        GaugeRow(caption: "Context used",
+                                 reading: entry.contextReading.withAuxiliary(entry.projectName),
+                                 dimmed: entry.isDimmed)
+                    }
                 } else {
                     rows(snapshot)
                 }
@@ -47,7 +49,7 @@ struct MediumView: View {
     /// the context and the cost describe, while the five-hour window belongs
     /// to the account as a whole.
     private func rows(_ snapshot: Snapshot) -> some View {
-        VStack(spacing: 7) {
+        GaugeTable(spacing: 7) {
             GaugeRow(
                 caption: "5-hour used",
                 reading: entry.limitReading(snapshot.limits.fiveHour),

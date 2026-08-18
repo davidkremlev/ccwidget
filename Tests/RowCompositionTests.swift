@@ -170,13 +170,17 @@ struct RowCompositionTests {
 
         for language in Self.languages {
             let locale = Locale(identifier: language)
-            let row = GaugeRow(
-                caption: "Week used",
-                reading: entry.limitReading(entry.snapshot?.limits.sevenDay),
-                dimmed: false,
-                detail: entry.limitDetail(entry.snapshot?.limits.sevenDay, locale: locale),
-                moment: entry.date
-            )
+            // In a table of one, as the tile draws it in a table of three:
+            // a `GaugeRow` is a grid row now and lays out inside a `Grid`.
+            let row = GaugeTable {
+                GaugeRow(
+                    caption: "Week used",
+                    reading: entry.limitReading(entry.snapshot?.limits.sevenDay),
+                    dimmed: false,
+                    detail: entry.limitDetail(entry.snapshot?.limits.sevenDay, locale: locale),
+                    moment: entry.date
+                )
+            }
             .environment(\.locale, locale)
 
             let ink = inkProfile(row, width: Self.mediumContent)
@@ -317,16 +321,124 @@ struct RowCompositionTests {
 
         for language in Self.languages {
             let locale = Locale(identifier: language)
-            let row = GaugeRow(
-                caption: "Context used",
-                reading: entry.contextReading.withAuxiliary(entry.projectName),
-                dimmed: false
-            )
+            let row = GaugeTable {
+                GaugeRow(
+                    caption: "Context used",
+                    reading: entry.contextReading.withAuxiliary(entry.projectName),
+                    dimmed: false
+                )
+            }
             .environment(\.locale, locale)
 
             let width = barWidth(row, width: Self.mediumContent)
             #expect(width >= Self.minimumBarWidth,
                     "\(language): control row's bar is \(Int(width)) pt")
         }
+    }
+
+    // MARK: The table
+
+    /// Where each row's bar starts and ends, and where the row's ink ends, one
+    /// triple per row of ink bands. The instrument for the property below.
+    private func rowGeometry(_ view: some View, width: CGFloat)
+        -> [(barStart: Int, barEnd: Int, inkEnd: Int)] {
+        let renderer = ImageRenderer(content: view.frame(width: width))
+        renderer.scale = 1
+        guard let cg = renderer.cgImage else { return [] }
+        guard let px = PixelReader(NSBitmapImageRep(cgImage: cg)) else { return [] }
+        return px.bands(px.inkByAlpha).compactMap { band in
+            // The bar is the longest run of ink in the band; anything under
+            // twenty points is letters. Bands without one — none, in a table
+            // of gauge rows — are left out rather than counted as zero.
+            var best = (length: 0, start: 0)
+            var inkEnd = -1
+            for y in band {
+                var run = 0
+                for x in 0..<px.width {
+                    if px.isInkByAlpha(x, y) {
+                        run += 1
+                        inkEnd = max(inkEnd, x)
+                        if run > best.length { best = (run, x - run + 1) }
+                    } else {
+                        run = 0
+                    }
+                }
+            }
+            guard best.length >= 20 else { return nil }
+            return (best.start, best.start + best.length - 1, inkEnd)
+        }
+    }
+
+    /// The three rows are a table, and a table has columns.
+    ///
+    /// Each row used to lay itself out alone, and three captions of three
+    /// widths gave three bars starting at three places — seen on the desktop
+    /// on 18 August 2026. `GaugeTable` is a `Grid` now, whose columns take
+    /// the width of their widest cell, so the bars start together and end
+    /// together and the last column ends on the edge.
+    ///
+    /// Three rows with captions of deliberately different lengths and static
+    /// detail on every row, so that the right edge is a fact rather than a
+    /// countdown. A tolerance of one point on each edge: anti-aliasing at
+    /// scale 1 puts a run's first ink a pixel either way. This is also the
+    /// check that would fail first if a `GaugeRow` — a view whose body is a
+    /// `GridRow` — ever came to be laid out as a row spanning every column,
+    /// which is what `apple/swiftui-grid.md` says a grid does with a view that
+    /// is not a `GridRow`.
+    @Test("The rows of a table line up: bars start and end together, and the last column ends on the edge")
+    func rowsLineUpInATable() {
+      for language in Self.languages {
+        let entry = entry(resetsIn: 3600)
+        let table = GaugeTable {
+            GaugeRow(caption: "5-hour used",
+                     reading: entry.limitReading(entry.snapshot?.limits.fiveHour).withAuxiliary("a"),
+                     dimmed: false)
+            GaugeRow(caption: "Week used",
+                     reading: entry.limitReading(entry.snapshot?.limits.sevenDay).withAuxiliary("bb bb"),
+                     dimmed: false)
+            GaugeRow(caption: "Context used",
+                     reading: entry.contextReading.withAuxiliary("ccwidget"),
+                     dimmed: false)
+        }
+        .environment(\.locale, Locale(identifier: language))
+
+        let rows = rowGeometry(table, width: Self.mediumContent)
+        #expect(rows.count == 3, "\(language): \(rows.count) rows with a bar, three expected")
+        guard let first = rows.first else { continue }
+        for row in rows.dropFirst() {
+            #expect(abs(row.barStart - first.barStart) <= 1,
+                    "\(language): a bar starts at \(row.barStart) where the first starts at \(first.barStart)")
+            #expect(abs(row.barEnd - first.barEnd) <= 1,
+                    "\(language): a bar ends at \(row.barEnd) where the first ends at \(first.barEnd)")
+            #expect(abs(row.inkEnd - first.inkEnd) <= 1,
+                    "\(language): a row's ink ends at \(row.inkEnd) where the first ends at \(first.inkEnd)")
+        }
+      }
+    }
+
+    /// And the instrument notices rows that do not line up: three rows laid
+    /// out alone, the way they used to be, with the same three captions.
+    @Test("The instrument notices rows that were laid out alone")
+    func theInstrumentNoticesRaggedRows() {
+        let entry = entry(resetsIn: 3600)
+        let ragged = VStack(spacing: 7) {
+            GaugeTable {
+                GaugeRow(caption: "5-hour used",
+                         reading: entry.limitReading(entry.snapshot?.limits.fiveHour).withAuxiliary("a"),
+                         dimmed: false)
+            }
+            GaugeTable {
+                GaugeRow(caption: "Context used",
+                         reading: entry.contextReading.withAuxiliary("ccwidget"),
+                         dimmed: false)
+            }
+        }
+        .environment(\.locale, Locale(identifier: "en"))
+
+        let rows = rowGeometry(ragged, width: Self.mediumContent)
+        #expect(rows.count == 2)
+        guard rows.count == 2 else { return }
+        #expect(abs(rows[0].barStart - rows[1].barStart) > 1,
+                "two rows with different captions, laid out alone, start their bars in the same place — the instrument cannot see raggedness")
     }
 }
