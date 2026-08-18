@@ -75,6 +75,9 @@ the second kind. That was not a shortage of documents — Apple publishes them
 | Background | `apple/servicemanagement-status.md` | what each registration state of a login item means — and the one place this store disagrees with what the framework does | 2026-08-17 | macOS 26 |
 | Background | `apple/appkit-didfinishlaunching.md` | what the launch notification carries | 2026-08-17 | macOS 26 |
 | Build | `apple/xcode-26-release-notes.md` | which macOS version Xcode 26 requires, and what it ships SDKs for | 2026-08-16 | Xcode 26 |
+| Liquid Glass | `apple/swiftui-liquid-glass-custom-views.md` | `glassEffect`, `GlassEffectContainer`, the glass button styles: how a custom SwiftUI view takes on the material | 2026-08-18 | macOS 26 / Xcode 26 |
+| Liquid Glass | `apple/swiftui-glasseffect.md` | the `glassEffect(_:in:)` modifier: parameters and availability (macOS 26 and later) | 2026-08-18 | macOS 26 / Xcode 26 |
+| Liquid Glass | `apple/swiftui-glasseffectcontainer.md` | `GlassEffectContainer`: grouping glass views so that they blend and animate together | 2026-08-18 | macOS 26 / Xcode 26 |
 
 ## How to do it right
 
@@ -89,6 +92,7 @@ the second kind. That was not a shortage of documents — Apple publishes them
 | Typography | `apple/hig-typography.md` | the built-in text styles and their point sizes per platform, and each platform's minimum | 2026-08-07 | macOS 26 |
 | Icon | `apple/hig-app-icons.md` | how an app icon is supposed to look: layers, shape, legibility, what not to put in it | 2026-08-06 | macOS 26 |
 | Concurrency | `tooling/swift6-data-race-safety.md` | what `complete` checking asks of you: `Sendable`, isolation domains | 2026-08-06 | Swift 6 |
+| Liquid Glass | `apple/liquid-glass-adopting.md` | what the system applies on its own when built with the macOS 26 SDK; where custom glass belongs (controls, the toolbar layer) and where it does not (content); "sparingly"; a label for every toolbar icon | 2026-08-18 | macOS 26 / Xcode 26 |
 
 ## Read live, never cached
 
@@ -101,6 +105,7 @@ by the person who read it.
 |---|---|---|---|---|
 | Widget layout | how to do it right | <https://developer.apple.com/design/human-interface-guidelines/widgets> | 2026-08-06 | guidance changes without notice and without a version to pin — including the size table section 9 depends on |
 | Accessibility (overview) | how to do it right | <https://developer.apple.com/design/human-interface-guidelines/accessibility> | 2026-08-06 | same. Note: the VoiceOver guidance moved off this page on 7 March 2025 and is now cached as `apple/hig-voiceover.md` — this page is the overview only |
+| Materials (Liquid Glass) | how to do it right | <https://developer.apple.com/design/human-interface-guidelines/materials> | 2026-08-18 | same. The adoption guide (cached) carries the rules this project acts on; the HIG page is the design rationale behind them |
 | Consumer Terms | how it works | <https://www.anthropic.com/legal/consumer-terms> | 2026-08-06 | a legal document; section 14 of `SPEC.md` turns on its clause 3.7, and a stale copy of a legal text is worse than none |
 | Usage policy | how it works | <https://www.anthropic.com/legal/aup> | 2026-08-06 | legal document |
 | Homebrew | how to do it right | <https://docs.brew.sh/Cask-Cookbook> | 2026-08-06 | the policy of a repository that moves |
@@ -116,6 +121,7 @@ looks identical to an area where the missing genre does not exist.
 | WidgetKit | ✓ 6 | ✓ 3 + HIG live | complete |
 | Accessibility | ✓ 1 | ✓ 1 + HIG live | complete |
 | Concurrency | — | ✓ 1 | the mechanics are the language itself; *The Swift Programming Language* is the reference and is not cached. Connect it if a claim ever turns on language semantics rather than on the migration rules |
+| Liquid Glass | ✓ 3 | ✓ 1 + HIG live | complete |
 | Sandbox | ✓ 4 | — | Apple's App Sandbox Design Guide has been retired and its URL 404s. The reference pages are all that remains published; treat design decisions here as our own, not as Apple's advice |
 | Distribution | ✓ 2 | — | no separate guidance is published; the notarization page carries what advice there is |
 | Icon | ✓ 1 | ✓ 1 | complete. HIG App icons is cached rather than read live: unlike the widget layout guidance it is referenced for facts about layers and shape, and a claim needs a copy that can be quoted |

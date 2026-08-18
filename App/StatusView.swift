@@ -33,7 +33,7 @@ struct StatusView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
+            badge
 
             if model.integrity.raisesBanner {
                 tamperBanner
@@ -46,26 +46,83 @@ struct StatusView: View {
                 emptyState
             }
 
-            Divider()
-            bottomRow
-
             if showsDetails {
+                Divider()
                 details
             }
         }
         .padding(20)
-        .frame(width: 340)
+        .frame(width: 460)
         // Neither started nor stopped here any more. The app owns the
         // watcher's lifetime now, because a login item has to keep watching
         // with no window in sight — and a window that stopped it on the way out
         // would turn the background item into a process that does nothing.
         .onAppear { model.refresh() }
+        .toolbar { toolbar }
         .confirmationDialog("Remove ccwidget?", isPresented: $showsRemoval, titleVisibility: .visible) {
             Button("Remove, keep history", role: .destructive) { model.uninstall(removingHistory: false) }
             Button("Remove and delete history", role: .destructive) { model.uninstall(removingHistory: true) }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(model.removalMessage)
+        }
+    }
+
+    // MARK: Toolbar
+
+    /// The window's actions live in its toolbar, not in a row of buttons at the
+    /// foot of the content.
+    ///
+    /// This is where the platform puts them, and on macOS 26 it is also where
+    /// the platform draws them in Liquid Glass without being asked: the title
+    /// bar and its items take the material on their own when the app is built
+    /// with the macOS 26 SDK — `apple/liquid-glass-adopting.md`, "Leverage
+    /// system frameworks to adopt Liquid Glass automatically". On macOS 14 and
+    /// 15 the same toolbar draws in the style of the system it runs on. Nothing
+    /// here is gated on a version, and nothing here should be: the whole point
+    /// is that the system decides what a toolbar looks like.
+    ///
+    /// Two groups rather than one, and the destructive action alone in the
+    /// second: the adoption guide asks for items to be grouped by what they
+    /// affect, and on macOS 26 a group shares one glass background, so the
+    /// grouping is visible rather than notional. `Remove…` uninstalls the
+    /// product; it does not belong under the same pane of glass as "look
+    /// again" and "tell me more".
+    ///
+    /// Icons, with a label on every one: also from the guide — "Provide an
+    /// accessibility label for every icon". The label is what VoiceOver reads,
+    /// what the toolbar's overflow menu shows, and what the tooltip says, so
+    /// each action carries one string for all three. The actions themselves
+    /// are `StatusAction`, a list a check can read; this builder only places
+    /// them.
+    @ToolbarContentBuilder
+    private var toolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .primaryAction) {
+            Toggle(isOn: $showsDetails.animation(.easeInOut(duration: 0.15))) {
+                StatusAction.details.label
+            }
+            .toggleStyle(.button)
+            .help(StatusAction.details.title)
+            // The two buttons beside it take their accessibility description
+            // from their label; the toggle does not. Measured on 26.6.2 through
+            // System Events: `Обновить`, `Удалить…`, and for this one
+            // "кнопка переключения" — a toggle button with no name. Said
+            // explicitly, then.
+            .accessibilityLabel(StatusAction.details.title)
+            Button { model.refresh() } label: { StatusAction.refresh.label }
+                .help(StatusAction.refresh.title)
+        }
+        if #available(macOS 26, *) {
+            // The gap that makes two groups two panes of glass rather than one.
+            // Without it the system merges adjacent groups of the same
+            // placement into a single background — measured on 26.6.2, all
+            // three icons under one capsule — and the grouping this comment's
+            // neighbour describes existed only in the source.
+            ToolbarSpacer(.fixed, placement: .primaryAction)
+        }
+        ToolbarItemGroup(placement: .primaryAction) {
+            Button(role: .destructive) { showsRemoval = true } label: { StatusAction.remove.label }
+                .help(StatusAction.remove.title)
         }
     }
 
@@ -82,46 +139,34 @@ struct StatusView: View {
                     now: model.now)
     }
 
-    // MARK: Header
+    // MARK: Badge
 
-    /// The name gives way, the badge does not.
+    /// The state, in one word, at the top of the window.
     ///
-    /// Both are text in an `HStack`, and with nothing said about priorities
-    /// the layout decides which one gets less than it asked for. It decided on
-    /// the title, and truncated it: "Usage Widget for Claude C…" beside the
-    /// widest of the four badges, seen in the window at an hour's age.
+    /// It used to share a line with the application's name, and the two of
+    /// them fought over the width until `layoutPriority` settled it. The name
+    /// is gone from the content now: the window's title bar says it, and a
+    /// window that says its own name twice was exactly what the repeated-band
+    /// check exists to catch — it did not, because the title bar is not part
+    /// of what `ImageRenderer` draws, which is a reason to remove the
+    /// duplicate rather than a reason to keep it.
     ///
-    /// Which one should give way is not a layout question. The badge is the
-    /// thing that changed and the thing to act on; the name of the application
-    /// is something the reader already knows, being inside its window. So the
-    /// badge keeps its size and the title is allowed to shrink — section 9's
-    /// three tools, none of which this header used.
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("Usage Widget for Claude Code")
-                .font(.headline)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            Spacer(minLength: 8)
-            badge
-                .layoutPriority(1)
-        }
-    }
-
+    /// On macOS 26 the capsule is Liquid Glass, tinted with the tone. This is
+    /// the one custom use of the material in the window, kept deliberately
+    /// small: the adoption guide says to apply it to custom elements
+    /// "sparingly", and the toolbar above already carries the material where
+    /// the platform wants it. Earlier systems draw the flat tinted capsule
+    /// they always drew — the modifier does not exist there, and this is what
+    /// the `#available` is for.
     private var badge: some View {
         Text(verbatim: badgeText)
             .font(.caption.weight(.medium))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(badgeColor.opacity(0.18), in: Capsule())
             .foregroundStyle(badgeColor)
             .lineLimit(1)
-            // No shrink allowance on purpose: the badge is what the header is
-            // for. An earlier version gave it one, on the assumption that the
-            // layout would take the deficit out of the badge — permission to
-            // scale is not an instruction, and it took the deficit out of the
-            // title instead. `layoutPriority` above is what actually decides
-            // it; this stays at full size.
+            .fixedSize()
+            .modifier(BadgeSurface(tone: badgeColor))
     }
 
     /// A hash mismatch raises the badge regardless of how fresh the data is:
@@ -269,47 +314,6 @@ struct StatusView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: Bottom row
-
-    private var bottomRow: some View {
-        HStack {
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) { showsDetails.toggle() }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: showsDetails ? "chevron.down" : "chevron.right")
-                        .font(.caption2)
-                        // The chevron carries no meaning a listener can use,
-                        // and VoiceOver announced it: "Details, empty, button".
-                        .accessibilityHidden(true)
-                    Text("Details")
-                }
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            // Whether the section is open is the whole point of the control,
-            // and the chevron says it only to people who can see it. Folded
-            // into the label rather than left as an accessibility value for
-            // the same reason as the gauge rows: a value is announced before
-            // the label, so a separate value would say "collapsed, Details".
-            .accessibilityElement()
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(
-                Text("Details") + Text(verbatim: ", ")
-                + Text(showsDetails ? "expanded" : "collapsed")
-            )
-            .accessibilityAction { withAnimation(.easeInOut(duration: 0.15)) { showsDetails.toggle() } }
-
-            Spacer()
-
-            Button("Remove…", role: .destructive) { showsRemoval = true }
-                .controlSize(.small)
-            Button("Refresh") { model.refresh() }
-                .controlSize(.small)
-        }
-        .font(.callout)
-    }
-
     // MARK: Details
 
     /// The switch that decides whether the tile is a minute behind or half an
@@ -427,4 +431,62 @@ struct StatusView: View {
 
 
 
+}
+
+// MARK: - The toolbar's actions
+
+/// What the toolbar offers, as a list rather than as three buttons written
+/// out in a builder.
+///
+/// A toolbar is the one part of this window that `ImageRenderer` cannot draw,
+/// so the composition checks that hold the rest of the window to account see
+/// nothing of it. What they can hold to account is this: that every action has
+/// a symbol the system actually ships and a title for the label, the tooltip
+/// and the overflow menu — the three places an icon-only item needs words.
+/// `CaseIterable`, so that a check walks all of them and a fourth action
+/// cannot be added without being walked.
+enum StatusAction: CaseIterable {
+    case details, refresh, remove
+
+    /// The strings are the ones the buttons at the foot of the window used, so
+    /// the catalogue already carries them in every language.
+    var title: LocalizedStringKey {
+        switch self {
+        case .details: "Details"
+        case .refresh: "Refresh"
+        case .remove: "Remove…"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .details: "info.circle"
+        case .refresh: "arrow.clockwise"
+        case .remove: "trash"
+        }
+    }
+
+    var label: some View { Label(title, systemImage: symbol) }
+}
+
+// MARK: - The badge's surface
+
+/// Liquid Glass where there is Liquid Glass, the flat capsule everywhere else.
+///
+/// A modifier rather than an `if` inside the badge so that the two branches
+/// cannot drift apart in padding or shape: both receive the same view and
+/// differ only in what is behind it. `glassEffect(_:in:)` —
+/// `apple/swiftui-glasseffect.md` — is macOS 26 and later; the tint is the
+/// tone at the strength the flat capsule used, so the two look like the same
+/// badge in two materials rather than two badges.
+private struct BadgeSurface: ViewModifier {
+    let tone: Color
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26, *) {
+            content.glassEffect(.regular.tint(tone.opacity(0.18)), in: .capsule)
+        } else {
+            content.background(tone.opacity(0.18), in: Capsule())
+        }
+    }
 }

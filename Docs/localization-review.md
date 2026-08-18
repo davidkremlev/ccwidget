@@ -441,6 +441,16 @@ Seen on the desktop, in tiles 164 to 344 points wide.
 Seen after clicking the widget, and during setup.
 
 
+**`%@ · not a release build`**
+
+| | |
+|---|---|
+| German | %@ · kein Release-Build |
+| Spanish | %@ · no es una compilación de lanzamiento |
+| Japanese | %@ · リリースビルドではありません |
+| Simplified Chinese | %@ · 非发布版本 |
+
+
 **`%lld field(s) dropped while parsing`**
 
 | | |
@@ -611,16 +621,6 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 已结束 |
 
 
-**`collapsed`** — Whether the Details section of the window is open
-
-| | |
-|---|---|
-| German | ausgeblendet |
-| Spanish | plegado |
-| Japanese | 折りたたみ中 |
-| Simplified Chinese | 已折叠 |
-
-
 **`Context used`**
 
 | | |
@@ -699,16 +699,6 @@ Seen after clicking the widget, and during setup.
 | Spanish | Directorio de intercambio |
 | Japanese | 交換ディレクトリ |
 | Simplified Chinese | 交换目录 |
-
-
-**`expanded`** — Whether the Details section of the window is open
-
-| | |
-|---|---|
-| German | eingeblendet |
-| Spanish | desplegado |
-| Japanese | 展開中 |
-| Simplified Chinese | 已展开 |
 
 
 **`Exporter`**
@@ -861,14 +851,14 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 已关闭 — 小组件大约每半小时更新一次 |
 
 
-**`on — the widget updates within a minute`**
+**`on — within a minute while this app is in front, about every 15 minutes behind it`**
 
 | | |
 |---|---|
-| German | ein — das Widget aktualisiert sich innerhalb einer Minute |
-| Spanish | activado: el widget se actualiza en menos de un minuto |
-| Japanese | オン — ウィジェットは1分以内に更新されます |
-| Simplified Chinese | 已开启 — 小组件在一分钟内更新 |
+| German | an — innerhalb einer Minute, solange diese App im Vordergrund ist, sonst etwa alle 15 Minuten |
+| Spanish | activado: en menos de un minuto mientras esta app está en primer plano, y cada 15 minutos aproximadamente cuando no lo está |
+| Japanese | オン — このアプリが前面にある間は1分以内、背面では約15分ごと |
+| Simplified Chinese | 已开启 — 本应用在前台时一分钟内更新，在后台约每 15 分钟一次 |
 
 
 **`Open Login Items in System Settings`**
@@ -1151,6 +1141,36 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 把订阅限额放在桌面上。 |
 
 
+**`The app is still registered to start at login: %@`**
+
+| | |
+|---|---|
+| German | Die App ist weiterhin für den Start bei der Anmeldung registriert: %@ |
+| Spanish | La app sigue registrada para iniciarse al iniciar sesión: %@ |
+| Japanese | ログイン時の起動登録が残っています: %@ |
+| Simplified Chinese | 应用仍注册为随登录启动：%@ |
+
+
+**`The app no longer starts at login.`**
+
+| | |
+|---|---|
+| German | Die App startet nicht mehr bei der Anmeldung. |
+| Spanish | La app ya no se inicia al iniciar sesión. |
+| Japanese | ログイン時に起動しなくなりました。 |
+| Simplified Chinese | 应用不再随登录启动。 |
+
+
+**`The app stops starting at login.`**
+
+| | |
+|---|---|
+| German | Die App startet nicht mehr bei der Anmeldung. |
+| Spanish | La app dejará de iniciarse al iniciar sesión. |
+| Japanese | ログイン時に起動しなくなります。 |
+| Simplified Chinese | 应用将不再随登录启动。 |
+
+
 **`The exchange directory is created by the system when the widget first runs. Right-click the desktop, choose Edit Widgets, add Usage Widget for Claude Code, then come back.`**
 
 | | |
@@ -1261,6 +1281,26 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 以下需要手动删除：%@ |
 
 
+**`This app`**
+
+| | |
+|---|---|
+| German | Diese App |
+| Spanish | Esta app |
+| Japanese | このアプリ |
+| Simplified Chinese | 本应用 |
+
+
+**`This Mac has data from an earlier setup, so the configuration was removed rather than never made. Upgrading or removing through Homebrew clears it; setting up again is all it takes, and the history you have collected is kept.`**
+
+| | |
+|---|---|
+| German | Auf diesem Mac liegen Daten einer früheren Einrichtung — die Konfiguration wurde also entfernt und nicht nie vorgenommen. Ein Upgrade oder eine Deinstallation über Homebrew entfernt sie; erneutes Einrichten genügt, der gesammelte Verlauf bleibt erhalten. |
+| Spanish | Este Mac tiene datos de una configuración anterior, así que la configuración se eliminó en lugar de no haberse hecho nunca. Actualizar o desinstalar con Homebrew la borra; basta con volver a configurarla y el historial recopilado se conserva. |
+| Japanese | この Mac には以前の設定のデータがあります。つまり設定は削除されたのであって、未設定だったわけではありません。Homebrew での更新や削除は設定を消します。もう一度設定するだけで済み、集めた履歴は保持されます。 |
+| Simplified Chinese | 这台 Mac 上有先前设置留下的数据，也就是说配置被移除了，而不是从未设置。通过 Homebrew 升级或卸载都会清除配置；重新设置一次即可，已收集的历史会保留。 |
+
+
 **`This widget reads the Claude Code status line, so the terminal version has to be installed and used at least once.`**
 
 | | |
@@ -1269,6 +1309,16 @@ Seen after clicking the widget, and during setup.
 | Spanish | El widget lee la línea de estado de Claude Code, así que la versión de terminal debe estar instalada y usarse al menos una vez. |
 | Japanese | このウィジェットは Claude Code のステータスラインを読みます。ターミナル版をインストールし、一度は使う必要があります。 |
 | Simplified Chinese | 该小组件读取 Claude Code 的状态行，因此需要安装终端版并至少使用一次。 |
+
+
+**`unknown`**
+
+| | |
+|---|---|
+| German | unbekannt |
+| Spanish | desconocido |
+| Japanese | 不明 |
+| Simplified Chinese | 未知 |
 
 
 **`Updated at %@`** — Quiet line when there is no weekly window: the clock time of the snapshot
@@ -1393,4 +1443,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-132 strings in total.
+137 strings in total.

@@ -34,6 +34,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prompt after a plain `brew uninstall`, for good, which is a worse thing to be
   quiet about than a button press.
 
+### Changed
+
+- **The window looks like a macOS 26 window.** *Refresh*, *Details* and
+  *Remove…* moved from a row of buttons at the foot of the content into the
+  window's toolbar, where the platform draws them — and on macOS 26 draws them
+  in Liquid Glass without being asked. *Details* is a toggle there; what it
+  opens is the same section, in the same place. The state badge is a glass
+  capsule on macOS 26 and the flat capsule it always was on 14 and 15: the one
+  custom use of the material in the window, kept small on purpose, because
+  Apple's adoption guide asks for custom glass "sparingly" and the toolbar
+  already carries it where it belongs.
+
+  The application's name is gone from the top of the content: the title bar
+  says it, and a window that says its own name twice was exactly the kind of
+  repetition the window's own check exists to catch — it did not, because the
+  title bar is not part of what that check draws.
+
+  The window is 460 points wide, the width the setup screen already had, so
+  the one window the app has no longer changes width when setup ends. Measured
+  before settling on it: at 340 the toolbar collapsed into an overflow chevron
+  and the title truncated; at 440 the title still truncated under the unified
+  toolbar style, which centres it in what the traffic lights and the items
+  leave over. Compact puts the title at the leading edge, and it fits.
+
 ## [0.3.3] — 2026-08-17
 
 ### Added

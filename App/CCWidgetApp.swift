@@ -94,6 +94,12 @@ struct CCWidgetApp: App {
                 }
         }
         .windowResizability(.contentSize)
+        // Title and toolbar on one line. The unified style centres the title
+        // between the traffic lights and the items and gives it what is left
+        // over, which at this window's width is less than the title needs:
+        // measured, "Usage Widget for Claude…" at 440 points. Compact puts the
+        // title at the leading edge and lets it run up to the items.
+        .windowToolbarStyle(.unifiedCompact)
     }
 }
 

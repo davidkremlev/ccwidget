@@ -306,6 +306,32 @@ struct ScreenCompositionTests {
         }
     }
 
+    // MARK: The toolbar
+
+    /// The window's actions moved from a row of buttons in the content to the
+    /// toolbar, and the toolbar is the one part of the window `ImageRenderer`
+    /// does not draw. What the checks above lost sight of, this one holds:
+    /// each action is icon-only in the toolbar, so each needs a symbol the
+    /// system ships and a title for the label, the tooltip and the overflow
+    /// menu — the adoption guide's "provide an accessibility label for every
+    /// icon", `apple/liquid-glass-adopting.md`.
+    ///
+    /// The symbol is asked of AppKit, not matched against a list: a name that
+    /// resolves to no image is exactly the defect — a blank button — and a
+    /// list would only say the name was one somebody typed. The title is
+    /// rendered, because a `LocalizedStringKey` cannot be compared to a
+    /// string, and a key the catalogue does not know still renders — as
+    /// itself, in English, which is a defect this cannot see. What it can see
+    /// is a title that renders to nothing.
+    @Test("Every toolbar action has a symbol the system ships and a title that draws",
+          arguments: StatusAction.allCases)
+    func everyToolbarActionHasASymbolAndATitle(action: StatusAction) {
+        #expect(NSImage(systemSymbolName: action.symbol, accessibilityDescription: nil) != nil,
+                "\(action): no system symbol named \(action.symbol)")
+        #expect(inkShare(Text(action.title).font(.body), width: 200) > 0,
+                "\(action): the title draws nothing")
+    }
+
     // MARK: The setup screen
 
     /// The first screen a new user meets, in all six languages. It could not be
