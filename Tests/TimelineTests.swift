@@ -42,11 +42,32 @@ struct TimelineTests {
             context: nil, cost: nil)
     }
 
-    /// The rule this batch was about. Apple asks for entries at least about
-    /// five minutes apart; the previous implementation placed thirty of them
-    /// sixty seconds apart, so this fails on it — verified by putting the old
-    /// implementation back and watching it fail, not by reasoning about it.
-    @Test("No two entries sit closer than five minutes",
+    /// Whether a moment is one the tile changes at on its own — the same list
+    /// `thresholdDates` returns — as opposed to a grid point that exists only
+    /// to end the timeline. The property below is stated in these terms.
+    private func isThreshold(_ date: Date, captured: TimeInterval,
+                             fiveHour: TimeInterval, week: TimeInterval) -> Bool {
+        CCWidgetProvider.thresholdDates(
+            from: Self.now,
+            snapshot: snapshot(captured: captured, fiveHourResets: fiveHour, weekResets: week)
+        ).contains(date)
+    }
+
+    /// The five-minute rule, and where it stops. Apple asks for entries at
+    /// least about five minutes apart; the previous implementation placed
+    /// thirty of them sixty seconds apart, so this fails on it — verified by
+    /// putting the old implementation back and watching it fail.
+    ///
+    /// **Rewritten on 18 August 2026, not extended.** The rule used to be
+    /// asserted between *every* pair, and that was the check agreeing with a
+    /// defect: a threshold inside five minutes of the build was thinned out
+    /// like a grid point, and a five-hour reset 2½ minutes out lost its entry
+    /// — the tile stayed on the open row and the countdown counted up past
+    /// zero on the desktop. So the property is now: no two *paced* entries
+    /// closer than five minutes; a pair closer than that is allowed only when
+    /// one of the two is a threshold, which is a moment the picture changes
+    /// and is kept whatever the grid does. Section 2.4 records the departure.
+    @Test("No two paced entries sit closer than five minutes; a threshold may",
           arguments: [
             (-30.0, 3600.0, 86_400.0),      // ordinary: nothing near anything
             (-3599.0, 60.0, 300.0),         // a reset a minute out and the hour threshold on top of it
@@ -62,8 +83,11 @@ struct TimelineTests {
 
         for (earlier, later) in zip(dates, dates.dropFirst()) {
             let gap = later.timeIntervalSince(earlier)
-            #expect(gap >= CCWidgetProvider.minimumSpacing,
-                    "entries \(gap) s apart, closer than the \(CCWidgetProvider.minimumSpacing) s minimum")
+            guard gap < CCWidgetProvider.minimumSpacing else { continue }
+            let excused = isThreshold(earlier, captured: captured, fiveHour: fiveHour, week: week)
+                || isThreshold(later, captured: captured, fiveHour: fiveHour, week: week)
+            #expect(excused,
+                    "entries \(gap) s apart, closer than the \(CCWidgetProvider.minimumSpacing) s minimum, and neither is a threshold")
         }
     }
 
@@ -99,8 +123,13 @@ struct TimelineTests {
 
         for (earlier, later) in zip(dates, dates.dropFirst()) {
             let gap = later.timeIntervalSince(earlier)
-            #expect(gap >= CCWidgetProvider.minimumSpacing,
-                    "entries \(Int(gap)) s apart, below the \(Int(CCWidgetProvider.minimumSpacing)) s minimum")
+            // The lower bound holds between paced entries; a threshold may
+            // sit closer — the check above says why. The upper bound holds
+            // everywhere.
+            let excused = isThreshold(earlier, captured: captured, fiveHour: fiveHour, week: week)
+                || isThreshold(later, captured: captured, fiveHour: fiveHour, week: week)
+            #expect(gap >= CCWidgetProvider.minimumSpacing || excused,
+                    "entries \(Int(gap)) s apart, below the \(Int(CCWidgetProvider.minimumSpacing)) s minimum, and neither is a threshold")
             #expect(gap <= CCWidgetProvider.maximumSpacing,
                     "entries \(Int(gap)) s apart, above the \(Int(CCWidgetProvider.maximumSpacing)) s maximum")
         }
@@ -150,6 +179,40 @@ struct TimelineTests {
             snapshot: snapshot(captured: -60, fiveHourResets: 40 * 60, weekResets: 5 * 86_400))
         #expect(dates.contains(Self.now.addingTimeInterval(40 * 60)),
                 "a reset forty minutes out has no entry")
+    }
+
+    /// **The case the check above did not ask, and the desktop did.** Forty
+    /// minutes out is comfortably past the five-minute minimum; the defect was
+    /// a reset *inside* it. On 18 August 2026 a timeline built at 13:57:31 for
+    /// a window closing at 14:00:00 carried no entry for the close: the moment
+    /// was thinned as if it were a grid point, the tile stayed on the open
+    /// row, and the system's relative date counted up past zero. So: a reset
+    /// 150 seconds out has an entry, and so do two resets a second apart, and
+    /// a reset that lands on the same second as the hour threshold — every
+    /// moment the picture changes, however close to the build or to each
+    /// other.
+    @Test("A reset inside five minutes of the build still gets its entry",
+          arguments: [150.0, 1.0, 299.0])
+    func resetInsideTheMinimumIsCovered(seconds: TimeInterval) {
+        let dates = CCWidgetProvider.entryDates(
+            from: Self.now,
+            snapshot: snapshot(captured: -60, fiveHourResets: seconds, weekResets: seconds + 1))
+        #expect(dates.contains(Self.now.addingTimeInterval(seconds)),
+                "a reset \(Int(seconds)) s out has no entry")
+        #expect(dates.contains(Self.now.addingTimeInterval(seconds + 1)),
+                "a second reset a second later has no entry")
+        #expect(dates.first == Self.now, "the first entry is not now")
+    }
+
+    /// And the hour threshold inside the minimum, for the same reason: the
+    /// tile dims at an hour, and dimming four minutes late is dimming late.
+    @Test("The hour threshold inside five minutes of the build still gets its entry")
+    func freshnessInsideTheMinimumIsCovered() {
+        let dates = CCWidgetProvider.entryDates(
+            from: Self.now,
+            snapshot: snapshot(captured: -3600 + 120, fiveHourResets: 4 * 3600, weekResets: 5 * 86_400))
+        #expect(dates.contains(Self.now.addingTimeInterval(120)),
+                "the hour threshold two minutes out has no entry")
     }
 
     /// A moment already past cannot be scheduled, and WidgetKit would drop it

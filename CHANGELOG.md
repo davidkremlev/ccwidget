@@ -36,6 +36,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A window that closes within five minutes of a rebuild still gets its
+  timeline entry.** The moments the tile changes on its own — the two
+  freshness thresholds and the close of each window — went through the same
+  five-minute thinning as the paced grid, so a five-hour window that reset
+  2 min 29 s after a rebuild lost the entry that switches its row to "closed":
+  the tile stayed on the open row until the next grid point, and the system's
+  relative date, past its moment, counted *up* — "8 мин 37 с" on the desktop
+  eight minutes after the reset, reading as time left. Rebuilds happen
+  whenever the snapshot changes, so this was the ordinary case, not a corner.
+
+  Thresholds are kept now whatever the grid does; only the grid is thinned.
+  This is a named departure from Apple's "at least about 5 minutes apart" for
+  one pair of entries per timeline, recorded in `SPEC` 2.4 with the reason.
+  The check that asserted five minutes between *every* pair was rewritten
+  rather than joined by a contradicting one, and a check for a reset 150 s out
+  was added — it fails on the previous scheduler, verified by putting it back.
+  The provider now logs the schedule it built (`timeline scheduled: … thresholds
+  at […]s`) at a level that survives an hour, so the question can be answered
+  from the log.
+
 - **The rows of the medium tile and of the window are a table.** Each row
   used to lay itself out alone, and three captions of three widths gave three
   bars starting at three places, with the percentages and the lines beside

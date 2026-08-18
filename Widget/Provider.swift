@@ -47,28 +47,28 @@ struct CCWidgetProvider: TimelineProvider {
     static let horizon: TimeInterval = 2 * 60 * 60
     static let maximumSpacing: TimeInterval = 30 * 60
 
-    /// Where the tile changes by itself, with no new data: the two freshness
-    /// thresholds, and the moment each window closes.
+    /// The moments the picture changes without new data — the two freshness
+    /// thresholds and the moment each window closes — and `now`, which the
+    /// tile needs something to draw from.
     ///
-    /// Everything else — the countdown, and the countdown alone — moves on its
-    /// own. The age no longer moves at all: section 2.4 prints the capture
-    /// moment, which is the same string forever.
+    /// **These are never dropped.** The paced grid below is thinned to keep
+    /// entries about five minutes apart, as Apple asks; the thresholds are
+    /// not, and that is a departure from the same guidance, made on purpose
+    /// and recorded in section 2.4. Until 18 August 2026 they went through the
+    /// same sieve as the grid, and a five-hour window that reset 2 min 29 s
+    /// after a rebuild lost its entry: the tile stayed on the open row, and
+    /// the system's relative date, past its moment, counted *up* — "8 мин
+    /// 37 с" on the desktop, reading as time left, eight minutes after the
+    /// window had closed. A rebuild happens whenever the snapshot changes,
+    /// so a rebuild inside the last five minutes of a window is not a corner
+    /// but the ordinary case. Two entries 2½ minutes apart, once, is not the
+    /// density the five-minute rule is written against; a countdown that
+    /// lies for up to half an hour is the thing it would cost to keep.
     ///
     /// Separate from `makeTimeline` because it is the half that can be
     /// checked: `makeTimeline` reads the store, and these are arithmetic.
-    static func entryDates(from now: Date, snapshot: Snapshot?) -> [Date] {
+    static func thresholdDates(from now: Date, snapshot: Snapshot?) -> [Date] {
         var moments: [Date] = [now]
-
-        // A paced series out to the horizon. Its only purpose is to end: the
-        // last entry is what the reload policy points at, and a timeline that
-        // ends in two hours is a promise that the provider is asked again in
-        // two hours, whatever the watcher is doing.
-        var step = now.addingTimeInterval(maximumSpacing)
-        while step <= now.addingTimeInterval(horizon) {
-            moments.append(step)
-            step = step.addingTimeInterval(maximumSpacing)
-        }
-
         if let captured = snapshot?.capturedAt {
             // An hour old: the figures dim and gain the word "outdated".
             // A day old: the figures go away entirely.
@@ -79,18 +79,42 @@ struct CCWidgetProvider: TimelineProvider {
             // The row switches to "closed" here, and the countdown stops.
             moments.append(window.resetsAt)
         }
-
-        // Only what is ahead and inside the horizon, in order, and never two
-        // closer than the minimum: the system is entitled to ignore entries it
-        // considers too dense, and an ignored entry is a threshold that arrives
-        // late. A threshold beyond the horizon is not lost — the timeline built
-        // two hours from now will carry it, and by then it is closer.
+        // Only what is ahead and inside the horizon. A threshold beyond the
+        // horizon is not lost — the timeline built two hours from now will
+        // carry it, and by then it is closer. Deduplicated: two windows may
+        // reset at the same instant, and one entry says both.
         let ceiling = now.addingTimeInterval(horizon)
         var kept: [Date] = []
         for moment in moments.sorted() where moment >= now && moment <= ceiling {
-            if let last = kept.last, moment.timeIntervalSince(last) < minimumSpacing { continue }
+            if kept.last == moment { continue }
             kept.append(moment)
         }
+        return kept
+    }
+
+    /// The whole schedule: the thresholds, and a paced grid around them.
+    static func entryDates(from now: Date, snapshot: Snapshot?) -> [Date] {
+        let thresholds = thresholdDates(from: now, snapshot: snapshot)
+
+        // A paced series out to the horizon. Its only purpose is to end: the
+        // last entry is what the reload policy points at, and a timeline that
+        // ends in two hours is a promise that the provider is asked again in
+        // two hours, whatever the watcher is doing.
+        //
+        // The grid is what the five-minute rule thins: a grid point that
+        // lands within the minimum of a threshold — or of an earlier grid
+        // point — is dropped, because the system is entitled to ignore
+        // entries it considers too dense, and an ignored entry is a moment
+        // that arrives late. The thresholds themselves are kept whatever the
+        // grid does; see `thresholdDates`.
+        var kept = thresholds
+        var step = now.addingTimeInterval(maximumSpacing)
+        while step <= now.addingTimeInterval(horizon) {
+            let crowded = kept.contains { abs($0.timeIntervalSince(step)) < minimumSpacing }
+            if !crowded { kept.append(step) }
+            step = step.addingTimeInterval(maximumSpacing)
+        }
+        kept.sort()
 
         // Thinning can open a gap wider than the maximum: a threshold accepted
         // just before a grid point pushes the next one past it. Fill those back
@@ -158,6 +182,14 @@ struct CCWidgetProvider: TimelineProvider {
         // changes in between except the countdown, and the countdown is the
         // system's to redraw.
         let last = entries.last?.date ?? now
+        // At `.notice`, not `.info`: the info ring buffer is gone within
+        // minutes, and whether a reset had its entry is a question asked an
+        // hour later, from the desktop. Offsets from now, in seconds — the
+        // schedule identifies nobody.
+        let thresholds = Self.thresholdDates(from: now, snapshot: base.snapshot)
+        ccwidgetWidgetLog.notice(
+            "timeline scheduled: \(entries.count, privacy: .public) entries, reach \(Int(last.timeIntervalSince(now)), privacy: .public)s, thresholds at \(thresholds.map { Int($0.timeIntervalSince(now)) }.description, privacy: .public)s"
+        )
         return Timeline(entries: entries, policy: .after(last))
     }
 
