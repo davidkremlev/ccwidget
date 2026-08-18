@@ -197,8 +197,15 @@ for (suffix, scheme) in [("light", ColorScheme.light), ("dark", ColorScheme.dark
 /// name. The tiles keep their real dimensions from section 9 — nothing here is
 /// resized, because a tile drawn at the wrong size is no longer a picture of
 /// the product.
+/// **A second shape for a second platform.** Upwork's portfolio shows a 4:3
+/// thumbnail — 1000×750 recommended, 400×300 minimum, 4000×4000 maximum, per
+/// its help centre and community answers (`SOURCES.md`, read live, 18 August
+/// 2026) — and a 16:9 image dropped into a 4:3 slot loses its edges the same
+/// way the X post did. So the canvas is a parameter: 800×450 for X, 800×600
+/// for the portfolio, at `renderScale` 2 either way. Same tiles, same
+/// arithmetic; only the margins around them change.
 @MainActor
-func shootPoster(_ name: String, _ scheme: ColorScheme) {
+func shootPoster(_ name: String, _ scheme: ColorScheme, canvas: CGSize = CGSize(width: 800, height: 450)) {
     let backdrop = scheme == .dark
         ? [Color(red: 0.09, green: 0.09, blue: 0.11), Color(red: 0.16, green: 0.15, blue: 0.19)]
         : [Color(red: 0.94, green: 0.94, blue: 0.96), Color(red: 0.86, green: 0.87, blue: 0.91)]
@@ -223,7 +230,7 @@ func shootPoster(_ name: String, _ scheme: ColorScheme) {
             tile(small) { SmallView(entry: entry) }
         }
     }
-    .frame(width: 800, height: 450)
+    .frame(width: canvas.width, height: canvas.height)
     .background(LinearGradient(colors: backdrop, startPoint: .topLeading, endPoint: .bottomTrailing))
     .environment(\.colorScheme, scheme)
     .environment(\.dynamicTypeSize, typeSize)
@@ -238,8 +245,10 @@ func shootPoster(_ name: String, _ scheme: ColorScheme) {
     }
     let url = outDir.appending(path: "\(name).png")
     try! png.write(to: url)
-    print("\(url.lastPathComponent)  1600×900")
+    print("\(url.lastPathComponent)  \(Int(canvas.width * renderScale))×\(Int(canvas.height * renderScale))")
 }
 
 shootPoster("poster-dark", .dark)
 shootPoster("poster-light", .light)
+shootPoster("portfolio-dark", .dark, canvas: CGSize(width: 800, height: 600))
+shootPoster("portfolio-light", .light, canvas: CGSize(width: 800, height: 600))
