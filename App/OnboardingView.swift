@@ -19,8 +19,16 @@ struct OnboardingView: View {
     /// the project.
     private let installer: Installer
 
-    init(installer: Installer = .live(), step: OnboardingStep = .checkClaudeCode) {
+    /// What pressing the ready step's button does. The owner of this view
+    /// decides what "finished" means — `RootView` re-checks the configuration
+    /// and swaps to the status view. A default of nothing keeps the previews
+    /// and the composition checks constructible without a harness.
+    private let onFinished: () -> Void
+
+    init(installer: Installer = .live(), step: OnboardingStep = .checkClaudeCode,
+         onFinished: @escaping () -> Void = {}) {
         self.installer = installer
+        self.onFinished = onFinished
         _step = State(initialValue: step)
     }
     @State private var showsManual = false
@@ -297,6 +305,9 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+
+        Button(script.actions[0]) { onFinished() }
+            .keyboardShortcut(.defaultAction)
     }
 
     // MARK: Manual instructions

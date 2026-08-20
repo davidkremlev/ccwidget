@@ -219,10 +219,17 @@ enum OnboardingStep: Equatable {
                 actions: [])
 
         case .ready:
+            // One action, and it is the way out. This step used to offer
+            // none, and the setup screen was a dead end: the window swaps to
+            // the status view only when the app becomes active again, so a
+            // reader who finished setup and stayed in the app sat in front of
+            // "live data is coming in" with nothing to press. Seen by the
+            // owner on 21 August 2026, right after a release that had walked
+            // through setup itself.
             return Script(
                 headline: t("Live data is coming in."),
                 explanation: t("If the widget is not on your desktop yet, right-click the desktop and choose Edit Widgets."),
-                actions: [])
+                actions: [t("Show the status")])
         }
     }
 }

@@ -26,4 +26,4 @@ actions      —
 ── step 4, done
 headline     Live data is coming in.
 explanation  If the widget is not on your desktop yet, right-click the desktop and choose Edit Widgets.
-actions      —
+actions      Show the status

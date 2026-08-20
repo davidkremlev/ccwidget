@@ -114,7 +114,10 @@ struct RootView: View {
             if isConfigured {
                 StatusView(model: model)
             } else {
-                OnboardingView()
+                // The completion is the third way the answer can change; the
+                // other two — appearing, and the app becoming active — cannot
+                // see a setup that finishes inside this very window.
+                OnboardingView(onFinished: { isConfigured = Self.configured })
             }
         }
         .onAppear { isConfigured = Self.configured }

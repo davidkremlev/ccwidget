@@ -527,11 +527,14 @@ struct TextMetricsTests {
         // this measured the script's own strings and reported the same 77 pt
         // of headroom in all six languages, which is what a check that has
         // stopped looking at anything looks like.
-        for step in [OnboardingStep.checkClaudeCode, .install] {
+        // All four steps, single-button rows included: the ready step grew
+        // its one button after shipping without one, and a button this loop
+        // skips is a string nothing measures.
+        for step in [OnboardingStep.checkClaudeCode, .install, .waitingForData, .ready] {
             for containerExists in [true, false] {
                 let keys = step.script(claudeCodeIsPresent: false,
                                        widgetContainerExists: containerExists).actions
-                guard keys.count > 1 else { continue }
+                guard !keys.isEmpty else { continue }
                 for language in Self.languages {
                     let titles = try keys.map { key -> String in
                         if language == "en" { return key }

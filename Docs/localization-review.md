@@ -1111,6 +1111,16 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 显示手动步骤 |
 
 
+**`Show the status`** — The setup screen's last button: setup finished, switch this window to the status view
+
+| | |
+|---|---|
+| German | Status anzeigen |
+| Spanish | Mostrar el estado |
+| Japanese | ステータスを表示 |
+| Simplified Chinese | 显示状态 |
+
+
 **`Snapshot`**
 
 | | |
@@ -1443,4 +1453,4 @@ Seen after clicking the widget, and during setup.
 
 ---
 
-137 strings in total.
+138 strings in total.

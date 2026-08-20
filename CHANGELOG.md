@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The setup screen's last step has a way out.** "Live data is coming in"
+  offered nothing to press: the window swaps to the status view only when the
+  app becomes active again, so finishing setup and staying in the app left the
+  reader in front of a dead end — seen on the desktop right after the 0.3.4
+  release walked through setup itself. The step carries a "Show the status"
+  button now, in all six languages, and pressing it re-checks the
+  configuration the same way activation does. The step-script baseline records
+  the action, and the button-width check now measures single-button steps —
+  it used to skip them, which is how a step with no buttons at all stayed
+  legal.
+
 ## [0.3.4] — 2026-08-21
 
 ### Added
