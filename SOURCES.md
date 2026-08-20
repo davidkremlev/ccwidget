@@ -66,8 +66,8 @@ the second kind. That was not a shortage of documents — Apple publishes them
 | Checks | `apple/swift-testing.md` | `@Test`, `#expect`, suites, traits, parameterized cases | 2026-08-06 | Xcode 26 |
 | Icon | `apple/xcode-icon-composer.md` | the `.icon` format, layers, how a target names its icon | 2026-08-06 | Xcode 26 |
 | Accessibility | `apple/swiftui-accessibility.md` | accessibility modifiers: label, value, element combination | 2026-08-06 | macOS 26 |
-| Claude Code | `claude-code/statusline.md` | the JSON handed to a status line: every field, its type, when it is absent or null | 2026-08-06 | Claude Code 2.1.223 |
-| Claude Code | `claude-code/settings.md` | `~/.claude/settings.json`: keys, the shape of `statusLine`, precedence | 2026-08-06 | Claude Code 2.1.223 |
+| Claude Code | `claude-code/statusline.md` | the JSON handed to a status line: every field, its type, when it is absent or null | 2026-08-21 | Claude Code 2.1.238 |
+| Claude Code | `claude-code/settings.md` | `~/.claude/settings.json`: keys, the shape of `statusLine`, precedence | 2026-08-21 | Claude Code 2.1.238 |
 | Exporter | `python/os-replace.md` | `os.replace`: atomicity of the rename and its caveats | 2026-08-06 | Python 3.14 |
 | Build | `tooling/xcodegen-projectspec.md` | every key `project.yml` may contain | 2026-08-06 | XcodeGen master |
 | Background | `apple/servicemanagement-smappservice.md` | registering an app to run at login, and the statuses it can be in | 2026-08-17 | macOS 26 |
