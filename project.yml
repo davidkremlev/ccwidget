@@ -38,7 +38,7 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_VERSION: "6.0"
     CURRENT_PROJECT_VERSION: 5
-    MARKETING_VERSION: "0.3.4"
+    MARKETING_VERSION: "0.3.5"
     # Stamped by Scripts/release.sh, empty otherwise. A bundle that cannot say
     # which commit built it is a bundle nobody can check: on 17 August the
     # installed app said 0.3.2 while carrying work the v0.3.2 tag does not have,

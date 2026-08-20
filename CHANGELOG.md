@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.5] — 2026-08-21
+
 ### Changed
 
 - **The window is a pane of translucent material over the desktop.** Chosen by
@@ -883,7 +885,8 @@ Data path, widget, forecast.
 - `~/.claude` is created with mode `0700` when this project is the one
   creating it.
 
-[Unreleased]: ../../compare/v0.3.4...HEAD
+[Unreleased]: ../../compare/v0.3.5...HEAD
+[0.3.5]: ../../compare/v0.3.4...v0.3.5
 [0.3.4]: ../../compare/v0.3.3...v0.3.4
 [0.3.3]: ../../compare/v0.3.2...v0.3.3
 [0.3.2]: ../../compare/v0.3.1...v0.3.2
