@@ -108,6 +108,7 @@ struct CCWidgetApp: App {
 /// the first snapshot has arrived. After that, the ordinary status window.
 struct RootView: View {
     @State private var isConfigured = RootView.configured
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var model: StatusModel
 
     var body: some View {
@@ -129,6 +130,24 @@ struct RootView: View {
         )) { _ in
             recheck("activation")
         }
+        // The window's dress, not the views': both screens share the
+        // translucent material, and the composition checks keep rendering
+        // the views themselves on the explicit backgrounds they always used.
+        //
+        // The scrim between the material and the content is what keeps the
+        // text honest over whatever the desktop shows. Measured over the
+        // worst backdrop on this desk — a saturated red widget bleeding
+        // through — before it existed: the quiet line held 4.3:1 in dark and
+        // fell to 2.4:1 in light, where the material is far more
+        // translucent. The two densities are tuned to the measurement, not
+        // to taste; the numbers live in the commit.
+        .background {
+            WindowBackdrop()
+                .overlay(Color(nsColor: .windowBackgroundColor)
+                    .opacity(colorScheme == .light ? 0.55 : 0.15))
+                .ignoresSafeArea()
+        }
+        .modifier(ClearWindowGround())
     }
 
     /// One place for the three triggers, and a log line when the answer

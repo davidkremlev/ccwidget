@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The window is a pane of translucent material over the desktop.** Chosen by
+  the owner over the opaque window, twice asked for, and named as a departure
+  from Apple's adoption guide, which puts glass on controls and not under
+  content. Real Liquid Glass cannot do this at all — measured on 18 August:
+  `NSGlassEffectView` as a window background draws opaque, refracting only its
+  own window — so the backdrop is `NSVisualEffectView` (`.popover`,
+  behind-window, held active so the window does not turn flat whenever it is
+  not frontmost), with a theme-tuned scrim between material and content. The
+  scrim is tuned to a measurement, not to taste: over the worst backdrop on
+  this desk — a saturated red widget bleeding through — the quiet line held
+  4.3:1 in dark and fell to 2.4:1 in light; with the scrim, dark is 6.4:1 and
+  light is 2.3:1 against an opaque-window baseline of 2.2:1, measured with the
+  same instrument on the same text — parity, not regression, and the captions
+  are at 7.6:1. The badge went back to the flat capsule: a glass capsule on a
+  translucent backdrop merges into it, measured on the 18 August prototype.
+  On macOS 14 the window most likely stays opaque (`containerBackground` for
+  windows is macOS 15) — unverified, and the degradation is yesterday's
+  window.
+
 ### Fixed
 
 - **A Homebrew upgrade puts the status line back by itself.** Every upgrade

@@ -166,7 +166,11 @@ struct StatusView: View {
             .foregroundStyle(badgeColor)
             .lineLimit(1)
             .fixedSize()
-            .modifier(BadgeSurface(tone: badgeColor))
+            // Flat, not glass, since the window went translucent: a glass
+            // capsule on a translucent material merges into it — measured on
+            // 18 August 2026 when the badge sat on the glass prototype — and
+            // a state badge that cannot be seen is not a badge.
+            .background(badgeColor.opacity(0.18), in: Capsule())
     }
 
     /// A hash mismatch raises the badge regardless of how fresh the data is:
@@ -469,24 +473,3 @@ enum StatusAction: CaseIterable {
     var label: some View { Label(title, systemImage: symbol) }
 }
 
-// MARK: - The badge's surface
-
-/// Liquid Glass where there is Liquid Glass, the flat capsule everywhere else.
-///
-/// A modifier rather than an `if` inside the badge so that the two branches
-/// cannot drift apart in padding or shape: both receive the same view and
-/// differ only in what is behind it. `glassEffect(_:in:)` —
-/// `apple/swiftui-glasseffect.md` — is macOS 26 and later; the tint is the
-/// tone at the strength the flat capsule used, so the two look like the same
-/// badge in two materials rather than two badges.
-private struct BadgeSurface: ViewModifier {
-    let tone: Color
-
-    func body(content: Content) -> some View {
-        if #available(macOS 26, *) {
-            content.glassEffect(.regular.tint(tone.opacity(0.18)), in: .capsule)
-        } else {
-            content.background(tone.opacity(0.18), in: Capsule())
-        }
-    }
-}
