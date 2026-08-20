@@ -112,6 +112,15 @@ struct StatusView: View {
             Button { model.refresh() } label: { StatusAction.refresh.label }
                 .help(StatusAction.refresh.title)
         }
+        // Two guards, for two different questions. `#available` answers "is
+        // this running on macOS 26" and is not enough on its own: it guards
+        // execution, and `ToolbarSpacer` has to *compile* first — against the
+        // macOS 15 SDK of the Xcode 16.2 that CI's macOS 14 runner uses, the
+        // name does not exist and the build fails, which is exactly how main
+        // stood red for three days before anyone looked at the badge. Swift
+        // has no `#if sdk(...)`, so the compiler version stands in for the
+        // SDK: Xcode 26 ships Swift ≥ 6.2, Xcode 16.2 ships 6.0.
+        #if compiler(>=6.2)
         if #available(macOS 26, *) {
             // The gap that makes two groups two panes of glass rather than one.
             // Without it the system merges adjacent groups of the same
@@ -120,6 +129,7 @@ struct StatusView: View {
             // neighbour describes existed only in the source.
             ToolbarSpacer(.fixed, placement: .primaryAction)
         }
+        #endif
         ToolbarItemGroup(placement: .primaryAction) {
             Button(role: .destructive) { showsRemoval = true } label: { StatusAction.remove.label }
                 .help(StatusAction.remove.title)
