@@ -177,6 +177,7 @@ targets:
         excludes: [Baselines, Fixtures]
       - path: Shared
       - path: App/Installer.swift
+      - path: App/UpgradeRepair.swift
       - path: App/SettingsEditor.swift
       - path: App/SnapshotWatcher.swift
       - path: App/StatusModel.swift

@@ -204,19 +204,25 @@ registration belongs to `SMAppService`, and neither a shell script nor Homebrew'
 own login-item removal can reach it — what is left is an entry in System Settings
 that cannot start anything, because the app it points at is gone.
 
-**Upgrading through Homebrew clears the status-line setup, and you have to press
-Set up automatically again.** Not a bug in your Mac and not something the new
-version does: `brew upgrade` runs the *installed* version's uninstaller before
-replacing the app. Homebrew sorts the `uninstall` stanza ahead of the app on
-purpose, and the only directive it skips during an upgrade is `signal` — see
-`UPGRADE_REINSTALL_SKIP_DIRECTIVES` in its own
-`Library/Homebrew/cask/artifact/uninstall.rb`. Your prompt keeps working, which
-is the part the uninstaller is careful about; the widget just stops being fed
-until you set it up again.
+**Upgrading through Homebrew repairs the status-line setup by itself** (from
+0.3.5; on 0.3.4 and earlier you have to press Set up automatically again after
+every upgrade). The mechanics have not changed — `brew upgrade` still runs the
+*installed* version's uninstaller before replacing the app, and that still
+removes the exporter and the `statusLine` key; Homebrew sorts the `uninstall`
+stanza ahead of the app on purpose, and the only directive it skips during an
+upgrade is `signal` — see `UPGRADE_REINSTALL_SKIP_DIRECTIVES` in its own
+`Library/Homebrew/cask/artifact/uninstall.rb`. What changed is the aftermath:
+the cask now runs the freshly installed app with `--reinstall-exporter`, which
+puts back exactly what the uninstaller removed and nothing else. It refuses in
+two cases, on purpose: when you removed the widget through **Remove…** — the
+app leaves a marker recording that choice, and an upgrade must not overrule it
+— and when the exporter on disk is not the one the app wrote, because a
+hand-modified file is something to look at, not something to overwrite quietly.
 
-The setup screen says so from 0.3.4: when it finds data from an earlier setup it
-tells you the configuration was removed rather than never made, instead of
-greeting you as a new arrival. Moving the removal to Homebrew's `zap` stanza was
+If the setup screen greets you anyway, the repair had nothing to restore or
+refused for one of those reasons; when it finds data from an earlier setup it
+says the configuration was removed rather than never made, instead of greeting
+you as a new arrival. Moving the removal to Homebrew's `zap` stanza was
 considered and rejected — it would make a plain `brew uninstall` leave the
 exporter running in your prompt for good, which is a worse thing to be quiet
 about than a button press.

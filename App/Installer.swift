@@ -110,6 +110,14 @@ struct Installer {
     /// needs somewhere else to keep the hash, and nothing in this project has
     /// that today.
     var integrityURL: URL { claudeDirectory.appending(path: ".ccwidget-export.sha256") }
+    /// The marker **Remove…** leaves and setup clears: "a person chose this".
+    /// Without it, a machine after Remove-keeping-history is byte-for-byte a
+    /// machine an upgrade tore down, and the upgrade repair would undo the
+    /// person's decision. See `UpgradeRepair.decision`.
+    var removedByChoiceURL: URL { claudeDirectory.appending(path: ".ccwidget-removed-by-user") }
+    var removedByChoiceMarkerExists: Bool {
+        FileManager.default.fileExists(atPath: removedByChoiceURL.path(percentEncoded: false))
+    }
 
     /// How many backups to keep. A backup holds someone's configuration;
     /// hoarding them serves nobody, and old ones go stale besides.
@@ -373,6 +381,8 @@ struct Installer {
         try writeExporter(interpreter: interpreter, chaining: chained)
         let backup = try backupSettings()
         let surgical = try writeStatusLine()
+        // Setting up is the opposite decision; the marker stops standing.
+        try? FileManager.default.removeItem(at: removedByChoiceURL)
         return Report(backup: backup, editWasSurgical: surgical, interpreter: interpreter)
     }
 
@@ -736,6 +746,8 @@ struct Installer {
         let fm = FileManager.default
         let exporterRemoved = (try? fm.removeItem(at: exporterURL)) != nil
         try? fm.removeItem(at: integrityURL)
+        // The person pressed Remove; the upgrade repair must not undo it.
+        fm.createFile(atPath: removedByChoiceURL.path(percentEncoded: false), contents: Data())
 
         var historyRemoved = false
         if removingHistory {

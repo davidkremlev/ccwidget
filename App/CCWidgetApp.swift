@@ -63,7 +63,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-@main
+// No `@main`: the entry is `main.swift`, which answers `--reinstall-exporter`
+// before AppKit starts and calls `CCWidgetApp.main()` for the ordinary launch.
 struct CCWidgetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 

@@ -1301,14 +1301,14 @@ Seen after clicking the widget, and during setup.
 | Simplified Chinese | 本应用 |
 
 
-**`This Mac has data from an earlier setup, so the configuration was removed rather than never made. Upgrading or removing through Homebrew clears it; setting up again is all it takes, and the history you have collected is kept.`**
+**`This Mac has data from an earlier setup, so the configuration was removed rather than never made. Setting up again is all it takes, and the history you have collected is kept.`**
 
 | | |
 |---|---|
-| German | Auf diesem Mac liegen Daten einer früheren Einrichtung — die Konfiguration wurde also entfernt und nicht nie vorgenommen. Ein Upgrade oder eine Deinstallation über Homebrew entfernt sie; erneutes Einrichten genügt, der gesammelte Verlauf bleibt erhalten. |
-| Spanish | Este Mac tiene datos de una configuración anterior, así que la configuración se eliminó en lugar de no haberse hecho nunca. Actualizar o desinstalar con Homebrew la borra; basta con volver a configurarla y el historial recopilado se conserva. |
-| Japanese | この Mac には以前の設定のデータがあります。つまり設定は削除されたのであって、未設定だったわけではありません。Homebrew での更新や削除は設定を消します。もう一度設定するだけで済み、集めた履歴は保持されます。 |
-| Simplified Chinese | 这台 Mac 上有先前设置留下的数据，也就是说配置被移除了，而不是从未设置。通过 Homebrew 升级或卸载都会清除配置；重新设置一次即可，已收集的历史会保留。 |
+| German | Auf diesem Mac liegen Daten einer früheren Einrichtung — die Konfiguration wurde also entfernt, nicht nie vorgenommen. Einfach erneut einrichten; die gesammelte Historie bleibt erhalten. |
+| Spanish | Este Mac tiene datos de una configuración anterior, así que la configuración fue eliminada, no es que nunca se hiciera. Basta con configurar de nuevo; el historial recopilado se conserva. |
+| Japanese | このMacには以前のセットアップのデータがあります。つまり設定は削除されたのであって、一度も行われなかったわけではありません。もう一度セットアップするだけで、収集した履歴は保持されます。 |
+| Simplified Chinese | 这台 Mac 上有先前设置留下的数据——说明配置是被移除了，而不是从未设置过。只需重新设置即可；已收集的历史记录会保留。 |
 
 
 **`This widget reads the Claude Code status line, so the terminal version has to be installed and used at least once.`**

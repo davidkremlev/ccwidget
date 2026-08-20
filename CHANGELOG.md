@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A Homebrew upgrade puts the status line back by itself.** Every upgrade
+  runs the installed version's uninstaller, which removes the exporter and the
+  `statusLine` key — correctly, so a plain `brew uninstall` leaves no orphaned
+  status line — and until now every upgrade therefore ended with a person
+  opening the window and pressing Set up again. The cask's postflight now runs
+  the new binary with `--reinstall-exporter`: a headless run that restores
+  setup when the tear-down was the upgrade's own and exits without a window in
+  a tenth of a second. It refuses, on purpose, when **Remove…** was pressed —
+  the app leaves a marker recording that choice, and setting up again clears
+  it — and when the exporter on disk is hand-modified, which the window's
+  banner must show rather than a script overwrite. Measured end to end on the
+  live machine: bundled uninstaller, then the flag — key and exporter back,
+  hash matching, second run a no-op. The setup screen's note no longer blames
+  Homebrew for cleared configuration, because from 0.3.5 it no longer clears
+  it.
+
 - **The setup screen's last step has a way out.** "Live data is coming in"
   offered nothing to press: the window swaps to the status view only when the
   app becomes active again, so finishing setup and staying in the app left the

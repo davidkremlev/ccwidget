@@ -149,16 +149,16 @@ struct OnboardingView: View {
     /// Somebody who has used this before is not a new arrival, and the screen
     /// used to treat them as one.
     ///
-    /// A Homebrew upgrade removes the configuration on its way past, so the
-    /// person most likely to see this screen twice is somebody who did nothing
-    /// wrong and has weeks of history sitting on disk. No cause is named — the
-    /// Remove button leaves exactly the same state behind — and the mechanism
-    /// that most often explains it is stated as a general fact rather than as a
-    /// diagnosis.
+    /// No cause is named, and since 21 August 2026 the sentence no longer
+    /// blames Homebrew: upgrades repair setup on their own now (the cask's
+    /// postflight runs `--reinstall-exporter`), so the people left seeing
+    /// this screen are the ones who pressed Remove — whose marker the repair
+    /// honours — or whose repair failed. Naming a mechanism would be a guess
+    /// dressed up as a diagnosis for both.
     @ViewBuilder
     private var setUpBeforeNote: some View {
         if installer.hasDataFromBefore {
-            Label("This Mac has data from an earlier setup, so the configuration was removed rather than never made. Upgrading or removing through Homebrew clears it; setting up again is all it takes, and the history you have collected is kept.",
+            Label("This Mac has data from an earlier setup, so the configuration was removed rather than never made. Setting up again is all it takes, and the history you have collected is kept.",
                   systemImage: "clock.arrow.circlepath")
                 .font(.caption)
                 .foregroundStyle(.secondary)
