@@ -117,16 +117,36 @@ struct RootView: View {
                 // The completion is the third way the answer can change; the
                 // other two — appearing, and the app becoming active — cannot
                 // see a setup that finishes inside this very window.
-                OnboardingView(onFinished: { isConfigured = Self.configured })
+                OnboardingView(onFinished: { recheck("the setup screen's button") })
             }
         }
-        .onAppear { isConfigured = Self.configured }
+        .onAppear { recheck("appearing") }
         // Setup can happen in another process — the user may have edited
         // statusLine by hand — so re-check whenever we regain focus.
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification
         )) { _ in
-            isConfigured = Self.configured
+            recheck("activation")
+        }
+    }
+
+    /// One place for the three triggers, and a log line when the answer
+    /// changes — naming which trigger changed it.
+    ///
+    /// The line exists because its absence cost half an hour on 21 August
+    /// 2026: the window swapped from the setup screen to the status view
+    /// while two of the triggers were plausible, and nothing recorded which
+    /// one had fired. The trigger is a difference visible only to a
+    /// maintainer, and that is a legitimate difference to keep. Silent when
+    /// nothing changes: activation fires on every ⌘-Tab, and a log that says
+    /// "still configured" a hundred times a day is a log nobody reads.
+    private func recheck(_ trigger: String) {
+        let was = isConfigured
+        isConfigured = Self.configured
+        if isConfigured != was {
+            ccwidgetStoreLog.notice(
+                "window switched to \(isConfigured ? "status" : "setup", privacy: .public) on \(trigger, privacy: .public)"
+            )
         }
     }
 
